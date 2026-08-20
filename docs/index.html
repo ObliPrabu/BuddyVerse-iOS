@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BuddyVerse — The Buddy Maker (iOS)</title>
+<meta name="description" content="BuddyVerse is a native SwiftUI iOS app with 26 mini-games plus AI-generated conversation starters — local pass-and-play, vs-bot, and real internet multiplayer.">
+<link rel="icon" href="assets/icon-180.png">
+<style>
+  :root {
+    --bg: #f5f6fb;
+    --bg-alt: #ffffff;
+    --text: #1a1a2e;
+    --text-muted: #52526b;
+    --accent: #4CAF50;
+    --accent-2: #03A9F4;
+    --premium: #E91E63;
+    --premium-header: #FFC107;
+    --card-border: rgba(0,0,0,0.08);
+    --pill-bg: rgba(26,26,46,0.06);
+    --hero-grad-start: #1A237E;
+    --hero-grad-end: #283593;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f0f1a;
+      --bg-alt: #171727;
+      --text: #f2f2f7;
+      --text-muted: #b8b8cc;
+      --card-border: rgba(255,255,255,0.08);
+      --pill-bg: rgba(255,255,255,0.08);
+      --hero-grad-start: #4A0E2E;
+      --hero-grad-end: #1A237E;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+  header.hero {
+    background: linear-gradient(135deg, var(--hero-grad-start), var(--hero-grad-end) 60%, #00838F);
+    color: #fff;
+    padding: 72px 0 56px;
+  }
+  .hero-inner {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .hero-icon {
+    width: 120px;
+    height: 120px;
+    border-radius: 26px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+    flex-shrink: 0;
+  }
+  .hero-text h1 {
+    margin: 0 0 6px;
+    font-size: 44px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .hero-text .tagline {
+    margin: 0 0 16px;
+    font-size: 20px;
+    font-style: italic;
+    color: #E0F7FA;
+  }
+  .hero-text p.desc {
+    margin: 0;
+    max-width: 560px;
+    color: #E3F2FD;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .badges {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .cta-row {
+    margin-top: 28px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-block;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 15px;
+    text-decoration: none;
+    transition: transform 0.15s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: #fff; color: #1A237E; }
+  .btn-secondary { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.4); }
+
+  main { padding: 56px 0 80px; }
+
+  section { margin-bottom: 56px; }
+  section h2 {
+    font-size: 26px;
+    font-weight: 800;
+    margin: 0 0 6px;
+  }
+  section .section-sub {
+    color: var(--text-muted);
+    margin: 0 0 24px;
+    font-size: 15px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+  }
+  .stat-card {
+    background: var(--bg-alt);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-card .num { font-size: 30px; font-weight: 800; color: var(--accent-2); }
+  .stat-card .label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  .game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .game-card {
+    background: var(--bg-alt);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .game-card .title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+  .game-card .sub { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
+  .game-card.connect { border-left: 4px solid var(--accent-2); }
+  .game-card.free { border-left: 4px solid var(--accent); }
+  .game-card.premium { border-left: 4px solid var(--premium); }
+
+  .pill-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    background: var(--pill-bg);
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+  }
+  .feature {
+    background: var(--bg-alt);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 22px;
+  }
+  .feature .emoji { font-size: 28px; margin-bottom: 10px; display: block; }
+  .feature h3 { margin: 0 0 6px; font-size: 16px; }
+  .feature p { margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+
+  footer {
+    border-top: 1px solid var(--card-border);
+    padding: 28px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  footer a { color: var(--text-muted); }
+
+  a.repo-link { color: var(--accent-2); font-weight: 600; text-decoration: none; }
+  a.repo-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <img class="hero-icon" src="assets/icon-180.png" alt="BuddyVerse app icon">
+    <div class="hero-text">
+      <h1>BuddyVerse</h1>
+      <p class="tagline">The Buddy Maker</p>
+      <p class="desc">A friendly way to make friends. New at school or sitting alone at lunch? Pick a joke, a riddle, a big question, or a game — BuddyVerse makes saying "hi" a whole lot easier.</p>
+      <div class="badges">
+        <span class="badge">✨ No sign up</span>
+        <span class="badge">📱 Works on any device</span>
+        <span class="badge">🎮 100% original games</span>
+        <span class="badge">🧠 Native SwiftUI, iOS 14+</span>
+      </div>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/ObliPrabu/BuddyVerse-iOS">View on GitHub</a>
+        <a class="btn btn-secondary" href="https://github.com/ObliPrabu/BuddyVerse-iOS#readme">Build instructions</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="num">100+</div><div class="label">Jokes</div></div>
+      <div class="stat-card"><div class="num">100+</div><div class="label">Riddles</div></div>
+      <div class="stat-card"><div class="num">100+</div><div class="label">Trivia facts</div></div>
+      <div class="stat-card"><div class="num">18</div><div class="label">Original games</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Built for how people actually connect</h2>
+    <p class="section-sub">Local pass-and-play, vs-bot, and real internet multiplayer — a native SwiftUI port of the Android BuddyVerse app, sharing the same Firebase backend.</p>
+    <div class="feature-grid">
+      <div class="feature">
+        <span class="emoji">🤝</span>
+        <h3>Pass-and-play</h3>
+        <p>Hand the phone back and forth — no accounts, no setup, just play.</p>
+      </div>
+      <div class="feature">
+        <span class="emoji">🤖</span>
+        <h3>Play vs. the bot</h3>
+        <p>Every game works solo too, with adjustable difficulty.</p>
+      </div>
+      <div class="feature">
+        <span class="emoji">🌐</span>
+        <h3>Real multiplayer</h3>
+        <p>Room-code based online play over the same Firebase project as the Android app.</p>
+      </div>
+      <div class="feature">
+        <span class="emoji">🤍</span>
+        <h3>AI conversation starters</h3>
+        <p>Gemini-generated jokes, riddles, trivia, and conversation prompts to break the ice.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Connect Together (Without Games)</h2>
+    <p class="section-sub">Quick icebreakers — no board, no rules, just a prompt to talk about.</p>
+    <div class="game-grid">
+      <div class="game-card connect"><div class="title">😄 Jokes</div><div class="sub">Tell a quick joke to get a laugh and break the silence.</div></div>
+      <div class="game-card connect"><div class="title">🤔 Riddles</div><div class="sub">Stump a new friend, then enjoy the "aha!" together.</div></div>
+      <div class="game-card connect"><div class="title">🧠 Trivia</div><div class="sub">Surprising facts you can share — and maybe change a mind.</div></div>
+      <div class="game-card connect"><div class="title">💬 Conversation Starters</div><div class="sub">Pick a side, say why. See what everyone else thinks.</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>🎮 Connect Together With Games</h2>
+    <p class="section-sub">Free, always-available games for two or a solo round against the bot.</p>
+    <div class="game-grid">
+      <div class="game-card free"><div class="title">❌ Tic-Tac-Toe</div><div class="sub">Classic 3-in-a-row vs. the computer.</div></div>
+      <div class="game-card free"><div class="title">✊ Rock Paper Scissors</div><div class="sub">Best of 5 against the computer.</div></div>
+      <div class="game-card free"><div class="title">🔢 Sudoku</div><div class="sub">Fill the grid 1–9. Three difficulty levels.</div></div>
+      <div class="game-card free"><div class="title">🧭 Amazing Maze</div><div class="sub">Find your way from start to finish. Arrows, WASD, or swipe.</div></div>
+      <div class="game-card free"><div class="title">✋ Count to 21</div><div class="sub">Don't be the one to say 21! Learn the secret trick.</div></div>
+      <div class="game-card free"><div class="title">🔤 Word Search</div><div class="sub">Find the hidden words. Pick a new theme any time.</div></div>
+      <div class="game-card free"><div class="title">🧩 Memory Match</div><div class="sub">Flip the cards and find every pair.</div></div>
+      <div class="game-card free"><div class="title">🎵 Memory Sequence</div><div class="sub">Watch &amp; repeat the growing pattern.</div></div>
+      <div class="game-card free"><div class="title">🔀 Slide Puzzle</div><div class="sub">Slide the numbers back into order.</div></div>
+      <div class="game-card free"><div class="title">🪢 Hangman</div><div class="sub">Guess the word before the stickman is made.</div></div>
+      <div class="game-card free"><div class="title">⚡ Math Sprint</div><div class="sub">Beat the clock with mental math. 3 levels.</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Premium Expeditions</h2>
+    <p class="section-sub">Longer-form tug-of-war adventures across eleven expedition themes.</p>
+    <div class="pill-list">
+      <span class="pill">🚀 Space Explorer</span>
+      <span class="pill">🐒 Jungle Run</span>
+      <span class="pill">🌊 Ocean Dive</span>
+      <span class="pill">🏔️ Mountain Climb</span>
+      <span class="pill">🏜️ Desert Trek</span>
+      <span class="pill">🌋 Volcano Climb</span>
+      <span class="pill">Arctic Trek</span>
+      <span class="pill">🦁 Savanna Safari</span>
+      <span class="pill">🕯️ Cave Explorer</span>
+      <span class="pill">🐊 Swamp Trek</span>
+      <span class="pill">⚡ Storm Chase</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Under the hood</h2>
+    <p class="section-sub">For anyone poking at the code.</p>
+    <div class="feature-grid">
+      <div class="feature">
+        <h3>Native SwiftUI</h3>
+        <p>Scaffolded and ported from the Android Kotlin source directly, mirroring its architecture 1:1 where iOS conventions allow.</p>
+      </div>
+      <div class="feature">
+        <h3>iOS 14.0+</h3>
+        <p>Deployment target deliberately lowered to run on older, hardware-capped devices.</p>
+      </div>
+      <div class="feature">
+        <h3>Shared Firebase backend</h3>
+        <p>Same Firebase project as the Android app for real-time multiplayer, so players on either platform can play together.</p>
+      </div>
+      <div class="feature">
+        <h3>xcodegen-managed project</h3>
+        <p><code>project.yml</code> is the source of truth for the Xcode project — no committed <code>.xcodeproj</code>.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="wrap">
+  <footer>
+    <span>BuddyVerse (iOS edition) — a SwiftUI port of the Android BuddyVerse app.</span>
+    <a class="repo-link" href="https://github.com/ObliPrabu/BuddyVerse-iOS">github.com/ObliPrabu/BuddyVerse-iOS</a>
+  </footer>
+</div>
+
+</body>
+</html>
