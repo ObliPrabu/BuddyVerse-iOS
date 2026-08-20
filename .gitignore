@@ -1,0 +1,16 @@
+.DS_Store
+build/
+DerivedData/
+*.xcodeproj
+!default.xcodeproj
+.swiftpm/
+.build/
+xcuserdata/
+*.xcuserstate
+BuddyVerse.xcodeproj/xcuserdata/
+BuddyVerse.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Secrets - never commit these
+BuddyVerse/Resources/Secrets.plist
+BuddyVerse/Resources/GoogleService-Info.plist
+.claude/settings.local.json
