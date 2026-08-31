@@ -310,10 +310,12 @@ final class InternetConnectionManager {
             return nil
         }) { [weak self] _, error in
             guard let self, session == self.sessionId else {
-                // Cancelled while in flight - back out of the room we just
+                // Cancelled while in flight - back out of the seat we just
                 // joined instead of leaving a ghost seat nobody's actually
-                // sitting in.
-                docRef.updateData(["status": "ended"])
+                // sitting in. Only remove OUR OWN seat, not the whole room -
+                // the host and anyone else already in it must keep playing
+                // uninterrupted.
+                self?.removeSelf(from: docRef, playerId: guestId)
                 return
             }
             if let error {
@@ -454,6 +456,11 @@ final class InternetConnectionManager {
     }
 
     /// Call when leaving the game/lobby so the room is cleaned up properly.
+    /// The HOST owns the room's lifecycle - them leaving ends it for
+    /// everyone, same as always. A GUEST leaving must only vacate their own
+    /// seat: the room, its messages, and everyone else still in it need to
+    /// keep going untouched, otherwise one guest backing out mid-game would
+    /// disconnect the host and every other guest too.
     func stop() {
         sessionId += 1
         roomListener?.remove()
@@ -463,17 +470,22 @@ final class InternetConnectionManager {
 
         if let code = roomCode {
             let roomRef = db.collection("rooms").document(code)
-            // Mark "ended" first so everyone else's live listener reliably
-            // sees it, then delete the messages subcollection and the room
-            // doc itself so a later reuse of this code never inherits stale
-            // messages and the rooms collection doesn't grow unbounded.
-            roomRef.updateData(["status": "ended"])
-            roomRef.collection("messages").getDocuments { snapshot, _ in
-                guard let snapshot else { return }
-                let batch = self.db.batch()
-                for doc in snapshot.documents { batch.deleteDocument(doc.reference) }
-                batch.deleteDocument(roomRef)
-                batch.commit()
+            if myRole == "HOST" {
+                // Mark "ended" first so everyone else's live listener
+                // reliably sees it, then delete the messages subcollection
+                // and the room doc itself so a later reuse of this code
+                // never inherits stale messages and the rooms collection
+                // doesn't grow unbounded.
+                roomRef.updateData(["status": "ended"])
+                roomRef.collection("messages").getDocuments { snapshot, _ in
+                    guard let snapshot else { return }
+                    let batch = self.db.batch()
+                    for doc in snapshot.documents { batch.deleteDocument(doc.reference) }
+                    batch.deleteDocument(roomRef)
+                    batch.commit()
+                }
+            } else if let id = myId {
+                removeSelf(from: roomRef, playerId: id)
             }
         }
 
@@ -491,6 +503,26 @@ final class InternetConnectionManager {
         onDisconnected = nil
         bufferingEnabled = true
         messageBuffer.removeAll()
+    }
+
+    // Transaction-based (like joinRoomAfterAuth's own seat-grab) so a guest
+    // leaving can't race another guest joining/leaving that same instant and
+    // silently drop the wrong seat or resurrect a seat someone else already removed.
+    private func removeSelf(from roomRef: DocumentReference, playerId: String) {
+        db.runTransaction({ transaction, errorPointer -> Any? in
+            let snapshot: DocumentSnapshot
+            do {
+                snapshot = try transaction.getDocument(roomRef)
+            } catch let error as NSError {
+                errorPointer?.pointee = error
+                return nil
+            }
+            guard snapshot.exists else { return nil }
+            let existingPlayers = (snapshot.get("players") as? [[String: String]]) ?? []
+            let updatedPlayers = existingPlayers.filter { $0["id"] != playerId }
+            transaction.updateData(["players": updatedPlayers], forDocument: roomRef)
+            return nil
+        }, completion: { _, _ in })
     }
 
     // Numbers only, so it's quick to read off one phone and type into another.
