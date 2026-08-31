@@ -23,7 +23,15 @@ struct FriendTypeChoiceView: View {
                 Text("Choose how to play:")
                     .font(.system(size: 20))
                     .foregroundColor(.white)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, GameCatalog.realMultiplayerGames.contains(gameType) ? 10 : 40)
+
+                if GameCatalog.realMultiplayerGames.contains(gameType) {
+                    Text("Play this with a friend (Recommended)")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(Color(hex: 0xFFEB3B))
+                        .multilineTextAlignment(.center)
+                        .padding(.bottom, 30)
+                }
 
                 Button {
                     router.push(.instructionsChoice(GameSelection(gameType: gameType, isBot: false)))

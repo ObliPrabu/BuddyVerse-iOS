@@ -286,7 +286,7 @@ struct HangmanView: View {
         isSpectator = isPicker()
         if isSpectator {
             wordEntryInput = ""
-            let guesserNames = players.enumerated().filter { $0.offset != pickerIndex % players.count }.map { $0.element.name }
+            let guesserNames = players.isEmpty ? [] : players.enumerated().filter { $0.offset != pickerIndex % players.count }.map { $0.element.name }
             let guesserLabel = guesserNames.count <= 1 ? (guesserNames.first ?? "your friend") : "the group"
             wordEntryPrompt = "Pick a secret word for \(guesserLabel) to guess!"
             submitButtonLabel = "Submit Word"

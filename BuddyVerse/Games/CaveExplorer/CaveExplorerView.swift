@@ -267,7 +267,11 @@ final class CaveExplorerViewModel: ObservableObject {
             roundOver = CaveRoundOverInfo(message: "\(name) ran out of light at \(depth)m! \(name) LOSES! \(winner) WINS! 🏆")
             torchLight = 100
             depth = 0
-            isPlayerTurn = true
+            // Whoever just ran out of light doesn't automatically go first
+            // again - toggling (not forcing true) hands the opening move to
+            // whoever didn't just lose, matching the nearby-multiplayer
+            // branch's fairness rule.
+            isPlayerTurn.toggle()
         } else {
             isPlayerTurn.toggle()
 

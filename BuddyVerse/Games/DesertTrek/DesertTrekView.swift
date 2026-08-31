@@ -258,7 +258,11 @@ final class DesertTrekViewModel: ObservableObject {
             roundOver = DesertRoundOverInfo(message: "\(name) ran out of water at \(distance)km! \(name) LOSES! \(winner) WINS! 🏆")
             water = 100
             distance = 0
-            isPlayerTurn = true
+            // Whoever just ran out of water doesn't automatically go first
+            // again - toggling (not forcing true) hands the opening move to
+            // whoever didn't just lose, matching the nearby-multiplayer
+            // branch's fairness rule.
+            isPlayerTurn.toggle()
         } else {
             isPlayerTurn.toggle()
 

@@ -7,12 +7,7 @@ enum StripeConfig {
 
     // Recurring subscriptions for unlimited premium game access.
     static let subscriptionMonthlyPaymentLinkURL = "https://buy.stripe.com/test_5kQ5kEgFk8UW76cgTFbAs00"
-    // NOTE: LobbyView/activity_lobby.xml's copy says "$40 / year", but this
-    // Payment Link is still the original $44/year one - the amount actually
-    // charged is whatever price this URL's Stripe Payment Link is configured
-    // for, not anything set in app code. Update the Payment Link itself (or
-    // swap in a new $40/year one) in the Stripe Dashboard so the two match.
-    static let subscriptionYearlyPaymentLinkURL = "https://buy.stripe.com/test_7sYaEYfBg0oq3U06f1bAs01"
+    static let subscriptionYearlyPaymentLinkURL = "https://buy.stripe.com/test_fZu14o0Gmgno3U05aXbAs02"
 
     // Both Payment Links' "After payment" redirect (set in the Stripe
     // Dashboard) points at this real site - PaymentWebView watches for its

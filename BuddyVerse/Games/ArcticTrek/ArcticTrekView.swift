@@ -292,7 +292,11 @@ final class ArcticTrekViewModel: ObservableObject {
             roundOver = ArcticRoundOverInfo(message: "\(name) froze at \(distance)km! \(name) LOSES! \(winner) WINS! 🏆")
             warmth = 100
             distance = 0
-            isPlayerTurn = true
+            // Whoever just froze doesn't automatically go first again -
+            // toggling (not forcing true) hands the opening move to
+            // whoever didn't just freeze, matching the nearby-multiplayer
+            // branch's fairness rule above.
+            isPlayerTurn.toggle()
         } else {
             isPlayerTurn.toggle()
 

@@ -225,10 +225,16 @@ struct CountTo21View: View {
         currentCount += num
 
         if currentCount >= 21 {
-            let loser = players[turnIndex % players.count]
-            let iLost = loser.id == myId
-            showToast(iLost ? "You reached \(currentCount)! YOU LOSE!" : "\(loser.name) reached \(currentCount)! YOU WIN!")
-            if !iLost { confetti.start() }
+            // Defensive guard, matching the isEmpty checks a few lines below -
+            // players should never actually be empty by the time a nearby
+            // game screen is running, but an unguarded % here would crash
+            // outright if it somehow were.
+            if !players.isEmpty {
+                let loser = players[turnIndex % players.count]
+                let iLost = loser.id == myId
+                showToast(iLost ? "You reached \(currentCount)! YOU LOSE!" : "\(loser.name) reached \(currentCount)! YOU WIN!")
+                if !iLost { confetti.start() }
+            }
             // Every phone processes the exact same MOVE stream in the same
             // order, so they reach this ending independently but at the
             // same logical point - advancing the round/starter here keeps
