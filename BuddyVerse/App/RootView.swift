@@ -72,12 +72,14 @@ struct RootView: View {
         switch route {
         case .mainWebsite:
             MainWebsiteView()
-        case .ageGroup(let gameType, let mood):
-            AgeGroupView(gameType: gameType, mood: mood)
+        case .ageGroup(let gameType, let mood, let difficulty):
+            AgeGroupView(gameType: gameType, mood: mood, difficulty: difficulty)
         case .moodSelection(let gameType):
             MoodSelectionView(gameType: gameType)
-        case .aiGenerating(let gameType, let mood, let ageGroup):
-            AiGeneratingView(gameType: gameType, mood: mood, ageGroup: ageGroup)
+        case .difficultySelection(let gameType, let mood):
+            DifficultySelectionView(gameType: gameType, mood: mood)
+        case .aiGenerating(let gameType, let mood, let ageGroup, let difficulty):
+            AiGeneratingView(gameType: gameType, mood: mood, ageGroup: ageGroup, difficulty: difficulty)
         case .onePhoneSelection(let gameType):
             OnePhoneSelectionView(gameType: gameType)
         case .friendTypeChoice(let gameType):

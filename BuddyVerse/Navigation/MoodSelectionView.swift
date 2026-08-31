@@ -47,7 +47,7 @@ struct MoodSelectionView: View {
 
                 ForEach(moods, id: \.value) { mood in
                     Button {
-                        router.push(.ageGroup(gameType: gameType, mood: mood.value))
+                        router.push(.difficultySelection(gameType: gameType, mood: mood.value))
                     } label: {
                         Text(mood.label)
                             .font(.system(size: 16))

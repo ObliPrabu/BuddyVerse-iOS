@@ -1,13 +1,12 @@
 import SwiftUI
 
-/// Mirrors AgeGroupActivity/activity_age_group.xml: same welcome_gradient
-/// background, exact Kid/Adult button colors + emoji copy, and a Back
-/// button - shown right after picking a difficulty, asks whether content
-/// should be written for a kid or an adult.
-struct AgeGroupView: View {
+/// Shown right after picking a mood, before Age Group, for the AI-generated
+/// content flow (Jokes/Riddles/Trivia/Conversation) - picks how challenging
+/// the generated content should be. Same welcome_gradient background and
+/// Easy/Medium/Hard styling as BotDifficultyView, in that fixed order.
+struct DifficultySelectionView: View {
     let gameType: String
     let mood: String
-    let difficulty: String
     @EnvironmentObject private var router: Router
 
     private var gameName: String {
@@ -20,6 +19,12 @@ struct AgeGroupView: View {
         }
     }
 
+    private let difficulties: [(label: String, value: String, color: Color)] = [
+        ("Easy", "EASY", Color(hex: 0x4CAF50)),
+        ("Medium", "MEDIUM", Color(hex: 0xFF9800)),
+        ("Hard", "HARD", Color(hex: 0xF44336))
+    ]
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -29,7 +34,7 @@ struct AgeGroupView: View {
             .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Text("Who's playing?")
+                Text("Select Difficulty")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
@@ -40,33 +45,21 @@ struct AgeGroupView: View {
                     .foregroundColor(Color(hex: 0xE0F7FA))
                     .padding(.bottom, 40)
 
-                Button {
-                    router.push(.aiGenerating(gameType: gameType, mood: mood, ageGroup: "KID", difficulty: difficulty))
-                } label: {
-                    Text("Kid 🧒")
-                        .font(.system(size: 16))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 60)
-                        .background(Color(hex: 0x4CAF50))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                ForEach(difficulties, id: \.value) { difficulty in
+                    Button {
+                        router.push(.ageGroup(gameType: gameType, mood: mood, difficulty: difficulty.value))
+                    } label: {
+                        Text(difficulty.label)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 60)
+                            .background(difficulty.color)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, difficulty.value == "HARD" ? 30 : 10)
                 }
-                .buttonStyle(.plain)
-                .padding(.bottom, 10)
-
-                Button {
-                    router.push(.aiGenerating(gameType: gameType, mood: mood, ageGroup: "ADULT", difficulty: difficulty))
-                } label: {
-                    Text("Adult 🧑")
-                        .font(.system(size: 16))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 60)
-                        .background(Color(hex: 0x2196F3))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                }
-                .buttonStyle(.plain)
-                .padding(.bottom, 30)
 
                 Button {
                     router.pop()

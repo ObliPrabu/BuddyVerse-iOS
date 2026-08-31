@@ -10,6 +10,7 @@ struct AiGeneratingView: View {
     let gameType: String
     let mood: String
     let ageGroup: String
+    let difficulty: String
     @EnvironmentObject private var router: Router
     @State private var isCancelled = false
 
@@ -50,11 +51,11 @@ struct AiGeneratingView: View {
             // appears" behavior back to iOS 14 (the async/await runtime
             // itself back-deploys fine).
             Task {
-                let items = await AiContentService.generate(gameType: gameType, mood: mood, ageGroup: ageGroup)
+                let items = await AiContentService.generate(gameType: gameType, mood: mood, ageGroup: ageGroup, difficulty: difficulty)
                 // Guard against the user having already backed out while the
                 // (up to 12s) network call was still in flight.
                 if !isCancelled {
-                    var selection = GameSelection(gameType: gameType, isBot: false)
+                    var selection = GameSelection(gameType: gameType, difficulty: difficulty, isBot: false)
                     selection.mood = mood
                     selection.ageGroup = ageGroup
                     selection.aiItems = (items?.isEmpty == false) ? items : nil

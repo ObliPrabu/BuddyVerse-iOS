@@ -24,9 +24,10 @@ struct GameSelection: Hashable {
 // back button) is `finish()`.
 enum AppRoute: Hashable {
     case mainWebsite
-    case ageGroup(gameType: String, mood: String)
+    case ageGroup(gameType: String, mood: String, difficulty: String)
     case moodSelection(gameType: String)
-    case aiGenerating(gameType: String, mood: String, ageGroup: String)
+    case difficultySelection(gameType: String, mood: String)
+    case aiGenerating(gameType: String, mood: String, ageGroup: String, difficulty: String)
     case onePhoneSelection(gameType: String)
     case friendTypeChoice(gameType: String)
     case botDifficulty(gameType: String)

@@ -28,10 +28,10 @@ enum AiContentService {
     /// Returns a batch of small JSON strings (one per item) the destination
     /// game screen knows how to decode, or nil if generation failed/was
     /// unavailable so the caller falls back to built-in content.
-    static func generate(gameType: String, mood: String, ageGroup: String) async -> [String]? {
+    static func generate(gameType: String, mood: String, ageGroup: String, difficulty: String) async -> [String]? {
         guard let apiKey else { return nil }
 
-        let prompt = buildPrompt(gameType: gameType, mood: mood, ageGroup: ageGroup)
+        let prompt = buildPrompt(gameType: gameType, mood: mood, ageGroup: ageGroup, difficulty: difficulty)
         let requestBody: [String: Any] = [
             "contents": [["parts": [["text": prompt]]]],
             "generationConfig": ["responseMimeType": "application/json"]
@@ -71,7 +71,7 @@ enum AiContentService {
         }
     }
 
-    private static func buildPrompt(gameType: String, mood: String, ageGroup: String) -> String {
+    private static func buildPrompt(gameType: String, mood: String, ageGroup: String, difficulty: String) -> String {
         let tone: String
         switch mood {
         case "HAPPY": tone = "upbeat, cheerful, and playful"
@@ -87,17 +87,24 @@ enum AiContentService {
             ? "adults. Use more grown-up humor, wordplay, and topics (like work, relationships, or everyday adult life), written a bit more cleverly - but it must still be completely clean and appropriate, no crude or mature content"
             : "kids. Use simple, easy-to-understand words and silly, wholesome humor that a child would enjoy"
 
+        let challenge: String
+        switch difficulty {
+        case "EASY": challenge = "Keep it easy - simple, quick to get, no obscure references or tricky wordplay."
+        case "HARD": challenge = "Make it genuinely challenging - clever, a bit obscure, and worth thinking about."
+        default: challenge = "Keep it medium difficulty - not too easy, not too obscure."
+        }
+
         switch gameType {
         case "JOKES":
-            return "Write 8 short, clean jokes for a party-game app, written for \(audience). The tone should be \(tone). Return ONLY a JSON array, no markdown, no extra text, in exactly this format: [{\"setup\":\"...\",\"punchline\":\"...\"}]"
+            return "Write 8 short, clean jokes for a party-game app, written for \(audience). The tone should be \(tone). \(challenge) Return ONLY a JSON array, no markdown, no extra text, in exactly this format: [{\"setup\":\"...\",\"punchline\":\"...\"}]"
         case "RIDDLES":
-            return "Write 8 fun, clean riddles for a party-game app, written for \(audience). The tone should be \(tone). Return ONLY a JSON array, no markdown, no extra text, in exactly this format: [{\"question\":\"...\",\"answer\":\"...\"}]"
+            return "Write 8 fun, clean riddles for a party-game app, written for \(audience). The tone should be \(tone). \(challenge) Return ONLY a JSON array, no markdown, no extra text, in exactly this format: [{\"question\":\"...\",\"answer\":\"...\"}]"
         case "TRIVIA":
-            return "Write 8 fun, clean trivia questions for a party-game app, written for \(audience), each with exactly 4 multiple choice options where only one is correct. The tone should be \(tone). Return ONLY a JSON array, no markdown, no extra text, in exactly this format: [{\"question\":\"...\",\"options\":[\"...\",\"...\",\"...\",\"...\"],\"answer\":\"...\"}] where \"answer\" is copied exactly, character for character, from one of the options."
+            return "Write 8 fun, clean trivia questions for a party-game app, written for \(audience), each with exactly 4 multiple choice options where only one is correct. The tone should be \(tone). \(challenge) Return ONLY a JSON array, no markdown, no extra text, in exactly this format: [{\"question\":\"...\",\"options\":[\"...\",\"...\",\"...\",\"...\"],\"answer\":\"...\"}] where \"answer\" is copied exactly, character for character, from one of the options."
         case "CONVERSATION":
-            return "Write 8 fun, clean conversation-starter questions for friends to answer and share with each other, for a party-game app, written for \(audience). The tone should be \(tone). Return ONLY a JSON array, no markdown, no extra text, in exactly this format: [{\"question\":\"...\"}]"
+            return "Write 8 fun, clean conversation-starter questions for friends to answer and share with each other, for a party-game app, written for \(audience). The tone should be \(tone). \(challenge) Return ONLY a JSON array, no markdown, no extra text, in exactly this format: [{\"question\":\"...\"}]"
         default:
-            return "Write 8 short, clean, fun questions for a party-game app, written for \(audience). Return ONLY a JSON array in exactly this format: [{\"question\":\"...\"}]"
+            return "Write 8 short, clean, fun questions for a party-game app, written for \(audience). \(challenge) Return ONLY a JSON array in exactly this format: [{\"question\":\"...\"}]"
         }
     }
 }
