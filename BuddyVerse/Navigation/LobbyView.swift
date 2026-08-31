@@ -20,6 +20,11 @@ struct LobbyView: View {
     // caches the result for the rest of the app session, so this is only a
     // real network round trip the first time in a given launch).
     @State private var isCheckingEntitlement = true
+    // Guards against the user having already backed out of this screen
+    // while the entitlement check was still in flight - without this,
+    // router.replaceTop would land on whatever screen they backed into
+    // instead of this one. Same pattern as AiGeneratingView's isCancelled.
+    @State private var isCancelled = false
 
     // activity_lobby.xml has no @color/@drawable references - every color is
     // a literal hex with no values-night override, so this screen looks the
@@ -58,6 +63,7 @@ struct LobbyView: View {
         }
         .navigationBarHidden(true)
         .onAppear { checkEntitlement() }
+        .onDisappear { isCancelled = true }
     }
 
     /// Skips straight past the paywall - same destination PaymentWebView's
@@ -70,11 +76,13 @@ struct LobbyView: View {
             return
         }
         SubscriptionManager.shared.isSubscribed { subscribed in
+            guard !isCancelled else { return }
             if subscribed {
                 router.replaceTop(with: .onePhoneSelection(gameType: gameType))
                 return
             }
             SubscriptionManager.shared.isExpeditionUnlocked(gameType: gameType) { unlocked in
+                guard !isCancelled else { return }
                 if unlocked {
                     router.replaceTop(with: .onePhoneSelection(gameType: gameType))
                 } else {
