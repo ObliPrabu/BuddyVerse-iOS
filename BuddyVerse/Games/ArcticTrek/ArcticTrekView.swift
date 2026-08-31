@@ -295,8 +295,14 @@ final class ArcticTrekViewModel: ObservableObject {
             // Whoever just froze doesn't automatically go first again -
             // toggling (not forcing true) hands the opening move to
             // whoever didn't just freeze, matching the nearby-multiplayer
-            // branch's fairness rule above.
+            // branch's fairness rule above. In vs-bot mode this can toggle
+            // onto the bot's turn, so it needs the exact same
+            // scheduleBotMove() kick the non-loss branch already has below -
+            // without it the bot would never move and the game would hang.
             isPlayerTurn.toggle()
+            if !isPlayerTurn && isBot {
+                scheduleBotMove()
+            }
         } else {
             isPlayerTurn.toggle()
 
