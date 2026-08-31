@@ -34,9 +34,11 @@ final class SubscriptionManager {
 
     private var db: Firestore { Firestore.firestore() }
     private var cachedActive: Bool?
+    private var cachedUnlockedExpeditions: Set<String> = []
 
     func clearCache() {
         cachedActive = nil
+        cachedUnlockedExpeditions = []
     }
 
     /// Checks (and caches for the rest of this app session) whether this account is subscribed.
@@ -73,6 +75,49 @@ final class SubscriptionManager {
         let data: [String: Any] = ["active": true, "plan": plan]
         db.collection("subscriptions").document(uid).setData(data) { [weak self] _ in
             self?.cachedActive = true
+            onDone()
+        }
+    }
+
+    /// Checks (and caches for the rest of this app session) whether this
+    /// account already paid the one-time 50-cent unlock for this specific
+    /// premium game. Unlike a subscription, this never expires/lapses - it's
+    /// a permanent per-game entitlement, stored as one boolean field per
+    /// gameType on a single `expeditionUnlocks/{uid}` doc rather than one doc
+    /// per game, so checking/granting access never needs more than one round trip.
+    func isExpeditionUnlocked(gameType: String, _ onResult: @escaping (Bool) -> Void) {
+        if cachedUnlockedExpeditions.contains(gameType) {
+            onResult(true)
+            return
+        }
+
+        guard let user = Auth.auth().currentUser, !user.isAnonymous else {
+            onResult(false)
+            return
+        }
+
+        db.collection("expeditionUnlocks").document(user.uid).getDocument { [weak self] snapshot, error in
+            guard let self else { return }
+            if error != nil {
+                print("SubscriptionManager: couldn't read expedition unlock status: \(error!)")
+                onResult(false)
+                return
+            }
+            let unlocked = (snapshot?.get(gameType) as? Bool) == true
+            if unlocked { self.cachedUnlockedExpeditions.insert(gameType) }
+            onResult(unlocked)
+        }
+    }
+
+    /// Call once a one-time EXPEDITION Payment Link checkout succeeds for a
+    /// specific game. Requires AuthManager.isLoggedIn().
+    func markExpeditionUnlocked(gameType: String, onDone: @escaping () -> Void) {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            onDone()
+            return
+        }
+        db.collection("expeditionUnlocks").document(uid).setData([gameType: true], merge: true) { [weak self] _ in
+            self?.cachedUnlockedExpeditions.insert(gameType)
             onDone()
         }
     }

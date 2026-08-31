@@ -106,6 +106,7 @@ struct RootView: View {
                 switch premiumSource {
                 case "SUB_MONTHLY": SubscriptionManager.shared.markSubscribed("monthly") { proceedToGame() }
                 case "SUB_YEARLY": SubscriptionManager.shared.markSubscribed("yearly") { proceedToGame() }
+                case "EXPEDITION": SubscriptionManager.shared.markExpeditionUnlocked(gameType: selection.gameType) { proceedToGame() }
                 default: proceedToGame()
                 }
             }

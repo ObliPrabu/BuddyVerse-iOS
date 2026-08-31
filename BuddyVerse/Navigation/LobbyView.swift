@@ -15,6 +15,12 @@ struct LobbyView: View {
     let gameType: String
     @EnvironmentObject private var router: Router
 
+    // Starts true so the paywall never flashes on screen for someone who
+    // already paid - checked once per screen visit (SubscriptionManager
+    // caches the result for the rest of the app session, so this is only a
+    // real network round trip the first time in a given launch).
+    @State private var isCheckingEntitlement = true
+
     // activity_lobby.xml has no @color/@drawable references - every color is
     // a literal hex with no values-night override, so this screen looks the
     // same in light and dark mode.
@@ -28,7 +34,14 @@ struct LobbyView: View {
             baseBg.ignoresSafeArea()
             dimOverlay.ignoresSafeArea()
 
-            centerContent
+            if isCheckingEntitlement {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .accentColor(.white)
+                    .scaleEffect(1.6)
+            } else {
+                centerContent
+            }
 
             VStack {
                 HStack {
@@ -44,6 +57,31 @@ struct LobbyView: View {
             .padding(16)
         }
         .navigationBarHidden(true)
+        .onAppear { checkEntitlement() }
+    }
+
+    /// Skips straight past the paywall - same destination PaymentWebView's
+    /// own success handler uses - if this account already has access,
+    /// whether via an active subscription or having already paid the
+    /// one-time unlock for this specific game.
+    private func checkEntitlement() {
+        guard AuthManager.isLoggedIn() else {
+            isCheckingEntitlement = false
+            return
+        }
+        SubscriptionManager.shared.isSubscribed { subscribed in
+            if subscribed {
+                router.replaceTop(with: .onePhoneSelection(gameType: gameType))
+                return
+            }
+            SubscriptionManager.shared.isExpeditionUnlocked(gameType: gameType) { unlocked in
+                if unlocked {
+                    router.replaceTop(with: .onePhoneSelection(gameType: gameType))
+                } else {
+                    isCheckingEntitlement = false
+                }
+            }
+        }
     }
 
     private var centerContent: some View {
