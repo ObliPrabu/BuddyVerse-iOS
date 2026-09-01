@@ -28,7 +28,16 @@ enum AiContentService {
     /// Returns a batch of small JSON strings (one per item) the destination
     /// game screen knows how to decode, or nil if generation failed/was
     /// unavailable so the caller falls back to built-in content.
+    ///
+    /// Deliberately never calls Gemini at all for ageGroup == "KID": the
+    /// Gemini API's own terms restrict who may access the API to age 18+,
+    /// and this call happens directly from the end user's own device (not a
+    /// backend the developer controls) - so if the person actually using
+    /// this screen is a kid, their device would be the one making that
+    /// request. Kid mode always falls back to the app's built-in static
+    /// content instead, same as any other generation failure.
     static func generate(gameType: String, mood: String, ageGroup: String, difficulty: String) async -> [String]? {
+        guard ageGroup != "KID" else { return nil }
         guard let apiKey else { return nil }
 
         let prompt = buildPrompt(gameType: gameType, mood: mood, ageGroup: ageGroup, difficulty: difficulty)
