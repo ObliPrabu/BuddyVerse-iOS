@@ -79,7 +79,10 @@ struct MemorySequenceView: View {
                 .buttonStyle(.plain)
 
             // btnBackSequence: wrap_content, bg #AADDDDDD, text #333333
-            Button("Back") { router.pop() }
+            HStack(spacing: 10) {
+                Button("Back") { router.pop() }
+                Button("Home") { router.popToRoot() }
+            }
                 .font(.system(size: 14))
                 .foregroundColor(Color(hex: 0x333333))
                 .padding(.horizontal, 16)

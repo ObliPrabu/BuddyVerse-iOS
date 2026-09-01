@@ -71,7 +71,10 @@ struct SavannaSafariView: View {
                     .multilineTextAlignment(.center)
                     .padding(.bottom, 50)
 
-                Button("Back to Menu") { router.pop() }
+                HStack(spacing: 10) {
+                    Button("Back to Menu") { router.pop() }
+                    Button("Home") { router.popToRoot() }
+                }
                     // Android's backgroundTint is #AADDDDDD - alpha 0xAA (~0.667), not fully opaque.
                     .buttonStyle(LegacyBorderedButtonStyle(tint: Color(hex: 0xDDDDDD).opacity(0xAA / 255.0)))
                     .foregroundColor(Color(hex: 0x333333))

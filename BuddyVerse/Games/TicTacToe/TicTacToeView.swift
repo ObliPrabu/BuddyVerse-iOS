@@ -119,7 +119,10 @@ struct TicTacToeView: View {
                     .padding(.bottom, 10)
 
                 // btnBackTTT: wrap_content, backgroundTint #AADDDDDD, textColor #333333
-                Button("Back") { router.pop() }
+                HStack(spacing: 10) {
+                    Button("Back") { router.pop() }
+                    Button("Home") { router.popToRoot() }
+                }
                     .font(.system(size: 14))
                     .foregroundColor(Color(hex: 0x333333))
                     .padding(.horizontal, 16)
@@ -172,11 +175,12 @@ struct TicTacToeView: View {
                 onMessage: { msg in DispatchQueue.main.async { receiveNearbyMessage(msg) } },
                 onDisconnected: { DispatchQueue.main.async { handleOpponentDisconnected() } }
             )
-            // Only send our own HELLO if the buffered replay above didn't
-            // already resolve our role.
-            if !roleAssigned {
-                InternetConnectionManager.shared.sendMessage("\(roundId):HELLO:\(myToken)")
-            }
+            // Always broadcast our own token, even if the buffered replay
+            // above already resolved our role from the opponent's HELLO -
+            // they still need OUR token to resolve theirs. Skipping this
+            // whenever we already knew our role left the other phone stuck
+            // on "Connecting..." forever, since nobody ever told them who we are.
+            InternetConnectionManager.shared.sendMessage("\(roundId):HELLO:\(myToken)")
         }
     }
 

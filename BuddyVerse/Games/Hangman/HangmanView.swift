@@ -145,10 +145,13 @@ struct HangmanView: View {
                         .frame(maxWidth: .infinity)
 
                     // btnBackHangman: weight 1, bg #AADDDDDD, text #333333
-                    Button("Back") { router.pop() }
-                        .buttonStyle(LegacyProminentButtonStyle(tint: Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0)))
-                        .foregroundColor(Color(hex: 0x333333))
-                        .frame(maxWidth: .infinity)
+                    HStack(spacing: 10) {
+                        Button("Back") { router.pop() }
+                        Button("Home") { router.popToRoot() }
+                    }
+                    .buttonStyle(LegacyProminentButtonStyle(tint: Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0)))
+                    .foregroundColor(Color(hex: 0x333333))
+                    .frame(maxWidth: .infinity)
                 }
             }
             .padding(12)

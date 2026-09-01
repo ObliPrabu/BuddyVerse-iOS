@@ -119,7 +119,10 @@ struct SwampTrekView: View {
                     )
                     .padding(.bottom, 30)
 
-                Button("Back to Menu") { router.pop() }
+                HStack(spacing: 10) {
+                    Button("Back to Menu") { router.pop() }
+                    Button("Home") { router.popToRoot() }
+                }
                     .font(.subheadline.bold())
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)

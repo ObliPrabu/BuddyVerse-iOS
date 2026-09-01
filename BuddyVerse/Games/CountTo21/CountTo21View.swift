@@ -121,9 +121,12 @@ struct CountTo21View: View {
                     .foregroundColor(.white)
 
                 // btnBackWelcome: backgroundTint #BDBDBD, textColor #333
-                Button("Back to Welcome") { router.pop() }
-                    .buttonStyle(LegacyProminentButtonStyle(tint: Color(hex: 0xBDBDBD)))
-                    .foregroundColor(Color(hex: 0x333333))
+                HStack(spacing: 10) {
+                    Button("Back to Welcome") { router.pop() }
+                    Button("Home") { router.popToRoot() }
+                }
+                .buttonStyle(LegacyProminentButtonStyle(tint: Color(hex: 0xBDBDBD)))
+                .foregroundColor(Color(hex: 0x333333))
             }
             .padding(20)
 

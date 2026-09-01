@@ -57,11 +57,14 @@ struct MountainClimbView: View {
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .padding(.bottom, 50)
 
-            Button("Back to Menu") { router.pop() }
-                .font(.subheadline.bold())
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(Color(hex: 0xDDDDDD, opacity: 0.67))
+            HStack(spacing: 10) {
+                Button("Back to Menu") { router.pop() }
+                Button("Home") { router.popToRoot() }
+            }
+            .font(.subheadline.bold())
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color(hex: 0xDDDDDD, opacity: 0.67))
                 .foregroundColor(Color(hex: 0x333333))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }

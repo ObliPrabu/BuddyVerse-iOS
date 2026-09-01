@@ -67,10 +67,13 @@ struct MazeGameView: View {
 
             arrowControls
 
-            Button("Back to Menu") { router.pop() }
-                .buttonStyle(LegacyProminentButtonStyle(tint: .white))
-                .foregroundColor(Color(hex: 0x009688))
-                .frame(maxWidth: .infinity)
+            HStack(spacing: 10) {
+                Button("Back to Menu") { router.pop() }
+                Button("Home") { router.popToRoot() }
+            }
+            .buttonStyle(LegacyProminentButtonStyle(tint: .white))
+            .foregroundColor(Color(hex: 0x009688))
+            .frame(maxWidth: .infinity)
         }
         .padding()
         .background(Color(hex: 0x009688).ignoresSafeArea())

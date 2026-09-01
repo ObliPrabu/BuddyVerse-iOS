@@ -47,18 +47,33 @@ struct ConversationView: View {
             screenBg.ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
-                Button {
-                    router.pop()
-                } label: {
-                    Text("Back")
-                        .font(.system(size: 14))
-                        .foregroundColor(buttonTextDark)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(backButtonBg)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                HStack(spacing: 10) {
+                    Button {
+                        router.pop()
+                    } label: {
+                        Text("Back")
+                            .font(.system(size: 14))
+                            .foregroundColor(buttonTextDark)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(backButtonBg)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        router.popToRoot()
+                    } label: {
+                        Text("Home")
+                            .font(.system(size: 14))
+                            .foregroundColor(buttonTextDark)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(backButtonBg)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
                 .padding(.bottom, 10)
 
                 Text("Conversation Starters \u{1F4AC}")

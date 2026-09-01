@@ -92,13 +92,16 @@ struct ArcticTrekView: View {
             .opacity(vm.buttonsEnabled ? 1 : 0.5)
             .padding(.bottom, 20)
 
-            Button("Back to Menu") { router.pop() }
-                .font(.subheadline.bold())
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(Color(hex: 0xDDDDDD, opacity: 0.67))
-                .foregroundColor(Color(hex: 0x333333))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+            HStack(spacing: 10) {
+                Button("Back to Menu") { router.pop() }
+                Button("Home") { router.popToRoot() }
+            }
+            .font(.subheadline.bold())
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color(hex: 0xDDDDDD, opacity: 0.67))
+            .foregroundColor(Color(hex: 0x333333))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

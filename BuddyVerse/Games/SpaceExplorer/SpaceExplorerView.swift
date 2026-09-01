@@ -52,7 +52,10 @@ struct SpaceExplorerView: View {
                     Text("Tap to Move the Rocket!")
                         .foregroundColor(.white)
 
-                    Button("Back") { router.pop() }
+                    HStack(spacing: 10) {
+                        Button("Back") { router.pop() }
+                        Button("Home") { router.popToRoot() }
+                    }
                         .buttonStyle(LegacyProminentButtonStyle(tint: Color(hex: 0x757575)))
                         .foregroundColor(.white)
                         .padding(.bottom, 30)
