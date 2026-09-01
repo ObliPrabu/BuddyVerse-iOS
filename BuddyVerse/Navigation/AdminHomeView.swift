@@ -49,9 +49,44 @@ struct AdminHomeView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 .buttonStyle(.plain)
+                .padding(.bottom, 16)
+
+                // Signing out here (rather than just navigating away) means
+                // the very next tap on this same premium game correctly
+                // hits the normal paywall instead of this screen again -
+                // AuthManager.isAdmin() only ever returns true for a real
+                // signed-in session.
+                Button {
+                    AuthManager.logOut()
+                    router.popToRoot()
+                } label: {
+                    Text("Sign Out")
+                        .font(.system(size: 14))
+                        .foregroundColor(Color(hex: 0xFF8A80))
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 30)
+
+            VStack {
+                HStack {
+                    backButton
+                    Spacer()
+                }
+                Spacer()
+            }
+            .padding(16)
         }
         .navigationBarHidden(true)
+    }
+
+    private var backButton: some View {
+        Button("Back") { router.pop() }
+            .font(.system(size: 14, weight: .medium))
+            .foregroundColor(baseBg)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color.white)
+            .buttonStyle(.plain)
     }
 }
