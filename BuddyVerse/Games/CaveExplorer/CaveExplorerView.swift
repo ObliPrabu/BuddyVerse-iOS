@@ -107,6 +107,9 @@ struct CaveExplorerView: View {
         .alert(item: $vm.roundOver) { (info: CaveRoundOverInfo) in
             Alert(title: Text("Round Over"), message: Text(info.message), dismissButton: .default(Text("OK")))
         }
+        .onChange(of: vm.isDisconnected) { disconnected in
+            if disconnected { router.push(.opponentDisconnected) }
+        }
         .onAppear {
             vm.turnMessage = "Explore for progress, or Rest to relight your torch!"
             vm.startIfNeeded()
@@ -122,6 +125,7 @@ final class CaveExplorerViewModel: ObservableObject {
     @Published var isPlayerTurn = true
     @Published var turnMessage = ""
     @Published var roundOver: CaveRoundOverInfo?
+    @Published var isDisconnected = false
 
     let isBot: Bool
     let difficulty: String
@@ -150,7 +154,14 @@ final class CaveExplorerViewModel: ObservableObject {
         turnIndex = 0
         InternetConnectionManager.shared.setListeners(
             onMessage: { [weak self] msg in DispatchQueue.main.async { self?.receiveNearbyMessage(msg) } },
-            onDisconnected: { }
+            onDisconnected: { [weak self] in
+                DispatchQueue.main.async {
+                    guard let self, !self.isStopped else { return }
+                    self.isStopped = true
+                    InternetConnectionManager.shared.stop()
+                    self.isDisconnected = true
+                }
+            }
         )
     }
 
@@ -220,7 +231,7 @@ final class CaveExplorerViewModel: ObservableObject {
             let actorIndex = players.firstIndex(where: { $0.id == actorId })
             turnIndex = actorIndex.map { ($0 + 1) % players.count } ?? 0
         } else {
-            turnIndex = (turnIndex + 1) % players.count
+            turnIndex = players.isEmpty ? 0 : (turnIndex + 1) % players.count
         }
     }
 

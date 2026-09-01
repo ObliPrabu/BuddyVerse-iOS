@@ -87,11 +87,27 @@ struct TrustedWebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            guard !Self.isIgnorableCancellation(error) else { return }
             parent.onLoadError?()
         }
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            guard !Self.isIgnorableCancellation(error) else { return }
             parent.onLoadError?()
+        }
+
+        // decidePolicyFor's own decisionHandler(.cancel) - used above for any
+        // host not in allowedHosts, e.g. a Terms/Privacy link during Stripe
+        // checkout, opened in Safari instead - fires WebKit's own "cancelled"/
+        // "frame load interrupted" error through these same delegate methods.
+        // That's not a real load failure, just this WebView correctly
+        // declining to follow the link itself, so it must not surface as
+        // "Couldn't load checkout" over what's still a perfectly live page.
+        private static func isIgnorableCancellation(_ error: Error) -> Bool {
+            let nsError = error as NSError
+            if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled { return true }
+            if nsError.domain == "WebKitErrorDomain" && nsError.code == 102 { return true }
+            return false
         }
     }
 }
