@@ -75,6 +75,7 @@ final class SubscriptionManager {
         let data: [String: Any] = ["active": true, "plan": plan]
         db.collection("subscriptions").document(uid).setData(data) { [weak self] _ in
             self?.cachedActive = true
+            self?.logPurchase(plan: plan, gameType: nil, amountCents: plan == "yearly" ? 4000 : 400)
             onDone()
         }
     }
@@ -118,7 +119,28 @@ final class SubscriptionManager {
         }
         db.collection("expeditionUnlocks").document(uid).setData([gameType: true], merge: true) { [weak self] _ in
             self?.cachedUnlockedExpeditions.insert(gameType)
+            self?.logPurchase(plan: "expedition", gameType: gameType, amountCents: 50)
             onDone()
         }
+    }
+
+    /// A self-reported revenue log, written by this client the instant it
+    /// believes a payment succeeded (right after Stripe's own checkout
+    /// redirect confirms it) - NOT Stripe's authoritative ledger. There's no
+    /// backend here to receive real Stripe webhooks, so this is the only
+    /// admin-visible revenue signal available; it won't reflect refunds or
+    /// chargebacks, and amounts are the app's own known price tiers, not
+    /// anything read back from Stripe. Write-only from here - only the admin
+    /// account can read this collection back (see Firestore rules).
+    private func logPurchase(plan: String, gameType: String?, amountCents: Int) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        var data: [String: Any] = [
+            "uid": uid,
+            "plan": plan,
+            "amountCents": amountCents,
+            "createdAt": FieldValue.serverTimestamp()
+        ]
+        if let gameType { data["gameType"] = gameType }
+        db.collection("purchases").addDocument(data: data)
     }
 }

@@ -1,0 +1,150 @@
+import SwiftUI
+import FirebaseFirestore
+
+/// The screen WelcomeView's "📊 Admin" pill opens - only ever reachable
+/// while signed in as the one designated admin account (AuthManager.isAdmin()).
+/// Sums SubscriptionManager's `purchases` log entirely in-app - no browser,
+/// no Stripe Dashboard link. See SubscriptionManager.logPurchase's doc
+/// comment for the important caveat this screen inherits: these numbers are
+/// a self-reported log of successful checkouts as the app itself observed
+/// them, not Stripe's own authoritative ledger (no refunds/chargebacks
+/// reflected, since there's no backend here to receive Stripe webhooks).
+struct AdminDashboardView: View {
+    @EnvironmentObject private var router: Router
+
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+    @State private var totals: [String: (count: Int, cents: Int)] = [:]
+    @State private var totalCents = 0
+    @State private var totalCount = 0
+
+    private let baseBg = Color(hex: 0x1A237E)
+
+    var body: some View {
+        ZStack {
+            baseBg.ignoresSafeArea()
+
+            if isLoading {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .accentColor(.white)
+                    .scaleEffect(1.6)
+            } else {
+                content
+            }
+
+            VStack {
+                HStack {
+                    backButton
+                    Spacer()
+                }
+                Spacer()
+            }
+            .padding(16)
+        }
+        .navigationBarHidden(true)
+        .onAppear { load() }
+    }
+
+    private var content: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                Text("📊 Admin Dashboard")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.top, 60)
+                    .padding(.bottom, 4)
+
+                Text("Self-reported from this app - not Stripe's own ledger")
+                    .font(.system(size: 12))
+                    .foregroundColor(Color.white.opacity(0.6))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 30)
+                    .padding(.bottom, 30)
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.system(size: 14))
+                        .foregroundColor(Color(hex: 0xFF8A80))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                } else {
+                    Text("$\(formatDollars(totalCents))")
+                        .font(.system(size: 44, weight: .bold))
+                        .foregroundColor(.white)
+                    Text("\(totalCount) purchase\(totalCount == 1 ? "" : "s") total")
+                        .font(.system(size: 14))
+                        .foregroundColor(Color.white.opacity(0.7))
+                        .padding(.bottom, 30)
+
+                    VStack(spacing: 12) {
+                        breakdownRow(label: "$4/month subscriptions", key: "monthly")
+                        breakdownRow(label: "$40/year subscriptions", key: "yearly")
+                        breakdownRow(label: "50¢ expedition unlocks", key: "expedition")
+                    }
+                    .padding(.horizontal, 24)
+                }
+
+                Spacer(minLength: 40)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func breakdownRow(label: String, key: String) -> some View {
+        let entry = totals[key] ?? (count: 0, cents: 0)
+        return HStack {
+            Text(label)
+                .font(.system(size: 15))
+                .foregroundColor(.white)
+            Spacer()
+            Text("\(entry.count)")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(Color.white.opacity(0.7))
+            Text("$\(formatDollars(entry.cents))")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(.white)
+                .frame(width: 70, alignment: .trailing)
+        }
+        .padding(16)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.25)))
+    }
+
+    private func formatDollars(_ cents: Int) -> String {
+        String(format: "%.2f", Double(cents) / 100.0)
+    }
+
+    private var backButton: some View {
+        Button("Back") { router.pop() }
+            .font(.system(size: 14, weight: .medium))
+            .foregroundColor(baseBg)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color.white)
+            .buttonStyle(.plain)
+    }
+
+    private func load() {
+        Firestore.firestore().collection("purchases").getDocuments { snapshot, error in
+            isLoading = false
+            if let error {
+                errorMessage = "Couldn't load purchase log: \(error.localizedDescription)"
+                return
+            }
+            var byPlan: [String: (count: Int, cents: Int)] = [:]
+            var sumCents = 0
+            var count = 0
+            for doc in snapshot?.documents ?? [] {
+                let plan = doc.get("plan") as? String ?? "unknown"
+                let cents = doc.get("amountCents") as? Int ?? 0
+                let existing = byPlan[plan] ?? (count: 0, cents: 0)
+                byPlan[plan] = (count: existing.count + 1, cents: existing.cents + cents)
+                sumCents += cents
+                count += 1
+            }
+            totals = byPlan
+            totalCents = sumCents
+            totalCount = count
+        }
+    }
+}

@@ -132,6 +132,10 @@ struct RootView: View {
             OpponentDisconnectedView()
         case .login:
             LoginView()
+        case .adminHome:
+            AdminHomeView()
+        case .adminDashboard:
+            AdminDashboardView()
         }
     }
 }

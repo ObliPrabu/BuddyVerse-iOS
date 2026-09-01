@@ -84,6 +84,14 @@ struct WelcomeView: View {
                 .onAppear {
                     scrollProxy = proxy
                     animateStats()
+                    // Only ever fires once, right at cold launch (this
+                    // ScrollViewReader is part of WelcomeView's permanent
+                    // base screen, never re-mounted) - so a signed-in admin
+                    // lands on AdminHomeView automatically every time they
+                    // open the app, without needing to tap anything first.
+                    if AuthManager.isAdmin() && router.path.isEmpty {
+                        router.push(.adminHome)
+                    }
                 }
             }
 
@@ -299,27 +307,10 @@ struct WelcomeView: View {
     // MARK: - Floating overlays (top pills + bottom bar, pinned outside the ScrollView like Android's FrameLayout)
 
     private var topBar: some View {
-        VStack(alignment: .trailing, spacing: 8) {
-            HStack {
-                pillButton("🎉 Credits") { router.push(.credits) }
-                Spacer()
-                pillButton(isDark ? "☀️ Light Mode" : "🌙 Dark Mode") { theme.toggle() }
-            }
-            // Once signed in as the one designated admin account (see
-            // AuthManager.isAdmin()), this replaces the plain "Log In" pill
-            // with a shortcut straight to the real revenue source of truth -
-            // Stripe's own dashboard, not a reconstructed number from
-            // Firestore, since nothing here holds Stripe's secret key to
-            // query it directly. Everyone else just sees a subtle "Log In".
-            if AuthManager.isAdmin() {
-                pillButton("📊 Admin") {
-                    if let url = URL(string: "https://dashboard.stripe.com/dashboard") {
-                        UIApplication.shared.open(url)
-                    }
-                }
-            } else {
-                pillButton("Log In") { router.push(.login) }
-            }
+        HStack {
+            pillButton("🎉 Credits") { router.push(.credits) }
+            Spacer()
+            pillButton(isDark ? "☀️ Light Mode" : "🌙 Dark Mode") { theme.toggle() }
         }
         .padding(16)
     }
@@ -355,9 +346,20 @@ struct WelcomeView: View {
             // string, so this label can never drift from what was actually
             // built - handy for confirming two test devices (e.g. an Android
             // device and an iOS simulator/iPad) are running the same build.
-            Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")")
-                .font(.system(size: 11))
-                .foregroundColor(.white.opacity(0.6))
+            VStack(spacing: 2) {
+                Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.6))
+                // Low-key on purpose - this is only ever needed the first
+                // time on a new device (or after signing out); a returning
+                // admin session already gets carried straight to
+                // AdminHomeView on launch, so this never needs to be
+                // prominent.
+                Button("Log In") { router.push(.login) }
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.4))
+                    .buttonStyle(.plain)
+            }
         }
         .padding(12)
         .background(bottomBarBg)

@@ -130,7 +130,11 @@ struct LoginView: View {
                 // stays cached as "not entitled" for the rest of the
                 // session - logging in would silently never un-stick it.
                 SubscriptionManager.shared.clearCache()
-                router.pop()
+                if AuthManager.isAdmin() {
+                    router.replaceTop(with: .adminHome)
+                } else {
+                    router.pop()
+                }
             } else {
                 errorMessage = error ?? "Something went wrong. Try again."
             }
