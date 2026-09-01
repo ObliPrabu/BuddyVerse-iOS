@@ -132,8 +132,8 @@ struct RootView: View {
             OpponentDisconnectedView()
         case .login:
             LoginView()
-        case .adminHome:
-            AdminHomeView()
+        case .adminHome(let gameType):
+            AdminHomeView(gameType: gameType)
         case .adminDashboard:
             AdminDashboardView()
         }

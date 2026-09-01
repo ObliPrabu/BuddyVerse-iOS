@@ -84,14 +84,6 @@ struct WelcomeView: View {
                 .onAppear {
                     scrollProxy = proxy
                     animateStats()
-                    // Only ever fires once, right at cold launch (this
-                    // ScrollViewReader is part of WelcomeView's permanent
-                    // base screen, never re-mounted) - so a signed-in admin
-                    // lands on AdminHomeView automatically every time they
-                    // open the app, without needing to tap anything first.
-                    if AuthManager.isAdmin() && router.path.isEmpty {
-                        router.push(.adminHome)
-                    }
                 }
             }
 

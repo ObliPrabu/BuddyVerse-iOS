@@ -46,7 +46,7 @@ enum AppRoute: Hashable {
     case credits
     case opponentDisconnected
     case login
-    case adminHome
+    case adminHome(gameType: String)
     case adminDashboard
 }
 

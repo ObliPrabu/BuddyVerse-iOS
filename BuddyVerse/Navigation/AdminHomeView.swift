@@ -1,12 +1,14 @@
 import SwiftUI
 
-/// Shown automatically, once, right when the app launches while signed in
-/// as the one designated admin account (AuthManager.isAdmin()) - see
-/// WelcomeView's onAppear. Lets that account either drop straight into the
-/// normal app (same as any other player) or jump into AdminDashboardView,
-/// without a permanent top-right pill cluttering the Welcome screen for
-/// everyone else.
+/// Shown in place of the usual "skip straight to the game" hop, whenever the
+/// signed-in admin account (AuthManager.isAdmin()) taps a premium expedition
+/// game it's already entitled to - see LobbyView.checkEntitlement(). Lets
+/// that account either continue into the game it just tapped or jump into
+/// AdminDashboardView instead, without a permanent top-right pill cluttering
+/// the Welcome screen for everyone else, and without gating every ordinary
+/// app launch behind an extra screen.
 struct AdminHomeView: View {
+    let gameType: String
     @EnvironmentObject private var router: Router
 
     private let baseBg = Color(hex: 0x1A237E)
@@ -22,7 +24,7 @@ struct AdminHomeView: View {
                     .padding(.bottom, 40)
 
                 Button {
-                    router.pop()
+                    router.replaceTop(with: .onePhoneSelection(gameType: gameType))
                 } label: {
                     Text("🎮 Play Game")
                         .font(.system(size: 16, weight: .bold))
