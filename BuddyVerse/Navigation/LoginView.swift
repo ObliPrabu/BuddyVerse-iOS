@@ -125,6 +125,11 @@ struct LoginView: View {
         AuthManager.logIn(email: trimmedEmail, password: password) { success, error in
             isSubmitting = false
             if success {
+                // Without this, a premium-access check made earlier in this
+                // app session (even just opening the app while logged out)
+                // stays cached as "not entitled" for the rest of the
+                // session - logging in would silently never un-stick it.
+                SubscriptionManager.shared.clearCache()
                 router.pop()
             } else {
                 errorMessage = error ?? "Something went wrong. Try again."
