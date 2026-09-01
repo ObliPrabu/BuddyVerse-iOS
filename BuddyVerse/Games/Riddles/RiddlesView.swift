@@ -4,28 +4,56 @@ import SwiftUI
 /// Answer" is tapped, and "Next Riddle" draws the next one from a shuffled
 /// bag (so riddles don't repeat until the whole pool has been shown once,
 /// then it reshuffles and keeps going).
+///
+/// Turn-based for two people passing the phone, in a fixed 10-riddle round:
+/// player 1 takes riddles 1-5, player 2 takes riddles 6-10, then a
+/// completion screen wraps things up and offers a fresh round.
 struct RiddlesView: View {
     struct Riddle: Hashable {
         let question: String
         let answer: String
     }
 
+    private static let roundSize = 10
+    private static let batchSize = 5
+
+    private enum Phase {
+        case playing
+        case handoff
+        case complete
+    }
+
     let selection: GameSelection
     @EnvironmentObject private var router: Router
 
     private let pool: [Riddle]
-    @State private var remaining: [Riddle]
+    @State private var roundRiddles: [Riddle]
+    @State private var roundIndex = 1
     @State private var current: Riddle
     @State private var showAnswer = false
+    @State private var currentPlayer = 1
+    @State private var phase: Phase = .playing
 
     init(selection: GameSelection) {
         self.selection = selection
         let pool = Self.buildPool(from: selection.aiItems)
         self.pool = pool
-        var shuffled = pool.shuffled()
-        let first = shuffled.isEmpty ? Riddle(question: "Tap for a riddle!", answer: "") : shuffled.removeLast()
-        _remaining = State(initialValue: shuffled)
-        _current = State(initialValue: first)
+        let round = Self.drawRound(from: pool)
+        _roundRiddles = State(initialValue: round)
+        _current = State(initialValue: round.first ?? Riddle(question: "Tap for a riddle!", answer: ""))
+    }
+
+    // Draws exactly `roundSize` riddles for one round, wrapping/reshuffling
+    // if the pool is smaller than that.
+    private static func drawRound(from pool: [Riddle]) -> [Riddle] {
+        guard !pool.isEmpty else { return [] }
+        var result: [Riddle] = []
+        var bag = pool.shuffled()
+        while result.count < roundSize {
+            if bag.isEmpty { bag = pool.shuffled() }
+            result.append(bag.removeLast())
+        }
+        return result
     }
 
     // activity_riddles.xml: solid #03A9F4 background, no dark-mode override,
@@ -40,13 +68,125 @@ struct RiddlesView: View {
         ZStack {
             screenBg.ignoresSafeArea()
 
+            switch phase {
+            case .playing: roundView
+            case .handoff: handoffView
+            case .complete: completionView
+            }
+        }
+        .navigationBarHidden(true)
+    }
+
+    private var handoffView: some View {
+        VStack(spacing: 0) {
+            Text("\u{1F4E3}")
+                .font(.system(size: 60))
+                .padding(.bottom, 16)
+            Text("Pass the phone to Player \(currentPlayer)!")
+                .font(.system(size: 26, weight: .bold))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .padding(.bottom, 8)
+            Text("Get ready for the next batch of riddles.")
+                .font(.system(size: 18))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .padding(.bottom, 40)
+
+            Button {
+                phase = .playing
+            } label: {
+                Text("Player \(currentPlayer)'s Turn - Start")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(screenBg)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 60)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom, 10)
+
+            Button {
+                router.pop()
+            } label: {
+                Text("Back")
+                    .font(.system(size: 14))
+                    .foregroundColor(buttonTextDark)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(backButtonBg)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private var completionView: some View {
+        VStack(spacing: 0) {
+            Text("\u{1F389}")
+                .font(.system(size: 60))
+                .padding(.bottom, 16)
+            Text("All \(Self.roundSize) Riddles Done!")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .padding(.bottom, 8)
+            Text("Great job working through them together.")
+                .font(.system(size: 18))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .padding(.bottom, 40)
+
+            Button {
+                startNewRound()
+            } label: {
+                Text("Play Again")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(screenBg)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 60)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom, 10)
+
+            Button {
+                router.pop()
+            } label: {
+                Text("Back")
+                    .font(.system(size: 14))
+                    .foregroundColor(buttonTextDark)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(backButtonBg)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private var roundView: some View {
             // Root LinearLayout uses android:gravity="center", which centers
             // the whole content block vertically (not just top-aligned).
             VStack(spacing: 0) {
                 Text("Riddles")
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 10)
+
+                Text("Player \(currentPlayer)'s Turn")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(answerColor)
+                    .padding(.bottom, 4)
+
+                Text("Riddle \(roundIndex) of \(Self.roundSize)")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.85))
+                    .padding(.bottom, 20)
 
                 Text(current.question)
                     .font(.system(size: 22))
@@ -108,16 +248,30 @@ struct RiddlesView: View {
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 20)
-        }
-        .navigationBarHidden(true)
     }
 
     private func showNextRiddle() {
-        if remaining.isEmpty {
-            remaining = pool.shuffled()
+        if roundIndex >= Self.roundSize {
+            phase = .complete
+            return
         }
-        current = remaining.removeLast()
+        current = roundRiddles[roundIndex]
+        roundIndex += 1
         showAnswer = false
+        if (roundIndex - 1) % Self.batchSize == 0 {
+            currentPlayer = currentPlayer == 1 ? 2 : 1
+            phase = .handoff
+        }
+    }
+
+    private func startNewRound() {
+        let round = Self.drawRound(from: pool)
+        roundRiddles = round
+        roundIndex = 1
+        current = round.first ?? Riddle(question: "Tap for a riddle!", answer: "")
+        showAnswer = false
+        currentPlayer = 1
+        phase = .playing
     }
 
     // MARK: - Pool building

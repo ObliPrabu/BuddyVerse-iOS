@@ -14,6 +14,17 @@ struct AiGeneratingView: View {
     @EnvironmentObject private var router: Router
     @State private var isCancelled = false
 
+    // AiContentService.generate() never actually calls Gemini for KID or
+    // JOKES (see its own doc comment) - showing "Using AI..." on this screen
+    // for those cases would be actively false, not just misleading, so this
+    // screen's own wording has to match what's really about to happen.
+    private var loadingMessage: String {
+        if ageGroup == "KID" || gameType == "JOKES" {
+            return "Getting your \(AiContentService.categoryName(for: gameType)) ready..."
+        }
+        return "Using AI to make good \(AiContentService.categoryName(for: gameType)) for you..."
+    }
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -30,7 +41,7 @@ struct AiGeneratingView: View {
                     .frame(width: 70, height: 70)
                     .padding(.bottom, 30)
 
-                Text("Using AI to make good \(AiContentService.categoryName(for: gameType)) for you...")
+                Text(loadingMessage)
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)

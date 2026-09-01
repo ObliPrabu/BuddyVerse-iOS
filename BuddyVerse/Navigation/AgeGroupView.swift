@@ -38,7 +38,13 @@ struct AgeGroupView: View {
                 Text("(\(gameName))")
                     .font(.system(size: 18))
                     .foregroundColor(Color(hex: 0xE0F7FA))
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 20)
+
+                Text("\u{26A0}\u{FE0F} Choose honestly - picking the wrong age group to get around content rules can get your account banned.")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(Color(hex: 0xFFEB3B))
+                    .multilineTextAlignment(.center)
+                    .padding(.bottom, 20)
 
                 Button {
                     router.push(.aiGenerating(gameType: gameType, mood: mood, ageGroup: "KID", difficulty: difficulty))

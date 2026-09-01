@@ -1,10 +1,12 @@
 import SwiftUI
 
-/// Mirrors TriviaActivity: shows a question with 4 tappable options. Tapping
-/// the correct one shows a brief "Correct!" confirmation and immediately
-/// loads the next question (drawn from a shuffled bag so questions don't
-/// repeat until the whole pool has been shown once); tapping a wrong one
-/// shows "Try again!" and leaves the current question up.
+/// Mirrors TriviaActivity: shows a question with 4 tappable options.
+///
+/// Turn-based and scored for two people passing the phone: each player
+/// answers the same fixed round of 10 questions (one attempt per question,
+/// auto-advancing to the next after a brief correct/wrong flash), then a
+/// handoff screen passes the phone to player 2, and a final screen compares
+/// both scores and declares a winner.
 struct TriviaView: View {
     struct Question: Hashable {
         let text: String
@@ -12,31 +14,57 @@ struct TriviaView: View {
         let correctAnswer: String
     }
 
+    private enum Phase {
+        case playing
+        case handoff
+        case finished
+    }
+
+    private static let roundSize = 10
+
     let selection: GameSelection
     @EnvironmentObject private var router: Router
 
     private let pool: [Question]
-    @State private var remaining: [Question]
+    @State private var roundQuestions: [Question]
+    @State private var questionIndex = 1
     @State private var current: Question
+    @State private var selectedOption: String?
     @State private var toastMessage: String?
     @State private var toastToken = 0
+    @State private var currentPlayer = 1
+    @State private var scores: [Int: Int] = [1: 0, 2: 0]
+    @State private var phase: Phase = .playing
 
     init(selection: GameSelection) {
         self.selection = selection
         let pool = Self.buildPool(from: selection.aiItems)
         self.pool = pool
-        var shuffled = pool.shuffled()
-        let first = shuffled.isEmpty
-            ? Question(text: "Question goes here...", options: [], correctAnswer: "")
-            : shuffled.removeLast()
-        _remaining = State(initialValue: shuffled)
-        _current = State(initialValue: first)
+        let round = Self.drawRound(from: pool)
+        _roundQuestions = State(initialValue: round)
+        _current = State(initialValue: round.first ?? Question(text: "Question goes here...", options: [], correctAnswer: ""))
+    }
+
+    // Draws exactly `roundSize` questions for one round, wrapping/reshuffling
+    // if the pool is smaller than that. Both players answer this same set,
+    // in the same order, so their scores are directly comparable.
+    private static func drawRound(from pool: [Question]) -> [Question] {
+        guard !pool.isEmpty else { return [] }
+        var result: [Question] = []
+        var bag = pool.shuffled()
+        while result.count < roundSize {
+            if bag.isEmpty { bag = pool.shuffled() }
+            result.append(bag.removeLast())
+        }
+        return result
     }
 
     // activity_trivia.xml: solid #673AB7 background, no dark-mode override,
     // so this looks identical regardless of the app's theme setting.
     private let screenBg = Color(hex: 0x673AB7)
     private let buttonTextDark = Color(hex: 0x333333)
+    private let correctBg = Color(hex: 0x8BC34A)
+    private let wrongBg = Color(hex: 0xE57373)
     // #AADDDDDD - a light gray at ~67% alpha, not plain white-with-opacity.
     private let backButtonBg = Color(hex: 0xDDDDDD, opacity: 170.0 / 255.0)
 
@@ -44,13 +72,34 @@ struct TriviaView: View {
         ZStack {
             screenBg.ignoresSafeArea()
 
+            switch phase {
+            case .playing: playingView
+            case .handoff: handoffView
+            case .finished: finishedView
+            }
+        }
+        .navigationBarHidden(true)
+    }
+
+    private var playingView: some View {
+        ZStack {
             // Root LinearLayout uses android:gravity="center", which centers
             // the whole content block vertically (not just top-aligned).
             VStack(spacing: 0) {
                 Text("Trivia")
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 10)
+
+                Text("Player \(currentPlayer)'s Turn")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.bottom, 4)
+
+                Text("Question \(questionIndex) of \(Self.roundSize)")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.85))
+                    .padding(.bottom, 20)
 
                 Text(current.text)
                     .font(.system(size: 22))
@@ -72,10 +121,11 @@ struct TriviaView: View {
                                 .foregroundColor(.black)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 60)
-                                .background(Color.white)
+                                .background(optionBackground(option))
                                 .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
                         .buttonStyle(.plain)
+                        .disabled(selectedOption != nil)
                         .padding(.bottom, 10)
                     }
                 }
@@ -96,10 +146,10 @@ struct TriviaView: View {
             }
             .padding(.horizontal, 20)
 
-            // Android surfaces "Correct!"/"Try again!" as a plain system
-            // Toast (dark bubble, bottom-center, auto-dismissing) - reproduced
-            // here as an overlay rather than inline chrome since a Toast
-            // isn't part of the laid-out view hierarchy on Android either.
+            // Android surfaces "Correct!"/"Wrong!" as a plain system Toast
+            // (dark bubble, bottom-center, auto-dismissing) - reproduced here
+            // as an overlay rather than inline chrome since a Toast isn't
+            // part of the laid-out view hierarchy on Android either.
             if let toastMessage {
                 VStack {
                     Spacer()
@@ -115,38 +165,154 @@ struct TriviaView: View {
                 }
             }
         }
-        .navigationBarHidden(true)
+    }
+
+    private func optionBackground(_ option: String) -> Color {
+        guard let selectedOption else { return .white }
+        if option == current.correctAnswer { return correctBg }
+        if option == selectedOption { return wrongBg }
+        return .white
+    }
+
+    private var handoffView: some View {
+        VStack(spacing: 0) {
+            Text("\u{1F4E3}")
+                .font(.system(size: 60))
+                .padding(.bottom, 16)
+            Text("Player 1 scored \(scores[1] ?? 0) of \(Self.roundSize)!")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .padding(.bottom, 8)
+            Text("Pass the phone to Player 2.")
+                .font(.system(size: 18))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .padding(.bottom, 40)
+
+            Button {
+                startPlayerTwoTurn()
+            } label: {
+                Text("Player 2's Turn - Start")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(screenBg)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 60)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private var finishedView: some View {
+        let score1 = scores[1] ?? 0
+        let score2 = scores[2] ?? 0
+        let winner: String = score1 == score2 ? "It's a tie!" : (score1 > score2 ? "Player 1 wins!" : "Player 2 wins!")
+        let topScore = max(score1, score2)
+        let congrats = topScore >= 8 ? "Amazing!" : (topScore >= 5 ? "Nice job!" : "Good effort!")
+
+        return VStack(spacing: 0) {
+            Text("\u{1F3C6}")
+                .font(.system(size: 60))
+                .padding(.bottom, 16)
+            Text(congrats)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.bottom, 12)
+            Text("Player 1: \(score1) of \(Self.roundSize)")
+                .font(.system(size: 20))
+                .foregroundColor(.white)
+            Text("Player 2: \(score2) of \(Self.roundSize)")
+                .font(.system(size: 20))
+                .foregroundColor(.white)
+                .padding(.bottom, 12)
+            Text(winner)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.bottom, 40)
+
+            Button {
+                startNewRound()
+            } label: {
+                Text("Play Again")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(screenBg)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 60)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom, 10)
+
+            Button {
+                router.pop()
+            } label: {
+                Text("Back")
+                    .font(.system(size: 14))
+                    .foregroundColor(buttonTextDark)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(backButtonBg)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
     }
 
     private func chooseOption(_ option: String) {
+        guard selectedOption == nil else { return }
+        selectedOption = option
         if option == current.correctAnswer {
-            showToast("Correct!")
-            loadNextQuestion()
+            scores[currentPlayer, default: 0] += 1
+            withAnimation { toastMessage = "Correct!" }
         } else {
-            showToast("Try again!")
+            withAnimation { toastMessage = "Wrong! It was \(current.correctAnswer)" }
         }
-    }
 
-    private func loadNextQuestion() {
-        if remaining.isEmpty {
-            remaining = pool.shuffled()
-        }
-        current = remaining.removeLast()
-    }
-
-    // Mirrors the transient Android Toast - shown briefly, then auto-dismissed.
-    // The token guards against a fast second tap dismissing a message before
-    // its own timer meant to.
-    private func showToast(_ message: String) {
+        // Token guards against a fast second tap re-triggering this same
+        // scheduled advance before its own timer meant to.
         toastToken += 1
         let myToken = toastToken
-        withAnimation { toastMessage = message }
         Task {
             try? await Task.sleep(nanoseconds: 1_200_000_000)
             if myToken == toastToken {
-                withAnimation { toastMessage = nil }
+                advance()
             }
         }
+    }
+
+    private func advance() {
+        withAnimation { toastMessage = nil }
+        if questionIndex >= Self.roundSize {
+            phase = currentPlayer == 1 ? .handoff : .finished
+            return
+        }
+        current = roundQuestions[questionIndex]
+        questionIndex += 1
+        selectedOption = nil
+    }
+
+    private func startPlayerTwoTurn() {
+        currentPlayer = 2
+        questionIndex = 1
+        current = roundQuestions.first ?? Question(text: "Question goes here...", options: [], correctAnswer: "")
+        selectedOption = nil
+        phase = .playing
+    }
+
+    private func startNewRound() {
+        let round = Self.drawRound(from: pool)
+        roundQuestions = round
+        questionIndex = 1
+        current = round.first ?? Question(text: "Question goes here...", options: [], correctAnswer: "")
+        selectedOption = nil
+        currentPlayer = 1
+        scores = [1: 0, 2: 0]
+        phase = .playing
     }
 
     // MARK: - Pool building

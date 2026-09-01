@@ -213,6 +213,7 @@ struct OnlineLobbyView: View {
     }
 
     private func createGame() {
+        dismissKeyboard()
         let name = playerName.trimmingCharacters(in: .whitespaces)
         stage = .hosting
         InternetConnectionManager.shared.createRoom(
@@ -243,6 +244,7 @@ struct OnlineLobbyView: View {
             errorMessage = "Type in the code your friend shared with you."
             return
         }
+        dismissKeyboard()
         let name = playerName.trimmingCharacters(in: .whitespaces)
         stage = .joining
         InternetConnectionManager.shared.joinRoom(
@@ -265,6 +267,14 @@ struct OnlineLobbyView: View {
                 }
             }
         )
+    }
+
+    // Room-code/name TextFields can leave the keyboard up after tapping
+    // Create/Join, which then covers the host's "Start Game" button once
+    // enough players have joined - dismiss it explicitly on the transition
+    // instead of relying on the field losing focus on its own.
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
     private func onPlayersChanged(_ newPlayers: [Player]) {

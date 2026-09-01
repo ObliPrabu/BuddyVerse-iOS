@@ -4,19 +4,33 @@ import SwiftUI
 /// Punchline" is tapped, and "Get Another Joke" draws the next one from a
 /// shuffled bag (so jokes don't repeat until the whole pool has been shown
 /// once, then it reshuffles and keeps going).
+///
+/// Turn-based for two people passing the phone: each player gets a batch of
+/// 5 jokes, then it automatically hands off to the other player, forever -
+/// there's no "round" that ends, just an alternating batch counter.
 struct JokesView: View {
     struct Joke: Hashable {
         let setup: String
         let punchline: String
     }
 
+    private static let batchSize = 5
+
     let selection: GameSelection
     @EnvironmentObject private var router: Router
+
+    private enum Phase {
+        case playing
+        case handoff
+    }
 
     private let pool: [Joke]
     @State private var remaining: [Joke]
     @State private var current: Joke
     @State private var showPunchline = false
+    @State private var currentPlayer = 1
+    @State private var jokesThisBatch = 1
+    @State private var phase: Phase = .playing
 
     init(selection: GameSelection) {
         self.selection = selection
@@ -41,13 +55,78 @@ struct JokesView: View {
         ZStack {
             screenBg.ignoresSafeArea()
 
+            switch phase {
+            case .playing: playingView
+            case .handoff: handoffView
+            }
+        }
+        .navigationBarHidden(true)
+    }
+
+    private var handoffView: some View {
+        VStack(spacing: 0) {
+            Text("\u{1F4E3}")
+                .font(.system(size: 60))
+                .padding(.bottom, 16)
+            Text("Pass the phone to Player \(currentPlayer)!")
+                .font(.system(size: 26, weight: .bold))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .padding(.bottom, 8)
+            Text("Get ready for the next batch of jokes.")
+                .font(.system(size: 18))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .padding(.bottom, 40)
+
+            Button {
+                phase = .playing
+            } label: {
+                Text("Player \(currentPlayer)'s Turn - Start")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(screenBg)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 60)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom, 10)
+
+            Button {
+                router.pop()
+            } label: {
+                Text("Back")
+                    .font(.system(size: 14))
+                    .foregroundColor(buttonTextDark)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(backButtonBg)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private var playingView: some View {
             // Root LinearLayout uses android:gravity="center", which centers
             // the whole content block vertically (not just top-aligned).
             VStack(spacing: 0) {
                 Text("Jokes")
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 10)
+
+                Text("Player \(currentPlayer)'s Turn")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(punchlineColor)
+                    .padding(.bottom, 4)
+
+                Text("Joke \(jokesThisBatch) of \(Self.batchSize)")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.85))
+                    .padding(.bottom, 30)
 
                 Text(current.setup)
                     .font(.system(size: 22))
@@ -110,8 +189,6 @@ struct JokesView: View {
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 20)
-        }
-        .navigationBarHidden(true)
     }
 
     private func showNextJoke() {
@@ -120,6 +197,13 @@ struct JokesView: View {
         }
         current = remaining.removeLast()
         showPunchline = false
+
+        jokesThisBatch += 1
+        if jokesThisBatch > Self.batchSize {
+            jokesThisBatch = 1
+            currentPlayer = currentPlayer == 1 ? 2 : 1
+            phase = .handoff
+        }
     }
 
     // MARK: - Pool building

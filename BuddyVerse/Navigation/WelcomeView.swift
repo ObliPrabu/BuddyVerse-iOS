@@ -149,7 +149,7 @@ struct WelcomeView: View {
             .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
             .padding(.bottom, 20)
 
-            Text("Make a friend today. New at school or sitting alone at lunch? Pick a joke, a riddle, a big question, or a game \u{2014} BuddyVerse makes saying \u{201C}hi\u{201D} a whole lot easier.")
+            Text("Hey, ready to play?! \u{1F389} Grab a buddy, pick a joke, a riddle, or a game, and let the good times roll. New at school or just hanging out \u{2014} BuddyVerse turns any moment into a blast.")
                 .font(.system(size: 23, weight: .bold))
                 .foregroundColor(bodyTextColor)
                 .multilineTextAlignment(.center)
@@ -157,7 +157,6 @@ struct WelcomeView: View {
                 .padding(.bottom, 25)
 
             VStack(spacing: 4) {
-                Text("✨ No sign up")
                 Text("📱 Works on any device")
                 Text("🎮 100% original games")
             }

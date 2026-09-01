@@ -36,8 +36,12 @@ enum AiContentService {
     /// this screen is a kid, their device would be the one making that
     /// request. Kid mode always falls back to the app's built-in static
     /// content instead, same as any other generation failure.
+    ///
+    /// Also deliberately never calls Gemini at all for gameType == "JOKES",
+    /// for any age group - always uses the built-in static joke pool instead.
     static func generate(gameType: String, mood: String, ageGroup: String, difficulty: String) async -> [String]? {
         guard ageGroup != "KID" else { return nil }
+        guard gameType != "JOKES" else { return nil }
         guard let apiKey else { return nil }
 
         let prompt = buildPrompt(gameType: gameType, mood: mood, ageGroup: ageGroup, difficulty: difficulty)
