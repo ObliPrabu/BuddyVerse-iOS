@@ -130,6 +130,8 @@ struct RootView: View {
             CreditsView()
         case .opponentDisconnected:
             OpponentDisconnectedView()
+        case .login:
+            LoginView()
         }
     }
 }

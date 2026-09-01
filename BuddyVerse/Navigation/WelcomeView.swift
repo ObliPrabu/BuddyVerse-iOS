@@ -299,10 +299,27 @@ struct WelcomeView: View {
     // MARK: - Floating overlays (top pills + bottom bar, pinned outside the ScrollView like Android's FrameLayout)
 
     private var topBar: some View {
-        HStack {
-            pillButton("🎉 Credits") { router.push(.credits) }
-            Spacer()
-            pillButton(isDark ? "☀️ Light Mode" : "🌙 Dark Mode") { theme.toggle() }
+        VStack(alignment: .trailing, spacing: 8) {
+            HStack {
+                pillButton("🎉 Credits") { router.push(.credits) }
+                Spacer()
+                pillButton(isDark ? "☀️ Light Mode" : "🌙 Dark Mode") { theme.toggle() }
+            }
+            // Once signed in as the one designated admin account (see
+            // AuthManager.isAdmin()), this replaces the plain "Log In" pill
+            // with a shortcut straight to the real revenue source of truth -
+            // Stripe's own dashboard, not a reconstructed number from
+            // Firestore, since nothing here holds Stripe's secret key to
+            // query it directly. Everyone else just sees a subtle "Log In".
+            if AuthManager.isAdmin() {
+                pillButton("📊 Admin") {
+                    if let url = URL(string: "https://dashboard.stripe.com/dashboard") {
+                        UIApplication.shared.open(url)
+                    }
+                }
+            } else {
+                pillButton("Log In") { router.push(.login) }
+            }
         }
         .padding(16)
     }
