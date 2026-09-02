@@ -47,9 +47,9 @@ struct MoodSelectionView: View {
 
                 ForEach(moods, id: \.value) { mood in
                     Button {
-                        // Jokes never calls AI (see AiContentService.generate)
-                        // and always uses the static joke pool, so a
-                        // difficulty pick would have nothing to affect -
+                        // Jokes always uses the static joke pool (no content
+                        // generation of any kind happens anywhere in the app),
+                        // so a difficulty pick would have nothing to affect -
                         // skip straight to Age Group with a placeholder value.
                         if gameType == "JOKES" {
                             router.push(.ageGroup(gameType: gameType, mood: mood.value, difficulty: "MEDIUM"))
