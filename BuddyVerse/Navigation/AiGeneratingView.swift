@@ -1,11 +1,10 @@
 import SwiftUI
 
-/// Mirrors AiGeneratingActivity/activity_ai_generating.xml: the "Using AI to
-/// make good jokes for you..." screen - same welcome_gradient background, a
-/// large white spinner, and the exact bold-white message + teal "Just a
-/// moment!" subtext. Calls Gemini in the background, then continues on with
-/// whatever it got back (or nil, so the game screen falls back to built-in
-/// content).
+/// Mirrors AiGeneratingActivity/activity_ai_generating.xml: same
+/// welcome_gradient background, large white spinner, and bold-white message
+/// + teal "Just a moment!" subtext as before. Content generation is always
+/// the app's own built-in static pool now - there's no AI call of any kind
+/// here anymore, for any game type or age group.
 struct AiGeneratingView: View {
     let gameType: String
     let mood: String
@@ -14,15 +13,8 @@ struct AiGeneratingView: View {
     @EnvironmentObject private var router: Router
     @State private var isCancelled = false
 
-    // AiContentService.generate() never actually calls Gemini for KID or
-    // JOKES (see its own doc comment) - showing "Using AI..." on this screen
-    // for those cases would be actively false, not just misleading, so this
-    // screen's own wording has to match what's really about to happen.
     private var loadingMessage: String {
-        if ageGroup == "KID" || gameType == "JOKES" {
-            return "Getting your \(AiContentService.categoryName(for: gameType)) ready..."
-        }
-        return "Using AI to make good \(AiContentService.categoryName(for: gameType)) for you..."
+        "Getting your \(AiContentService.categoryName(for: gameType)) ready..."
     }
 
     var body: some View {
@@ -62,14 +54,12 @@ struct AiGeneratingView: View {
             // appears" behavior back to iOS 14 (the async/await runtime
             // itself back-deploys fine).
             Task {
-                let items = await AiContentService.generate(gameType: gameType, mood: mood, ageGroup: ageGroup, difficulty: difficulty)
-                // Guard against the user having already backed out while the
-                // (up to 12s) network call was still in flight.
+                try? await Task.sleep(nanoseconds: 600_000_000)
                 if !isCancelled {
                     var selection = GameSelection(gameType: gameType, difficulty: difficulty, isBot: false)
                     selection.mood = mood
                     selection.ageGroup = ageGroup
-                    selection.aiItems = (items?.isEmpty == false) ? items : nil
+                    selection.aiItems = nil
                     router.replaceTop(with: .instructionsChoice(selection))
                 }
             }

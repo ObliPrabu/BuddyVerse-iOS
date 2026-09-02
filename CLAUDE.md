@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-BuddyVerse (iOS) is a native SwiftUI port of the Android BuddyVerse app (sibling project at `~/AndroidStudioProjects/BuddyVerse`) — the same ~26 mini-games plus AI-generated "connect with friends" content, with local pass-and-play, vs-bot, and real internet multiplayer modes, sharing the same Firebase project as the Android app. This project was scaffolded and the bulk of its games ported by Claude Code directly from the current Android Kotlin source, not written by hand first.
+BuddyVerse (iOS) is a native SwiftUI port of the Android BuddyVerse app (sibling project at `~/AndroidStudioProjects/BuddyVerse`) — the same ~26 mini-games plus static "connect with friends" content (jokes/riddles/trivia/conversation starters, all built-in, no AI generation of any kind), with local pass-and-play, vs-bot, and real internet multiplayer modes, sharing the same Firebase project as the Android app. This project was scaffolded and the bulk of its games ported by Claude Code directly from the current Android Kotlin source, not written by hand first.
 
 ## Commands
 
@@ -20,7 +20,6 @@ open BuddyVerse.xcodeproj                  # open in Xcode for day-to-day iterat
 
 ### One-time setup this project can't do for itself
 
-- **`BuddyVerse/Resources/Secrets.plist`** — gitignored; holds `GeminiAPIKey`. Already populated locally from the Android project's `local.properties` when this project was scaffolded. Copy `Secrets.example.plist` if it's ever missing.
 - **`BuddyVerse/Resources/GoogleService-Info.plist`** — gitignored, **not yet added**. Register an iOS app with bundle ID `com.example.buddyverse.ios` under the same Firebase project as the Android app (`buddyverse-5fc3e`) in the Firebase console, download its `GoogleService-Info.plist`, and drop it in this exact path. Without it, `FirebaseApp.configure()` is skipped (guarded in `BuddyVerseApp.swift`) and every multiplayer screen will fail to connect — everything else in the app works fine without it.
 
 ## Architecture
@@ -56,7 +55,6 @@ This app's SwiftUI code was originally written assuming a modern (17.0) deployme
 ### Cross-cutting singletons (`Core/`)
 
 - `InternetConnectionManager` — a from-scratch Swift port of the Android object of the same name, using `FirebaseFirestore`/`FirebaseAuth` directly (closure-based API, not async/await, to stay a close structural match to the Kotlin callback style). Same room-code/anonymous-auth/transactional-join/message-buffering/word-mode-sync design as Android; keep the two in sync if the wire protocol changes on either side, since they talk to the same Firestore project.
-- `AiContentService` — port of `AiGeneratingActivity`'s raw Gemini REST call (no SDK), reading the key from `Secrets.plist` instead of a Gradle `BuildConfig` field.
 - `ThemeManager` / `MusicManager` / `ConfettiView` (`ConfettiController` + `.confettiOverlay(_:)`) — direct analogues of `ThemePrefs`/`MusicManager`/`ConfettiView.kt`.
 - `StripeConfig` / `PendingPayment` / `PaymentWebView` (in `Navigation/`) — port of the real Stripe Payment Link checkout flow (`LobbyActivity` → `PaymentWebViewActivity`), embedded in a `WKWebView` (`TrustedWebView`) the same way Android embeds it, watching navigation for `StripeConfig.paymentSuccessHost` as the success signal.
 

@@ -29,8 +29,8 @@ targets:
         # bump both together after a meaningful cross-platform change so the
         # version label shown on the Welcome screen can confirm two test
         # devices are running the same build.
-        MARKETING_VERSION: "1.2.1"
-        CURRENT_PROJECT_VERSION: "22"
+        MARKETING_VERSION: "1.3.0"
+        CURRENT_PROJECT_VERSION: "23"
         SWIFT_VERSION: "6.0"
         TARGETED_DEVICE_FAMILY: "1,2"
         DEVELOPMENT_TEAM: "PS8DGXJ8S8"
