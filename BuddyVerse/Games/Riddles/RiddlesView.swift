@@ -33,6 +33,8 @@ struct RiddlesView: View {
     @State private var showAnswer = false
     @State private var currentPlayer = 1
     @State private var phase: Phase = .playing
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     init(selection: GameSelection) {
         self.selection = selection
@@ -75,6 +77,8 @@ struct RiddlesView: View {
             }
         }
         .navigationBarHidden(true)
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "RIDDLES") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "RIDDLES") }
     }
 
     private var handoffView: some View {
@@ -134,6 +138,35 @@ struct RiddlesView: View {
                 }
                 .buttonStyle(.plain)
             }
+
+            HStack(spacing: 10) {
+                Button {
+                    showFeedback = true
+                } label: {
+                    Text("Feedback")
+                        .font(.system(size: 14))
+                        .foregroundColor(buttonTextDark)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(backButtonBg)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    showReport = true
+                } label: {
+                    Text("Report")
+                        .font(.system(size: 14))
+                        .foregroundColor(buttonTextDark)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(backButtonBg)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.top, 10)
         }
         .padding(.horizontal, 20)
     }
@@ -195,6 +228,35 @@ struct RiddlesView: View {
                 }
                 .buttonStyle(.plain)
             }
+
+            HStack(spacing: 10) {
+                Button {
+                    showFeedback = true
+                } label: {
+                    Text("Feedback")
+                        .font(.system(size: 14))
+                        .foregroundColor(buttonTextDark)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(backButtonBg)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    showReport = true
+                } label: {
+                    Text("Report")
+                        .font(.system(size: 14))
+                        .foregroundColor(buttonTextDark)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(backButtonBg)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.top, 10)
         }
         .padding(.horizontal, 20)
     }
@@ -291,6 +353,35 @@ struct RiddlesView: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                HStack(spacing: 10) {
+                    Button {
+                        showFeedback = true
+                    } label: {
+                        Text("Feedback")
+                            .font(.system(size: 14))
+                            .foregroundColor(buttonTextDark)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(backButtonBg)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        showReport = true
+                    } label: {
+                        Text("Report")
+                            .font(.system(size: 14))
+                            .foregroundColor(buttonTextDark)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(backButtonBg)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 10)
             }
             .padding(.horizontal, 20)
     }

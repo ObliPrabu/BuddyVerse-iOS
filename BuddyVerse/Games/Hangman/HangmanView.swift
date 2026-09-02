@@ -84,6 +84,8 @@ struct HangmanView: View {
     @State private var toastMessage: String?
     @State private var toastToken = UUID()
     @State private var runToken = UUID()
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     private var displayWord: String {
         targetWord.map { guessedLetters.contains($0) ? String($0) : "_" }.joined(separator: " ")
@@ -153,6 +155,13 @@ struct HangmanView: View {
                     .foregroundColor(Color(hex: 0x333333))
                     .frame(maxWidth: .infinity)
                 }
+
+                HStack(spacing: 10) {
+                    Button("Feedback") { showFeedback = true }
+                    Button("Report") { showReport = true }
+                }
+                .buttonStyle(LegacyProminentButtonStyle(tint: Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0)))
+                .foregroundColor(Color(hex: 0x333333))
             }
             .padding(12)
 
@@ -164,6 +173,8 @@ struct HangmanView: View {
         .onDisappear {
             if isNearbyGame { InternetConnectionManager.shared.stop() }
         }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "HANGMAN") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "HANGMAN") }
     }
 
     private var wordEntrySection: some View {

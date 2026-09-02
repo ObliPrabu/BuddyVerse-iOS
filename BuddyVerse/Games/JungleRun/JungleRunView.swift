@@ -12,6 +12,8 @@ struct JungleRunView: View {
     @State private var fruitPosition: CGPoint = CGPoint(x: 0, y: 0)
     @State private var hasPlacedFruit = false
     @State private var timer: Timer?
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     private static let fruits = ["🍎", "🍌", "🍍", "🥭", "🍒"]
 
@@ -65,6 +67,14 @@ struct JungleRunView: View {
                     // Android's backgroundTint is #AADDDDDD - alpha 0xAA (~0.667), not fully opaque.
                     .buttonStyle(LegacyBorderedButtonStyle(tint: Color(hex: 0xDDDDDD).opacity(0xAA / 255.0)))
                     .foregroundColor(Color(hex: 0x333333))
+
+                    HStack(spacing: 10) {
+                        Button("Feedback") { showFeedback = true }
+                        Button("Report") { showReport = true }
+                    }
+                    .buttonStyle(LegacyBorderedButtonStyle(tint: Color(hex: 0xDDDDDD).opacity(0xAA / 255.0)))
+                    .foregroundColor(Color(hex: 0x333333))
+                    .padding(.top, 10)
                     .padding(.bottom, 30)
                 }
             }
@@ -78,6 +88,8 @@ struct JungleRunView: View {
                 timer = nil
             }
         }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "JUNGLE") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "JUNGLE") }
     }
 
     private func startMovement(in size: CGSize) {

@@ -11,6 +11,8 @@ import SwiftUI
 struct VolcanoClimbView: View {
     @StateObject private var vm: VolcanoClimbViewModel
     @EnvironmentObject private var router: Router
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     init(selection: GameSelection) {
         _vm = StateObject(wrappedValue: VolcanoClimbViewModel(difficulty: selection.difficulty ?? "EASY"))
@@ -90,6 +92,18 @@ struct VolcanoClimbView: View {
             .background(Color(hex: 0xDDDDDD, opacity: 0.67))
             .foregroundColor(Color(hex: 0x333333))
             .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            HStack(spacing: 10) {
+                Button("Feedback") { showFeedback = true }
+                Button("Report") { showReport = true }
+            }
+            .font(.subheadline.bold())
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color(hex: 0xDDDDDD, opacity: 0.67))
+            .foregroundColor(Color(hex: 0x333333))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .padding(.top, 10)
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -97,6 +111,8 @@ struct VolcanoClimbView: View {
         .navigationTitle("Volcano Climb")
         .navigationBarTitleDisplayMode(.inline)
         .onDisappear { vm.stop() }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "VOLCANO") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "VOLCANO") }
     }
 }
 

@@ -25,6 +25,8 @@ struct MazeGameView: View {
     @State private var playerCol = 0
     @State private var playerRow = 0
     @State private var toastMessage: String?
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     private var baseMazeCanvas: some View {
         mazeCanvas
@@ -74,6 +76,14 @@ struct MazeGameView: View {
             .buttonStyle(LegacyProminentButtonStyle(tint: .white))
             .foregroundColor(Color(hex: 0x009688))
             .frame(maxWidth: .infinity)
+
+            HStack(spacing: 10) {
+                Button("Feedback") { showFeedback = true }
+                Button("Report") { showReport = true }
+            }
+            .buttonStyle(LegacyProminentButtonStyle(tint: .white))
+            .foregroundColor(Color(hex: 0x009688))
+            .frame(maxWidth: .infinity)
         }
         .padding()
         .background(Color(hex: 0x009688).ignoresSafeArea())
@@ -84,6 +94,8 @@ struct MazeGameView: View {
                 configureDifficulty(selection.difficulty)
             }
         }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "MAZE") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "MAZE") }
     }
 
     // MARK: - Controls

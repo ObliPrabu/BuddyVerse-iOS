@@ -18,6 +18,8 @@ struct MathSprintView: View {
     @State private var answerText = ""
     @State private var toastMessage: String?
     @State private var timer: Timer?
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     private var answerField: some View {
         // `.onSubmit {}` needs iOS 15 - the TextField(_:text:onCommit:)
@@ -93,6 +95,18 @@ struct MathSprintView: View {
                 .background(Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0))
                 .clipShape(RoundedRectangle(cornerRadius: 4))
                 .buttonStyle(.plain)
+
+            HStack(spacing: 10) {
+                Button("Feedback") { showFeedback = true }
+                Button("Report") { showReport = true }
+            }
+                .font(.system(size: 14))
+                .foregroundColor(Color(hex: 0x333333))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .buttonStyle(.plain)
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -106,6 +120,8 @@ struct MathSprintView: View {
             }
         }
         .onDisappear { timer?.invalidate() }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "MATH") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "MATH") }
     }
 
     private func startNewQuestion() {

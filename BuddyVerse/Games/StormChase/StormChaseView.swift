@@ -21,6 +21,8 @@ struct StormChaseView: View {
     // no longer applies - the Swift equivalent of Android's
     // handler.removeCallbacksAndMessages(null) in onDestroy.
     @State private var generation = 0
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     private static let quadrantSymbols = ["⚡", "🌩️", "⛈️", "🌧️"]
     private static let quadrantColor = Color(hex: 0x607D8B)
@@ -79,11 +81,21 @@ struct StormChaseView: View {
                     // Android's backgroundTint is #AADDDDDD - alpha 0xAA (~0.667), not fully opaque.
                     .buttonStyle(LegacyBorderedButtonStyle(tint: Color(hex: 0xDDDDDD).opacity(0xAA / 255.0)))
                     .foregroundColor(Color(hex: 0x333333))
+
+                HStack(spacing: 10) {
+                    Button("Feedback") { showFeedback = true }
+                    Button("Report") { showReport = true }
+                }
+                    .buttonStyle(LegacyBorderedButtonStyle(tint: Color(hex: 0xDDDDDD).opacity(0xAA / 255.0)))
+                    .foregroundColor(Color(hex: 0x333333))
+                    .padding(.top, 10)
             }
             .padding(20)
         }
         .onAppear { startRound() }
         .onDisappear { generation += 1 }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "STORM") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "STORM") }
     }
 
     @ViewBuilder

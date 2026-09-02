@@ -55,6 +55,8 @@ struct CountTo21View: View {
     @State private var toastMessage: String?
     @State private var toastToken = UUID()
     @State private var runToken = UUID()
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     private func isMyTurn() -> Bool {
         guard !players.isEmpty else { return false }
@@ -127,6 +129,13 @@ struct CountTo21View: View {
                 }
                 .buttonStyle(LegacyProminentButtonStyle(tint: Color(hex: 0xBDBDBD)))
                 .foregroundColor(Color(hex: 0x333333))
+
+                HStack(spacing: 10) {
+                    Button("Feedback") { showFeedback = true }
+                    Button("Report") { showReport = true }
+                }
+                .buttonStyle(LegacyProminentButtonStyle(tint: Color(hex: 0xBDBDBD)))
+                .foregroundColor(Color(hex: 0x333333))
             }
             .padding(20)
 
@@ -155,6 +164,8 @@ struct CountTo21View: View {
         .onDisappear {
             if isNearbyGame { InternetConnectionManager.shared.stop() }
         }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "COUNT21") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "COUNT21") }
     }
 
     private var toastOverlay: some View {

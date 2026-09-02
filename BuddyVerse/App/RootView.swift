@@ -122,6 +122,7 @@ struct RootView: View {
             InstructionsScreenView(selection: selection)
         case .game(let selection):
             GameRouter.gameView(for: selection)
+                .onAppear { AppFeedbackService.incrementPlayCount(gameType: selection.gameType) }
         case .mathSprintSelection:
             MathSprintSelectionView()
         case .contactUs:

@@ -14,6 +14,8 @@ struct SlidePuzzleView: View {
     // 0 represents the empty tile, same convention as Android.
     @State private var tiles: [Int] = [1, 2, 3, 4, 5, 6, 7, 8, 0]
     @State private var toastMessage: String?
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     private var difficulty: String { selection.difficulty ?? "EASY" }
     private let solved = [1, 2, 3, 4, 5, 6, 7, 8, 0]
@@ -61,6 +63,18 @@ struct SlidePuzzleView: View {
                 .background(Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0))
                 .clipShape(RoundedRectangle(cornerRadius: 4))
                 .buttonStyle(.plain)
+
+            HStack(spacing: 10) {
+                Button("Feedback") { showFeedback = true }
+                Button("Report") { showReport = true }
+            }
+                .font(.system(size: 14))
+                .foregroundColor(Color(hex: 0x333333))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .buttonStyle(.plain)
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -68,6 +82,8 @@ struct SlidePuzzleView: View {
         .confettiOverlay(confetti)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { shuffleBoard() }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "SLIDE") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "SLIDE") }
     }
 
     private var puzzleGrid: some View {

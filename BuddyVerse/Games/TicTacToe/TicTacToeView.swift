@@ -50,6 +50,8 @@ struct TicTacToeView: View {
     @State private var didHandleDisconnect = false
     @State private var toastMessage: String?
     @State private var toastToken = UUID()
+    @State private var showFeedback = false
+    @State private var showReport = false
     // Cancels every pending delayed bot move at once, the same way
     // handler.removeCallbacksAndMessages(null) does on Android.
     @State private var runToken = UUID()
@@ -129,6 +131,18 @@ struct TicTacToeView: View {
                     .padding(.vertical, 10)
                     .background(Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0))
                     .clipShape(RoundedRectangle(cornerRadius: 4))
+
+                HStack(spacing: 10) {
+                    Button("Feedback") { showFeedback = true }
+                    Button("Report") { showReport = true }
+                }
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(hex: 0x333333))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .padding(.top, 10)
             }
             .buttonStyle(.plain)
             .padding(20)
@@ -141,6 +155,8 @@ struct TicTacToeView: View {
         .onDisappear {
             if isNearbyGame { InternetConnectionManager.shared.stop() }
         }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "TICTACTOE") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "TICTACTOE") }
     }
 
     private var toastOverlay: some View {

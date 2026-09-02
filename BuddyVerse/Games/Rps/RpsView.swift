@@ -33,6 +33,8 @@ struct RpsView: View {
 
     // --- Local "one phone, two people" mode ---
     @State private var player1Choice: String?
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     private var leftLabel: String { isBotGame ? "YOU" : "PLAYER 1" }
     private var rightLabel: String { isBotGame ? "BOT" : "PLAYER 2" }
@@ -115,6 +117,18 @@ struct RpsView: View {
                 .background(Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0))
                 .clipShape(RoundedRectangle(cornerRadius: 4))
                 .buttonStyle(.plain)
+
+            HStack(spacing: 10) {
+                Button("Feedback") { showFeedback = true }
+                Button("Report") { showReport = true }
+            }
+                .font(.system(size: 14))
+                .foregroundColor(Color(hex: 0x333333))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .buttonStyle(.plain)
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -122,6 +136,8 @@ struct RpsView: View {
         .confettiOverlay(confetti)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { if statusText.isEmpty { startNewMatchRound() } }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "RPS") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "RPS") }
     }
 
     private func choiceButton(_ emoji: String, _ choice: String) -> some View {

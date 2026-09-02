@@ -25,6 +25,8 @@ struct SudokuView: View {
 
     @State private var pickerCell: (row: Int, col: Int)?
     @State private var pickerGeneration = 0
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     private var difficulty: String { selection.difficulty ?? "EASY" }
 
@@ -73,6 +75,13 @@ struct SudokuView: View {
             }
             .buttonStyle(LegacyProminentButtonStyle(tint: Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0)))
             .foregroundColor(Color(hex: 0x333333))
+
+            HStack(spacing: 10) {
+                Button("Feedback") { showFeedback = true }
+                Button("Report") { showReport = true }
+            }
+            .buttonStyle(LegacyProminentButtonStyle(tint: Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0)))
+            .foregroundColor(Color(hex: 0x333333))
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -95,6 +104,8 @@ struct SudokuView: View {
                 ]
             )
         }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "SUDOKU") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "SUDOKU") }
     }
 
     private var pickerPresented: Binding<Bool> {

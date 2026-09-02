@@ -11,6 +11,8 @@ import SwiftUI
 struct MountainClimbView: View {
     @StateObject private var vm: MountainClimbViewModel
     @EnvironmentObject private var router: Router
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     init(selection: GameSelection) {
         _vm = StateObject(wrappedValue: MountainClimbViewModel(difficulty: selection.difficulty ?? "EASY"))
@@ -67,6 +69,18 @@ struct MountainClimbView: View {
             .background(Color(hex: 0xDDDDDD, opacity: 0.67))
                 .foregroundColor(Color(hex: 0x333333))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            HStack(spacing: 10) {
+                Button("Feedback") { showFeedback = true }
+                Button("Report") { showReport = true }
+            }
+            .font(.subheadline.bold())
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color(hex: 0xDDDDDD, opacity: 0.67))
+                .foregroundColor(Color(hex: 0x333333))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .padding(.top, 10)
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -74,6 +88,8 @@ struct MountainClimbView: View {
         .navigationTitle("Mountain Climb")
         .navigationBarTitleDisplayMode(.inline)
         .onDisappear { vm.stop() }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "MOUNTAIN") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "MOUNTAIN") }
     }
 }
 

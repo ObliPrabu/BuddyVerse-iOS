@@ -9,6 +9,8 @@ import FirebaseFirestore
 /// a self-reported log of successful checkouts as the app itself observed
 /// them, not Stripe's own authoritative ledger (no refunds/chargebacks
 /// reflected, since there's no backend here to receive Stripe webhooks).
+/// Also shows AppFeedbackService's play counts, feedback, and reports -
+/// all in-app, same self-reported/no-backend caveat applies to those too.
 struct AdminDashboardView: View {
     @EnvironmentObject private var router: Router
 
@@ -17,6 +19,23 @@ struct AdminDashboardView: View {
     @State private var totals: [String: (count: Int, cents: Int)] = [:]
     @State private var totalCents = 0
     @State private var totalCount = 0
+
+    @State private var playCounts: [(gameType: String, count: Int)] = []
+    @State private var feedbackItems: [FeedbackItem] = []
+    @State private var reportItems: [ReportItem] = []
+
+    private struct FeedbackItem: Identifiable {
+        let id: String
+        let gameType: String
+        let message: String
+    }
+
+    private struct ReportItem: Identifiable {
+        let id: String
+        let gameType: String
+        let reason: String
+        let detail: String
+    }
 
     private let baseBg = Color(hex: 0x1A237E)
 
@@ -43,7 +62,12 @@ struct AdminDashboardView: View {
             .padding(16)
         }
         .navigationBarHidden(true)
-        .onAppear { load() }
+        .onAppear {
+            load()
+            loadPlayCounts()
+            loadFeedback()
+            loadReports()
+        }
     }
 
     private var content: some View {
@@ -85,10 +109,102 @@ struct AdminDashboardView: View {
                     .padding(.horizontal, 24)
                 }
 
+                sectionHeader("🎮 Play Counts")
+                if playCounts.isEmpty {
+                    emptyRow("No plays logged yet.")
+                } else {
+                    VStack(spacing: 8) {
+                        ForEach(playCounts, id: \.gameType) { entry in
+                            HStack {
+                                Text(AppFeedbackService.displayName(for: entry.gameType))
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.white)
+                                Spacer()
+                                Text("\(entry.count)")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.black.opacity(0.2)))
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
+
+                sectionHeader("💬 Feedback (\(feedbackItems.count) recent)")
+                if feedbackItems.isEmpty {
+                    emptyRow("No feedback submitted yet.")
+                } else {
+                    VStack(spacing: 8) {
+                        ForEach(feedbackItems) { item in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(AppFeedbackService.displayName(for: item.gameType))
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(Color.white.opacity(0.6))
+                                Text(item.message)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.white)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(12)
+                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.black.opacity(0.2)))
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
+
+                sectionHeader("🚩 Reports (\(reportItems.count) recent)")
+                if reportItems.isEmpty {
+                    emptyRow("No reports submitted yet.")
+                } else {
+                    VStack(spacing: 8) {
+                        ForEach(reportItems) { item in
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(AppFeedbackService.displayName(for: item.gameType))
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(Color.white.opacity(0.6))
+                                    Spacer()
+                                    Text(item.reason)
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(Color(hex: 0xFF8A80))
+                                }
+                                if !item.detail.isEmpty {
+                                    Text(item.detail)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(12)
+                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.black.opacity(0.2)))
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
+
                 Spacer(minLength: 40)
             }
             .frame(maxWidth: .infinity)
         }
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 18, weight: .bold))
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 24)
+            .padding(.top, 30)
+            .padding(.bottom, 12)
+    }
+
+    private func emptyRow(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 13))
+            .foregroundColor(Color.white.opacity(0.5))
+            .padding(.horizontal, 24)
     }
 
     private func breakdownRow(label: String, key: String) -> some View {
@@ -146,5 +262,45 @@ struct AdminDashboardView: View {
             totalCents = sumCents
             totalCount = count
         }
+    }
+
+    private func loadPlayCounts() {
+        Firestore.firestore().collection("playCounts").getDocuments { snapshot, _ in
+            let entries: [(gameType: String, count: Int)] = (snapshot?.documents ?? []).map { doc in
+                (gameType: doc.documentID, count: doc.get("count") as? Int ?? 0)
+            }
+            playCounts = entries.sorted { $0.count > $1.count }
+        }
+    }
+
+    private func loadFeedback() {
+        Firestore.firestore().collection("feedback")
+            .order(by: "createdAt", descending: true)
+            .limit(to: 50)
+            .getDocuments { snapshot, _ in
+                feedbackItems = (snapshot?.documents ?? []).map { doc in
+                    FeedbackItem(
+                        id: doc.documentID,
+                        gameType: doc.get("gameType") as? String ?? "",
+                        message: doc.get("message") as? String ?? ""
+                    )
+                }
+            }
+    }
+
+    private func loadReports() {
+        Firestore.firestore().collection("reports")
+            .order(by: "createdAt", descending: true)
+            .limit(to: 50)
+            .getDocuments { snapshot, _ in
+                reportItems = (snapshot?.documents ?? []).map { doc in
+                    ReportItem(
+                        id: doc.documentID,
+                        gameType: doc.get("gameType") as? String ?? "",
+                        reason: doc.get("reason") as? String ?? "",
+                        detail: doc.get("detail") as? String ?? ""
+                    )
+                }
+            }
     }
 }

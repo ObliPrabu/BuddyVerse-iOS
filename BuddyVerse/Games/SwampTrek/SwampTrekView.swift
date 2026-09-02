@@ -18,6 +18,8 @@ struct SwampTrekView: View {
     @State private var fillTimer: Timer?
     @State private var toastMessage: String?
     @State private var toastWorkItem: DispatchWorkItem?
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     // HARD = faster fill and a narrower sweet spot (less time to react,
     // less margin for error); EASY = slower fill and a wider zone.
@@ -129,6 +131,18 @@ struct SwampTrekView: View {
                     .background(Color(hex: 0xDDDDDD, opacity: 0.67))
                     .foregroundColor(Color(hex: 0x333333))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                HStack(spacing: 10) {
+                    Button("Feedback") { showFeedback = true }
+                    Button("Report") { showReport = true }
+                }
+                    .font(.subheadline.bold())
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color(hex: 0xDDDDDD, opacity: 0.67))
+                    .foregroundColor(Color(hex: 0x333333))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .padding(.top, 10)
             }
             .padding(20)
 
@@ -150,6 +164,8 @@ struct SwampTrekView: View {
             fillTimer?.invalidate()
             fillTimer = nil
         }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "SWAMP") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "SWAMP") }
     }
 
     private func rollNewSweetSpot() {

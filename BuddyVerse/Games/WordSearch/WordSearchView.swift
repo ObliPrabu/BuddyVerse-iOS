@@ -28,6 +28,8 @@ struct WordSearchView: View {
     @State private var wordCells: [GridCell] = []
     @State private var selectedCells: [GridCell] = []
     @State private var toastMessage: String?
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     private var difficulty: String { selection.difficulty ?? "EASY" }
 
@@ -74,6 +76,18 @@ struct WordSearchView: View {
                 .background(Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0))
                 .clipShape(RoundedRectangle(cornerRadius: 4))
                 .buttonStyle(.plain)
+
+            HStack(spacing: 10) {
+                Button("Feedback") { showFeedback = true }
+                Button("Report") { showReport = true }
+            }
+                .font(.system(size: 14))
+                .foregroundColor(Color(hex: 0x333333))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color(hex: 0xDDDDDD, opacity: 0xAA / 255.0))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .buttonStyle(.plain)
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -84,6 +98,8 @@ struct WordSearchView: View {
             gridSize = gridSizeForDifficulty()
             if letters.isEmpty { setupNewPuzzle() }
         }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "WORDSEARCH") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "WORDSEARCH") }
     }
 
     private func gridSizeForDifficulty() -> Int {

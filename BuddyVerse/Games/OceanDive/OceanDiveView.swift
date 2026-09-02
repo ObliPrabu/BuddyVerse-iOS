@@ -14,6 +14,8 @@ struct OceanDiveView: View {
     @State private var currentCreature = creatures.randomElement()!
     @State private var toastMessage: String?
     @State private var toastWorkItem: DispatchWorkItem?
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     private static let creatures = ["🐙", "🐡", "🐬", "🐳", "🦈"]
 
@@ -77,6 +79,14 @@ struct OceanDiveView: View {
                     // Android's backgroundTint is #AADDDDDD - alpha 0xAA (~0.667), not fully opaque.
                     .buttonStyle(LegacyBorderedButtonStyle(tint: Color(hex: 0xDDDDDD).opacity(0xAA / 255.0)))
                     .foregroundColor(Color(hex: 0x333333))
+
+                HStack(spacing: 10) {
+                    Button("Feedback") { showFeedback = true }
+                    Button("Report") { showReport = true }
+                }
+                    .buttonStyle(LegacyBorderedButtonStyle(tint: Color(hex: 0xDDDDDD).opacity(0xAA / 255.0)))
+                    .foregroundColor(Color(hex: 0x333333))
+                    .padding(.top, 10)
             }
             .padding(20)
 
@@ -94,6 +104,8 @@ struct OceanDiveView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: toastMessage)
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "OCEAN") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "OCEAN") }
     }
 
     private func dive() {

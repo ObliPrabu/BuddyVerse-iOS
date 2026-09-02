@@ -20,6 +20,8 @@ import SwiftUI
 struct DesertTrekView: View {
     @StateObject private var vm: DesertTrekViewModel
     @EnvironmentObject private var router: Router
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     init(selection: GameSelection) {
         _vm = StateObject(wrappedValue: DesertTrekViewModel(
@@ -86,6 +88,18 @@ struct DesertTrekView: View {
             .background(Color(hex: 0xDDDDDD, opacity: 0.67))
             .foregroundColor(Color(hex: 0x333333))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            HStack(spacing: 10) {
+                Button("Feedback") { showFeedback = true }
+                Button("Report") { showReport = true }
+            }
+            .font(.subheadline.bold())
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color(hex: 0xDDDDDD, opacity: 0.67))
+            .foregroundColor(Color(hex: 0x333333))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .padding(.top, 10)
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -103,6 +117,8 @@ struct DesertTrekView: View {
             vm.startIfNeeded()
         }
         .onDisappear { vm.stop() }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "DESERT") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "DESERT") }
     }
 
     @ViewBuilder

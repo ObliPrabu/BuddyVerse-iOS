@@ -16,6 +16,8 @@ struct SavannaSafariView: View {
     @State private var currentAnimal = animals.randomElement()!
     @State private var statusText: String? // overrides the score line on game-over, like Android's tvScore reuse
     @State private var timer: Timer?
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     private static let animals = ["🦁", "🐘", "🦒", "🦓", "🦏", "🐆", "🦛"]
 
@@ -78,6 +80,14 @@ struct SavannaSafariView: View {
                     // Android's backgroundTint is #AADDDDDD - alpha 0xAA (~0.667), not fully opaque.
                     .buttonStyle(LegacyBorderedButtonStyle(tint: Color(hex: 0xDDDDDD).opacity(0xAA / 255.0)))
                     .foregroundColor(Color(hex: 0x333333))
+
+                HStack(spacing: 10) {
+                    Button("Feedback") { showFeedback = true }
+                    Button("Report") { showReport = true }
+                }
+                    .buttonStyle(LegacyBorderedButtonStyle(tint: Color(hex: 0xDDDDDD).opacity(0xAA / 255.0)))
+                    .foregroundColor(Color(hex: 0x333333))
+                    .padding(.top, 10)
             }
             .padding(20)
         }
@@ -86,6 +96,8 @@ struct SavannaSafariView: View {
             timer?.invalidate()
             timer = nil
         }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "SAVANNA") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "SAVANNA") }
     }
 
     private func onAnimalTapped() {

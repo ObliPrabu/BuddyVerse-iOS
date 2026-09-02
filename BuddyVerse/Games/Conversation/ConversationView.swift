@@ -15,6 +15,8 @@ struct ConversationView: View {
     @State private var current: String
     @State private var answerText: String = ""
     @State private var savedAnswers: [String] = []
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     // Namespaced so this never collides with any other UserDefaults key used
     // elsewhere in the app - mirrors Android's dedicated
@@ -75,6 +77,35 @@ struct ConversationView: View {
                     .buttonStyle(.plain)
                 }
                 .padding(.bottom, 10)
+
+                HStack(spacing: 10) {
+                    Button {
+                        showFeedback = true
+                    } label: {
+                        Text("Feedback")
+                            .font(.system(size: 14))
+                            .foregroundColor(buttonTextDark)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(backButtonBg)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        showReport = true
+                    } label: {
+                        Text("Report")
+                            .font(.system(size: 14))
+                            .foregroundColor(buttonTextDark)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(backButtonBg)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.bottom, 20)
 
                 Text("Conversation Starters \u{1F4AC}")
                     .font(.system(size: 24, weight: .bold))
@@ -169,6 +200,8 @@ struct ConversationView: View {
         }
         .navigationBarHidden(true)
         .onAppear { refreshSavedAnswers() }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "CONVERSATION") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "CONVERSATION") }
     }
 
     private func advanceToNextQuestion() {

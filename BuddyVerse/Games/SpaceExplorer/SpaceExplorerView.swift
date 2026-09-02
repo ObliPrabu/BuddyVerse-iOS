@@ -12,6 +12,8 @@ struct SpaceExplorerView: View {
     @State private var shipPosition: CGPoint = CGPoint(x: 0, y: 0)
     @State private var starPosition: CGPoint = CGPoint(x: 0, y: 0)
     @State private var hasPlacedShip = false
+    @State private var showFeedback = false
+    @State private var showReport = false
 
     // How close a tap has to land to the star to count as a catch. A bigger
     // hitbox is more forgiving (EASY); a smaller one demands a precise tap (HARD).
@@ -58,8 +60,16 @@ struct SpaceExplorerView: View {
                     }
                         .buttonStyle(LegacyProminentButtonStyle(tint: Color(hex: 0x757575)))
                         .foregroundColor(.white)
-                        .padding(.bottom, 30)
                         .padding(.top, 12)
+
+                    HStack(spacing: 10) {
+                        Button("Feedback") { showFeedback = true }
+                        Button("Report") { showReport = true }
+                    }
+                        .buttonStyle(LegacyProminentButtonStyle(tint: Color(hex: 0x757575)))
+                        .foregroundColor(.white)
+                        .padding(.bottom, 30)
+                        .padding(.top, 10)
                 }
             }
             .contentShape(Rectangle())
@@ -77,6 +87,8 @@ struct SpaceExplorerView: View {
                 starPosition = randomStarPosition(in: geo.size)
             }
         }
+        .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "SPACE") }
+        .sheet(isPresented: $showReport) { ReportSheetView(gameType: "SPACE") }
     }
 
     private func moveShip(to point: CGPoint, in size: CGSize) {
