@@ -138,15 +138,18 @@ struct AdminDashboardView: View {
                 } else {
                     VStack(spacing: 8) {
                         ForEach(feedbackItems) { item in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(AppFeedbackService.displayName(for: item.gameType))
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(Color.white.opacity(0.6))
-                                Text(item.message)
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.white)
+                            HStack(alignment: .top) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(AppFeedbackService.displayName(for: item.gameType))
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(Color.white.opacity(0.6))
+                                    Text(item.message)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.white)
+                                }
+                                Spacer()
+                                deleteButton { deleteFeedback(id: item.id) }
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(12)
                             .background(RoundedRectangle(cornerRadius: 8).fill(Color.black.opacity(0.2)))
                         }
@@ -160,23 +163,25 @@ struct AdminDashboardView: View {
                 } else {
                     VStack(spacing: 8) {
                         ForEach(reportItems) { item in
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Text(AppFeedbackService.displayName(for: item.gameType))
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(Color.white.opacity(0.6))
-                                    Spacer()
-                                    Text(item.reason)
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(Color(hex: 0xFF8A80))
+                            HStack(alignment: .top) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text(AppFeedbackService.displayName(for: item.gameType))
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(Color.white.opacity(0.6))
+                                        Spacer()
+                                        Text(item.reason)
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(Color(hex: 0xFF8A80))
+                                    }
+                                    if !item.detail.isEmpty {
+                                        Text(item.detail)
+                                            .font(.system(size: 14))
+                                            .foregroundColor(.white)
+                                    }
                                 }
-                                if !item.detail.isEmpty {
-                                    Text(item.detail)
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.white)
-                                }
+                                deleteButton { deleteReport(id: item.id) }
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(12)
                             .background(RoundedRectangle(cornerRadius: 8).fill(Color.black.opacity(0.2)))
                         }
@@ -188,6 +193,16 @@ struct AdminDashboardView: View {
             }
             .frame(maxWidth: .infinity)
         }
+    }
+
+    private func deleteButton(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text("✕")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(Color.white.opacity(0.6))
+                .padding(6)
+        }
+        .buttonStyle(.plain)
     }
 
     private func sectionHeader(_ title: String) -> some View {
@@ -302,5 +317,15 @@ struct AdminDashboardView: View {
                     )
                 }
             }
+    }
+
+    private func deleteFeedback(id: String) {
+        feedbackItems.removeAll { $0.id == id }
+        Firestore.firestore().collection("feedback").document(id).delete()
+    }
+
+    private func deleteReport(id: String) {
+        reportItems.removeAll { $0.id == id }
+        Firestore.firestore().collection("reports").document(id).delete()
     }
 }

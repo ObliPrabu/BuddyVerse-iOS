@@ -94,6 +94,14 @@ struct ReportSheetView: View {
     @State private var detail = ""
     @State private var submitted = false
 
+    private var canSubmit: Bool {
+        guard let selectedReason else { return false }
+        if selectedReason == "Other" {
+            return !detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        return true
+    }
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -106,9 +114,11 @@ struct ReportSheetView: View {
                 VStack(spacing: 16) {
                     Text("\u{2705}")
                         .font(.system(size: 50))
-                    Text("Report sent. Thank you!")
+                    Text("Thanks for the report - we'll get to it!")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 30)
                 }
             } else {
                 ScrollView {
@@ -142,7 +152,7 @@ struct ReportSheetView: View {
                         }
                         .padding(.bottom, 24)
 
-                        androidField("Any extra details? (optional)", text: $detail)
+                        androidField(selectedReason == "Other" ? "Please describe the issue" : "Any extra details? (optional)", text: $detail)
                             .padding(.bottom, 30)
 
                         Button {
@@ -157,11 +167,11 @@ struct ReportSheetView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
-                                .background(selectedReason == nil ? Color.gray : Color(hex: 0xE53935))
+                                .background(canSubmit ? Color(hex: 0xE53935) : Color.gray)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
                         .buttonStyle(.plain)
-                        .disabled(selectedReason == nil)
+                        .disabled(!canSubmit)
                         .padding(.bottom, 12)
 
                         Button("Cancel") { presentationMode.wrappedValue.dismiss() }
