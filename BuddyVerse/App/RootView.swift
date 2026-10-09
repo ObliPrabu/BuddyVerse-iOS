@@ -31,7 +31,48 @@ final class Router: ObservableObject {
 struct RootView: View {
     @StateObject private var router = Router()
 
+    // The mandatory, first-launch-only name gate (EnterNameView, then
+    // GetUpdatesView) - rendered as an overlay on top of the already-mounted
+    // content below rather than a pushed route, mirroring Android's
+    // WelcomeActivity/EnterNameActivity relationship: the content underneath
+    // is already fully live the whole time, so once `hasEnteredName` flips
+    // to true it's simply revealed - no relaunch, no blank-state risk.
+    @State private var hasEnteredName = UserDefaults.standard.bool(forKey: "has_entered_name")
+    @State private var gateShowsUpdatesStep = false
+
+    // Widget/URL-scheme deep links (buddyverse://daily/...) land here via
+    // DeepLinkManager rather than directly on `router`, since Router is
+    // scoped to this view - see that file's own doc comment.
+    @ObservedObject private var deepLink = DeepLinkManager.shared
+
     var body: some View {
+        ZStack {
+            mainContent
+                .allowsHitTesting(hasEnteredName)
+
+            if !hasEnteredName {
+                gateOverlay
+                    .zIndex(1000)
+            }
+        }
+        .environmentObject(router)
+        .onChange(of: deepLink.pendingRoute) { newRoute in
+            guard let route = newRoute else { return }
+            router.path = [route]
+            deepLink.pendingRoute = nil
+        }
+    }
+
+    @ViewBuilder
+    private var gateOverlay: some View {
+        if gateShowsUpdatesStep {
+            GetUpdatesView(onBack: { hasEnteredName = true })
+        } else {
+            EnterNameView(onContinue: { gateShowsUpdatesStep = true })
+        }
+    }
+
+    private var mainContent: some View {
         // Every pushed screen stays mounted (indices are stable - push only
         // appends, pop only drops the last one) so a screen's @State
         // survives the player backing into it, roughly matching
@@ -64,7 +105,6 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: router.path.count)
-        .environmentObject(router)
     }
 
     @ViewBuilder
@@ -122,7 +162,11 @@ struct RootView: View {
             InstructionsScreenView(selection: selection)
         case .game(let selection):
             GameRouter.gameView(for: selection)
-                .onAppear { AppFeedbackService.incrementPlayCount(gameType: selection.gameType) }
+                .onAppear {
+                    AppFeedbackService.incrementPlayCount(gameType: selection.gameType)
+                    setLiveActivityContext(for: selection)
+                }
+                .onDisappear { LiveActivityManager.currentContext = nil }
         case .mathSprintSelection:
             MathSprintSelectionView()
         case .contactUs:
@@ -133,10 +177,28 @@ struct RootView: View {
             OpponentDisconnectedView()
         case .login:
             LoginView()
-        case .adminHome(let gameType):
-            AdminHomeView(gameType: gameType)
         case .adminDashboard:
             AdminDashboardView()
+        case .getUpdates:
+            GetUpdatesView(onBack: { router.pop() })
         }
+    }
+
+    /// Feeds LiveActivityManager the "you vs them" context for the Dynamic
+    /// Island shown if the player backgrounds mid-game - only ever set for a
+    /// real multiplayer game (GameSelection.isNearby with a real player
+    /// roster); anything else (local pass-and-play, vs bot, a solo game)
+    /// clears it, since there's no real opponent name to show.
+    private func setLiveActivityContext(for selection: GameSelection) {
+        guard selection.isNearby,
+              let players = selection.players, players.count >= 2,
+              let myId = InternetConnectionManager.shared.myPlayerId(),
+              let me = players.first(where: { $0.id == myId })
+        else {
+            LiveActivityManager.currentContext = nil
+            return
+        }
+        let opponentNames = players.filter { $0.id != myId }.map { $0.name }.joined(separator: ", ")
+        LiveActivityManager.currentContext = (gameType: selection.gameType, myName: me.name, opponentNames: opponentNames)
     }
 }

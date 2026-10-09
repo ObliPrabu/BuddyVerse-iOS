@@ -46,8 +46,8 @@ enum AppRoute: Hashable {
     case credits
     case opponentDisconnected
     case login
-    case adminHome(gameType: String)
     case adminDashboard
+    case getUpdates
 }
 
 // The single place that maps a GAME_TYPE string to its destination screen -

@@ -17,17 +17,31 @@ struct BuddyVerseApp: App {
             FirebaseApp.configure()
         }
         MusicManager.shared.start()
+        // Touching .shared this early sets UNUserNotificationCenter's
+        // delegate before AdminDashboardView could ever publish a version
+        // and fire a notification off of it.
+        _ = LocalNotificationManager.shared
     }
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .preferredColorScheme(theme.colorScheme)
+                .onOpenURL { url in
+                    // Currently only the BuddyVerseWidget home-screen widget
+                    // sends one of these (buddyverse://daily/...) - see
+                    // DeepLinkManager.swift.
+                    DeepLinkManager.shared.handle(url)
+                }
         }
         .onChange(of: scenePhase) { newPhase in
             switch newPhase {
-            case .active: MusicManager.shared.onAppForegrounded()
-            case .background: MusicManager.shared.onAppBackgrounded()
+            case .active:
+                MusicManager.shared.onAppForegrounded()
+                LiveActivityManager.end()
+            case .background:
+                MusicManager.shared.onAppBackgrounded()
+                LiveActivityManager.start()
             default: break
             }
         }

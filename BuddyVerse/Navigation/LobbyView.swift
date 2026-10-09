@@ -92,19 +92,8 @@ struct LobbyView: View {
         }
     }
 
-    /// The one designated admin account (AuthManager.isAdmin()) gets an
-    /// extra stop here instead of going straight into the game - a chance to
-    /// detour into AdminDashboardView instead, since that's the only place
-    /// in the app this account's admin-ness is ever actually relevant.
-    /// Every other entitled account (a real subscriber, or someone who
-    /// already paid this game's one-time unlock) skips straight to the game
-    /// exactly as before.
     private func proceedEntitled() {
-        if AuthManager.isAdmin() {
-            router.replaceTop(with: .adminHome(gameType: gameType))
-        } else {
-            router.replaceTop(with: .onePhoneSelection(gameType: gameType))
-        }
+        router.replaceTop(with: .onePhoneSelection(gameType: gameType))
     }
 
     private var centerContent: some View {

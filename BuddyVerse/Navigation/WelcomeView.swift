@@ -14,6 +14,8 @@ struct WelcomeView: View {
     @State private var statTrivia = 0
     @State private var statGames = 0
     @State private var scrollProxy: ScrollViewProxy?
+    @State private var updateBannerText: String?
+    @State private var isAdminUser = AuthManager.isAdmin()
 
     private var isDark: Bool { theme.isDarkActive(systemScheme: systemScheme) }
 
@@ -74,6 +76,9 @@ struct WelcomeView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
+                        if let updateBannerText {
+                            updateBanner(updateBannerText)
+                        }
                         header.frame(maxWidth: .infinity)
                         exploreBlock
                         mainSections
@@ -84,6 +89,8 @@ struct WelcomeView: View {
                 .onAppear {
                     scrollProxy = proxy
                     animateStats()
+                    checkForUpdateIfOptedIn()
+                    if isAdminUser { AppFeedbackService.autoPublishUpdateIfNewer() }
                 }
             }
 
@@ -94,6 +101,12 @@ struct WelcomeView: View {
             }
         }
         .navigationBarHidden(true)
+        .onChange(of: router.path.count) { newCount in
+            if newCount == 0 {
+                isAdminUser = AuthManager.isAdmin()
+                if isAdminUser { AppFeedbackService.autoPublishUpdateIfNewer() }
+            }
+        }
     }
 
     private var rootBackground: some View {
@@ -192,6 +205,32 @@ struct WelcomeView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
         .background(RoundedRectangle(cornerRadius: 16).fill(overlayCardBg))
+    }
+
+    // Shown only when this device has opted into update notifications (see
+    // GetUpdatesView) AND appConfig/latest's versionName differs from what's
+    // actually installed - hidden otherwise.
+    private func updateBanner(_ message: String) -> some View {
+        HStack {
+            Text(message)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(Color(hex: 0x1A237E))
+            Spacer()
+            Button {
+                updateBannerText = nil
+            } label: {
+                Text("✕")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(Color(hex: 0x1A237E))
+                    .padding(6)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color(hex: 0xFFC107))
+        .padding(.horizontal, 16)
+        .padding(.bottom, 12)
     }
 
     // MARK: - Connect / Free Games / Premium sections
@@ -299,7 +338,7 @@ struct WelcomeView: View {
 
     private var topBar: some View {
         HStack {
-            pillButton("🎉 Credits") { router.push(.credits) }
+            pillButton("🎉 Creator") { router.push(.credits) }
             Spacer()
             pillButton(isDark ? "☀️ Light Mode" : "🌙 Dark Mode") { theme.toggle() }
         }
@@ -341,12 +380,26 @@ struct WelcomeView: View {
                 Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?")")
                     .font(.system(size: 11))
                     .foregroundColor(.white.opacity(0.6))
-                // Low-key on purpose - this is only ever needed the first
-                // time on a new device (or after signing out); a returning
-                // admin session already gets carried straight to
-                // AdminHomeView on launch, so this never needs to be
-                // prominent.
-                Button("Log In") { router.push(.login) }
+                Button("🔔 Get Updates") { router.push(.getUpdates) }
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.8))
+                    .buttonStyle(.plain)
+                // Only ever visible to the one signed-in admin account
+                // (AuthManager.isAdmin()) - invisible to everyone else.
+                // Re-checked whenever the router path empties back out to
+                // Welcome (not just once at launch), since WelcomeView stays
+                // mounted for the app's whole lifetime and a login/logout
+                // elsewhere wouldn't otherwise be reflected here until the
+                // next cold launch.
+                if isAdminUser {
+                    Button("🛠️ Admin Dashboard") { router.push(.adminDashboard) }
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.8))
+                        .buttonStyle(.plain)
+                }
+                // Low-key on purpose - only ever needed the first time on a
+                // new device (or after signing out).
+                Button("Admin Login") { router.push(.login) }
                     .font(.system(size: 10))
                     .foregroundColor(.white.opacity(0.4))
                     .buttonStyle(.plain)
@@ -364,6 +417,18 @@ struct WelcomeView: View {
         animateCountUp(target: 100) { statRiddles = $0 }
         animateCountUp(target: 100) { statTrivia = $0 }
         animateCountUp(target: 18) { statGames = $0 }
+    }
+
+    // Only bothers checking Firestore if this device has actually opted in
+    // via GetUpdatesView - most installs never call this at all.
+    private func checkForUpdateIfOptedIn() {
+        guard UserDefaults.standard.bool(forKey: "wants_notifications") else { return }
+        AppFeedbackService.checkForUpdate { result in
+            guard let result else { return }
+            updateBannerText = result.message.isEmpty
+                ? "🎉 Version \(result.versionName) is out — update available!"
+                : "🎉 Version \(result.versionName) is out — \(result.message)"
+        }
     }
 
     private func animateCountUp(target: Int, duration: Double = 1.5, update: @escaping (Int) -> Void) {

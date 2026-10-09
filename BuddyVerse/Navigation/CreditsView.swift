@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Mirrors CreditsActivity/activity_credits.xml: the exact "Meet the Makers"
+/// Mirrors CreditsActivity/activity_credits.xml: the exact "Meet the Creator"
 /// copy, screen_background/text color swap from colors.xml, a top-left gray
 /// "Back" pill, and confetti that celebrates whenever this screen is opened.
 struct CreditsView: View {
@@ -27,7 +27,7 @@ struct CreditsView: View {
                         .font(.system(size: 40))
                         .padding(.bottom, 8)
 
-                    Text("Meet the Makers")
+                    Text("Meet the Creator")
                         .font(.system(size: 30, weight: .bold))
                         .foregroundColor(textPrimary)
                         .padding(.bottom, 8)
@@ -41,12 +41,14 @@ struct CreditsView: View {
                     Text("Mithran ObliPrabu")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(accentColor)
-                        .padding(.bottom, 30)
+                        .padding(.bottom, 20)
 
-                    Text("🏫 Milltown · Bridgewater, New Jersey")
-                        .font(.system(size: 16))
+                    Text("\u{201C}I am Mithran ObliPrabu, the owner of this app! I really thank you for trying my app out and I really hope you like it. Thanks to my mentors, my uncle, my dad, my mom, my brother, my grandparents, and everyone that believed in me to make this app! I have successfully built it, thanks to everyone that is trying this app out! Thanks for using BuddyVerse! 😁\u{201D}")
+                        .font(.system(size: 15))
+                        .italic()
                         .foregroundColor(textSecondary)
                         .multilineTextAlignment(.center)
+                        .lineSpacing(4)
                         .padding(.bottom, 30)
 
                     Text("BuddyVerse — a school project, made to help people make friends. 💛")

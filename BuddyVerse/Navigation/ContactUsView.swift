@@ -2,8 +2,8 @@ import SwiftUI
 
 /// Mirrors ContactUsActivity/activity_contact_us.xml: the light/dark
 /// screen_background + screen_text_primary swap from colors.xml, the exact
-/// phone number / Discord link copy and colors, and a top-left gray "Back"
-/// pill instead of a bottom text link.
+/// contact email copy and colors, and a top-left gray "Back" pill instead of
+/// a bottom text link.
 struct ContactUsView: View {
     @EnvironmentObject private var router: Router
     @Environment(\.openURL) private var openURL
@@ -26,22 +26,11 @@ struct ContactUsView: View {
                     .padding(.bottom, 40)
 
                 Button {
-                    if let url = URL(string: "tel:+17322581971") { openURL(url) }
+                    if let url = URL(string: "mailto:buddyversemithran@gmail.com") { openURL(url) }
                 } label: {
-                    Text("+1 (732) 258-1971")
+                    Text("buddyversemithran@gmail.com")
                         .font(.system(size: 20))
                         .foregroundColor(Color(hex: 0x2196F3))
-                        .padding(10)
-                }
-                .buttonStyle(.plain)
-                .padding(.bottom, 20)
-
-                Button {
-                    if let url = URL(string: "https://discord.gg/W3GQ3fX4J") { openURL(url) }
-                } label: {
-                    Text("Join our Discord")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(Color(hex: 0x5865F2))
                         .padding(10)
                 }
                 .buttonStyle(.plain)
