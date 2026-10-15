@@ -33,6 +33,11 @@ struct RpsView: View {
 
     // --- Local "one phone, two people" mode ---
     @State private var player1Choice: String?
+    // The player's previous throw in a vs-bot match. The bot may only react
+    // to THIS - never to the throw the player has just made - otherwise it
+    // would be reading the answer before choosing, and a first-to-3 match
+    // against MEDIUM/HARD would be close to unwinnable.
+    @State private var lastPlayerChoice: String?
     @State private var showFeedback = false
     @State private var showReport = false
 
@@ -176,12 +181,24 @@ struct RpsView: View {
             playerText = "YOU: \(choice)"
 
             let choices = ["Rock", "Paper", "Scissors"]
+            let randomPick = choices.randomElement() ?? "Rock"
             let botChoice: String
+            // HARD/MEDIUM try to counter the player's PREVIOUS throw (60% /
+            // 40% of the time) and otherwise throw at random; EASY is fully
+            // random. Against a random player this keeps all three roughly
+            // even, with the stronger bots only punishing repetitive play.
+            let counterChance: Double
             switch difficulty {
-            case "HARD": botChoice = Double.random(in: 0..<1) < 0.7 ? counter(to: choice) : (choices.randomElement() ?? "Rock")
-            case "MEDIUM": botChoice = Double.random(in: 0..<1) < 0.4 ? counter(to: choice) : (choices.randomElement() ?? "Rock")
-            default: botChoice = choices.randomElement() ?? "Rock"
+            case "HARD": counterChance = 0.6
+            case "MEDIUM": counterChance = 0.4
+            default: counterChance = 0
             }
+            if let previous = lastPlayerChoice, Double.random(in: 0..<1) < counterChance {
+                botChoice = counter(to: previous)
+            } else {
+                botChoice = randomPick
+            }
+            lastPlayerChoice = choice
 
             opponentText = "BOT: \(botChoice)"
             determineWinnerBot(choice, botChoice)

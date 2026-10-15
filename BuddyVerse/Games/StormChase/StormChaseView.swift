@@ -162,8 +162,12 @@ struct StormChaseView: View {
             }
         } else {
             acceptingInput = false
-            let survivedRounds = round
-            statusText = "The storm got you! Survived \(survivedRounds) round\(survivedRounds == 1 ? "" : "s")."
+            // `round` only moves up after a round is cleared, so failing round
+            // N means N-1 were actually survived.
+            let survivedRounds = max(round - 1, 0)
+            statusText = survivedRounds == 0
+                ? "The storm got you on the very first round!"
+                : "The storm got you! Survived \(survivedRounds) round\(survivedRounds == 1 ? "" : "s")."
             round = 1
             sequence.removeAll()
             let myGeneration = generation

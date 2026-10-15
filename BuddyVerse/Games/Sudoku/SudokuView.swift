@@ -195,6 +195,12 @@ struct SudokuView: View {
     }
 
     private func checkBoard() {
+        // Once "Answer" has filled the board in, a complete valid grid is
+        // not something the player solved - don't celebrate it.
+        guard !answerRevealed else {
+            showToast("You already revealed the answer. Tap New for a fresh puzzle.")
+            return
+        }
         let isComplete = board.allSatisfy { row in row.allSatisfy { $0 != 0 } }
         guard isComplete else {
             showToast("The board is not complete yet!")

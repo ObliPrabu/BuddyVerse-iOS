@@ -79,6 +79,15 @@ struct HangmanView: View {
     // seat wins" rule to RACEWIN messages, so they all settle on the same
     // winner without any new wire message.
     @State private var raceWinnerSeat: Int?
+    // Online only: "New" is locked until the round is over, so two phones
+    // can't each start a new round before they've agreed who the picker is.
+    // The one exception is a guesser who has been stuck waiting for a word
+    // for 20 seconds - then New skips the idle picker (see onNewPressed).
+    @State private var skipAvailable = false
+    @State private var skipToken = UUID()
+    // Race mode, seat 0 only: the word this round was rolled with, kept so
+    // it can be re-sent if another phone's New crossed ours on the wire.
+    @State private var lastRaceWord: (category: String, word: String)?
 
     @State private var categoryText = "Category: Animals"
     @State private var wordEntryPrompt = "Pick a secret word for your friend to guess!"
@@ -98,6 +107,24 @@ struct HangmanView: View {
     }
 
     private var showKeyboard: Bool { phase == .playing || phase == .spectating }
+
+    private var newEnabled: Bool {
+        !isNearbyGame || roundOver || skipAvailable
+    }
+
+    // Starts the 20s countdown after which a phone that is still waiting for
+    // a word (picker never typed one / race word never arrived) may use New
+    // to move the room on.
+    private func armSkipTimer() {
+        skipAvailable = false
+        let token = UUID()
+        skipToken = token
+        DispatchQueue.main.asyncAfter(deadline: .now() + 20) {
+            if token == skipToken, phase == .waitingForWord || phase == .connecting {
+                skipAvailable = true
+            }
+        }
+    }
     private var keyboardEnabled: Bool { phase == .playing && !roundOver }
 
     private func isPicker() -> Bool {
@@ -148,6 +175,7 @@ struct HangmanView: View {
                 HStack(spacing: 10) {
                     // btnNewHangman: weight 1, bg white, text #607D8B
                     Button("New") { onNewPressed() }
+                        .disabled(!newEnabled)
                         .buttonStyle(LegacyProminentButtonStyle(tint: .white))
                         .foregroundColor(Color(hex: 0x607D8B))
                         .frame(maxWidth: .infinity)
@@ -289,8 +317,13 @@ struct HangmanView: View {
     private static let maxWordLength = 20
     private static let maxCategoryLength = 30
 
+    // Exactly one scalar in A-Z. Comparing the Character itself uses string
+    // ordering, which lets a base letter plus a combining accent through -
+    // and there is no keyboard key for that, so the round couldn't be won.
     private static func isPlainLetter(_ c: Character) -> Bool {
-        ("A"..."Z").contains(c)
+        let scalars = c.unicodeScalars
+        guard scalars.count == 1, let scalar = scalars.first else { return false }
+        return (0x41...0x5A).contains(scalar.value)
     }
 
     // The same shape check applied to a word that arrives over the wire, so a
@@ -301,6 +334,8 @@ struct HangmanView: View {
 
     private func startRoundWithWord(_ category: String, _ word: String) {
         raceWinnerSeat = nil
+        skipAvailable = false
+        skipToken = UUID()
         targetWord = word
         guessedLetters = []
         wrongLetters = []
@@ -334,6 +369,7 @@ struct HangmanView: View {
             targetWord = ""
             let pickerName = players[safe: pickerIndex % max(players.count, 1)]?.name ?? "someone"
             categoryText = "Waiting for \(pickerName) to pick a word..."
+            armSkipTimer()
         }
     }
 
@@ -354,6 +390,7 @@ struct HangmanView: View {
                 rollRaceWord()
             } else {
                 categoryText = "Waiting for a random word..."
+                armSkipTimer()
             }
         } else {
             beginNearbyRound()
@@ -367,6 +404,7 @@ struct HangmanView: View {
         let pool = Self.wordMap[category]!
         let word = pool.randomElement()!
         InternetConnectionManager.shared.sendMessage("\(roundId):RACEWORD:\(category):\(word)")
+        lastRaceWord = (category: category, word: word)
         startRoundWithWord(category, word)
     }
 
@@ -480,7 +518,10 @@ struct HangmanView: View {
         checkGameStatus()
     }
 
-    private func checkGameStatus() {
+    // `announce` is false when this is only mirroring a guess that came from
+    // another phone: that phone already tells everyone the result, so sending
+    // it again from every guesser would be N-1 redundant writes per round.
+    private func checkGameStatus(announce: Bool = true) {
         if !displayWord.contains("_") {
             roundOver = true
             if isRaceMode {
@@ -492,12 +533,12 @@ struct HangmanView: View {
                 categoryText = "\u{1F389} You won the race! The word was \(targetWord)"
                 raceWinnerSeat = players.firstIndex(where: { $0.id == myId })
                 confetti.start()
-                InternetConnectionManager.shared.sendMessage("\(roundId):RESULT:RACEWIN:\(myId ?? "")")
+                if announce { InternetConnectionManager.shared.sendMessage("\(roundId):RESULT:RACEWIN:\(myId ?? "")") }
             } else if isNearbyGame {
                 showToast("YOUR TEAM WINS! The word was \(targetWord)")
                 categoryText = "\u{1F389} You win! The word was \(targetWord)"
                 confetti.start()
-                InternetConnectionManager.shared.sendMessage("\(roundId):RESULT:WIN")
+                if announce { InternetConnectionManager.shared.sendMessage("\(roundId):RESULT:WIN") }
                 // The picker's turn moves to the next seat, since this
                 // seat's word just got guessed.
                 if !players.isEmpty { pickerIndex = (pickerIndex + 1) % players.count }
@@ -512,7 +553,7 @@ struct HangmanView: View {
                 categoryText = "\u{1F480} Game over! The word was \(targetWord)"
             }
             if isNearbyGame && !isRaceMode {
-                InternetConnectionManager.shared.sendMessage("\(roundId):RESULT:LOSE")
+                if announce { InternetConnectionManager.shared.sendMessage("\(roundId):RESULT:LOSE") }
                 if !players.isEmpty { pickerIndex = (pickerIndex + 1) % players.count }
             }
         }
@@ -526,8 +567,18 @@ struct HangmanView: View {
         let msg = String(raw[raw.index(after: sep)...])
 
         if msg == "RESET" {
+            // Same-round RESET in RACE mode, seat 0 only: another phone pressed
+            // New at the same moment we did, so it may have dropped our
+            // RACEWORD as stale just before bumping its own round. We still
+            // have the word for this round untouched - send it again.
+            if msgRound == roundId, isRaceMode, players.first?.id == myId, let last = lastRaceWord,
+               phase == .playing, guessedLetters.isEmpty, wrongLetters.isEmpty, !roundOver {
+                InternetConnectionManager.shared.sendMessage("\(roundId):RACEWORD:\(last.category):\(last.word)")
+                return
+            }
             guard msgRound > roundId, msgRound <= roundId + 3 else { return }
             roundId = msgRound
+            if !roundOver { rotatePickerIfSkipping() }
             restartNearbyRound()
             return
         }
@@ -584,7 +635,7 @@ struct HangmanView: View {
                 applyGuessAsPicker(char)
             } else if !roundOver, !guessedLetters.contains(char), !wrongLetters.contains(char) {
                 applyGuessToBoard(char)
-                checkGameStatus()
+                checkGameStatus(announce: false)
             }
         } else if msg == "RESULT:WIN" {
             guard !isRaceMode, !isPicker(sender) else { return }
@@ -625,6 +676,14 @@ struct HangmanView: View {
         }
     }
 
+    // Used by the sender of a skip and by every receiver of its RESET. If the
+    // round had already ended the picker was rotated when the result landed,
+    // so this does nothing then - the rotation happens exactly once per phone.
+    private func rotatePickerIfSkipping() {
+        guard !isRaceMode, !players.isEmpty else { return }
+        pickerIndex = (pickerIndex + 1) % players.count
+    }
+
     private func handleOpponentDisconnected() {
         guard !didHandleDisconnect else { return }
         didHandleDisconnect = true
@@ -636,6 +695,11 @@ struct HangmanView: View {
 
     private func onNewPressed() {
         if isNearbyGame {
+            guard newEnabled else { return }
+            // Skipping a picker who never delivered a word: the round is not
+            // over, so nobody has rotated the picker yet. Rotate it here and
+            // (on receive) on every other phone, exactly once each.
+            if !roundOver { rotatePickerIfSkipping() }
             roundId += 1
             InternetConnectionManager.shared.sendMessage("\(roundId):RESET")
             restartNearbyRound()

@@ -256,10 +256,8 @@ struct ConversationView: View {
     // has to be all-ages-safe.)
     private static let allStarters: [String] = [
         "If you could have any superpower, what would it be?",
-        "What is your favorite travel memory?",
         "What's the best piece of advice you've ever received?",
         "If you could meet any historical figure, who would it be?",
-        "What is your go-to comfort food?",
         "If you could live anywhere in the world, where would it be?",
         "What is your proudest accomplishment?",
         "What's the best book you've ever read?",
@@ -274,7 +272,6 @@ struct ConversationView: View {
         "What's your favorite movie of all time?",
         "If you could be any animal, what would you be?",
         "What's your favorite childhood memory?",
-        "What's the best concert you've ever been to?",
         "What's your favorite board game?",
         "If you could travel back in time, when would you go?",
         "What's your favorite type of music?",
@@ -310,7 +307,6 @@ struct ConversationView: View {
         "What's your favorite instrument?",
         "If you could have any talent, what would it be?",
         "What's your favorite smell?",
-        "What's the best advice you'd give to your younger self?",
         "What's your favorite dessert?",
         "If you could build a house out of anything, what would it be?",
         "What's your favorite thing to do on a rainy day?",
@@ -333,13 +329,11 @@ struct ConversationView: View {
         "What's the most creative thing you've ever done?",
         "What's your favorite mythical creature?",
         "If you could have a conversation with your future self, what would you ask?",
-        "What's your favorite charity?",
         "What's the best lesson you've ever learned?",
         "What's your favorite candy?",
         "If you could inhabit any fictional world, which would it be?",
         "What's your favorite thing to do in the morning?",
         "What's the most courageous thing you've ever done?",
-        "What's your favorite memory with your family?",
         "If you could give everyone in the world one thing, what would it be?",
         "What's your favorite part of nature?",
         "What's the best discovery you've ever made?",
@@ -351,9 +345,13 @@ struct ConversationView: View {
         "If you could be a professional athlete, which sport would it be?",
         "What's your favorite thing to do before bed?",
         "What's the most valuable lesson you've learned from a failure?",
-        "What's your favorite local business?",
         "If you could have any collection, what would you collect?",
         "What's your favorite thing to do at the beach?",
-        "What's the best way to make a new friend?"
+        "What's the best way to make a new friend?",
+        "What's the funniest thing that has ever happened to you at school?",
+        "If you could have any animal as a pet, what would it be?",
+        "If you could invent a new holiday, what would it celebrate?",
+        "What's a game you could play for hours without getting bored?",
+        "If you could visit any planet, which one would you pick?"
     ]
 }

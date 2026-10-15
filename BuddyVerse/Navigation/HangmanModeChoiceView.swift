@@ -79,6 +79,12 @@ struct HangmanModeChoiceView: View {
 
                 Button("Back") {
                     InternetConnectionManager.shared.clearWordModeObserver()
+                    // The lobby handed its live connection over to this
+                    // screen and no longer tears it down, so leaving here
+                    // has to leave the room too - otherwise the heartbeat
+                    // keeps running and everyone else waits on a player who
+                    // is no longer in the game.
+                    InternetConnectionManager.shared.stop()
                     router.pop()
                 }
                 .font(.system(size: 14))

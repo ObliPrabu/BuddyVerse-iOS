@@ -36,7 +36,7 @@ Mirrors the Android app's architecture almost 1:1 — see `~/AndroidStudioProjec
 
 ### Navigation
 
-Android chains `AppCompatActivity` screens via `Intent` + extras, with (almost) every screen calling `startActivity()+finish()` so its real back stack stays shallow. This port uses `App/RootView.swift`'s `Router` (`@Published var path: [AppRoute]`) with normal push/pop semantics instead — a deliberate departure, not a literal port: iOS users expect the back button to return to the *immediately previous* screen, not always to Welcome. The one exception is `Router.replaceTop(with:)`, used only for purely automatic no-choice screens (e.g. `AiGeneratingView`) so they don't leave a stray, back-button-hidden stack entry behind.
+Android chains `AppCompatActivity` screens via `Intent` + extras, with (almost) every screen calling `startActivity()+finish()` so its real back stack stays shallow. This port uses `App/RootView.swift`'s `Router` (`@Published var path: [AppRoute]`) with normal push/pop semantics instead — a deliberate departure, not a literal port: iOS users expect the back button to return to the *immediately previous* screen, not always to Welcome. `Router.replaceTop(with:)` swaps the top entry instead of pushing, so a screen the player must not return to leaves nothing behind. It is used for the purely automatic `AiGeneratingView`, and on purpose for the online hand-off (lobby -> mode choice / instructions) and for "NO, I KNOW THE RULES" / the instructions start button, which match Android's `finish()`: Back from the game goes to the screen before them. `Router.replaceLobby(with:)` removes the premium Lobby entry and everything above it (Account, payment) - use it for a purchase or entitlement hand-off so Back never lands on the paywall again.
 
 **`RootView` renders `path` itself in a plain `ZStack`, not a real `NavigationStack`** — `NavigationStack`/`.navigationDestination(for:)` both need iOS 16+, and this app's floor is iOS 14. Every entry in `router.path` stays mounted (indices are stable, since push only appends and pop only drops the last one) so a screen's `@State` survives the player backing into it, and a `.move(edge:)` transition + `.animation()` gives the same push/pop slide `NavigationStack` gives for free. There's deliberately no interactive edge-swipe-to-back gesture (a hand-rolled one risks fighting screens with their own drag gestures, like `WordSearchView`'s selection drag) — every screen already renders its own visible "Back" button calling `router.pop()`, which is the only way back navigation happens here. Don't reach for `NavigationStack`/`.navigationDestination`/`@Environment(\.dismiss)` on a new screen out of habit — use `@EnvironmentObject private var router: Router` and `router.pop()` instead, matching every existing screen.
 
@@ -85,6 +85,12 @@ Both ported from Android features added after this file's initial architecture p
 - **Update banner** — `WelcomeView` calls `AppFeedbackService.checkForUpdate` on appear (only if this device opted into Get Updates), which reads the single global `appConfig/latest` Firestore doc and shows a dismissable yellow banner if it names a version *genuinely newer* (a real dotted-version-number comparison, not a `!=` check) than `CFBundleShortVersionString`. `autoPublishUpdateIfNewer` is the write side: called whenever `AuthManager.isAdmin()` is true and `WelcomeView` appears (or the router path empties back out to it), it publishes the currently-running build's own version to that same doc if newer than what's already there — so the version number auto-publishes itself the moment the admin opens a freshly-installed build, without ever needing to hand-type it into the Admin Dashboard. The two must use the *same* "newer than" comparison, or the admin's own device can flash a nonsensical "downgrade" banner in the instant before its own auto-publish write lands.
 - **`AdminDashboardView`** — reachable only via the "🛠️ Admin Dashboard" footer link on `WelcomeView`, itself only visible when `AuthManager.isAdmin()` (checked on appear and whenever the router path empties back to Welcome, so logging in/out is reflected without a relaunch). Shows play counts, feedback, reports, the Updates publish form (version/message fields + subscriber list) and app-user (name-gate) records, all mirroring Android's sections — deliberately **no revenue/purchase log** on iOS to match Android's dropped section (see the platform-divergence note above: Android's paywall being off made that section meaningless there; it was removed on both platforms for parity even though iOS's own paywall is still technically live). Deletion exists only for feedback/report rows, each behind a confirmation `Alert` — Play Counts, app users, and Get Updates subscribers are intentionally read-only (matches Android exactly; a delete-with-confirmation pass was added to all three and then explicitly reverted per product decision, keep it that way unless told otherwise). **History note:** the Updates form and App Users list were first ported to `AppFeedbackService` only, with no actual UI in `AdminDashboardView` for a while — don't assume a function existing in `AppFeedbackService` means its screen was ever built; check the view file too.
 
+### Known platform gaps
+
+- **No background music on iOS.** `MusicManager` looks for `background_music.{mp3,m4a,wav,aac}` in the bundle and silently does nothing if there isn't one; `BuddyVerse/Resources/` contains none, so the app is silent. Dropping a file there is enough (no code change).
+- **Difficulty screen is orphaned.** Every Connect game (jokes/riddles/trivia/conversation) now goes mood -> age group with a placeholder difficulty, same as Android; `DifficultySelectionView` and its route are still compiled but nothing navigates to them.
+- **Simpler expedition games.** Ocean Dive, Savanna Safari, Mountain Climb, Storm Chase and Swamp Trek are the older single-loop versions without Android's zones, goal, streak multiplier or personal best, and Ocean Dive/Savanna have no win state.
+
 ### Conventions
 
 Comments follow the Android project's established style: plain-English explanations of *why*, not terse dev-shorthand — match this when touching existing files.
@@ -113,7 +119,112 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Suggested fix:** Remove the marker and fix the comment.
 - **Status (2026-10-15):** **Partly fixed.** The stale comment was corrected. The 'TEST' pill was left in place on purpose: its own comment says it is a deliberate marker for confirming a fresh build is running, so removing it is the owner's call.
 
+#### ISSUE-52: Simplified games lack Android's zones/goal/streak/personal best (parity note)
+- **Severity:** LOW
+- **Area:** game-logic
+- **File:** Games/OceanDive, SavannaSafari, MountainClimb, StormChase, SwampTrek
+- **Found by:** qa-game-logic (2026-10-15, second /test-app pass)
+- **Description:** Older single-loop versions; Android ISSUE-72/73/98 balance fixes do not apply. Ocean Dive and Savanna have no win state.
+- **Suggested fix:** Owner decision; feature gap, not a crash.
+- **Status (2026-10-15):** **Left for the owner.** A feature-parity gap (porting zones/goal/streak/personal best to five games), not a bug; documented under Known platform gaps. Needs a product decision and device playtesting.
+
 ### Fixed
+
+#### ISSUE-36: RPS MEDIUM/HARD bots see the player's pick before choosing (Android ISSUE-76)
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** MEDIUM/HARD bots now only counter the player's PREVIOUS throw (40%/60%), otherwise random; EASY fully random.
+
+#### ISSUE-37: Sudoku 'Check' celebrates a solve after 'Answer' was used (Android ISSUE-80)
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** `checkBoard()` returns early with a toast when `answerRevealed` is true.
+
+#### ISSUE-38: Tic-Tac-Toe online: a win racing a manual Reset permanently desyncs who moves first (Android ISSUE-86)
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Nearby opener derives from `roundId % 2` (`xStartsThisRound`); the toggled `xStartsNext` state was removed (Android ISSUE-86).
+
+#### ISSUE-39: Tic-Tac-Toe online: Reset before the HELLO handshake completes leaves a phone on 'Connecting...' (Android ISSUE-74)
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** `onResetPressed()` is a no-op in nearby mode until `roleAssigned` (Android ISSUE-74).
+
+#### ISSUE-40: Hangman PICKER: 'New' enabled mid-round desyncs picker rotation (Android ISSUE-61)
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** New is disabled online until `roundOver` (`newEnabled`), so two phones can't diverge on the picker (Android ISSUE-61).
+
+#### ISSUE-41: Hangman online: no way to skip an idle picker, and a simultaneous New can strand a RACE phone (Android ISSUE-105, ISSUE-89)
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** A 20s `armSkipTimer` lets a stuck guesser use New to skip an idle picker; sender and receivers rotate once via `rotatePickerIfSkipping()`; seat 0 re-sends the identical RACEWORD on a same-round RESET (Android ISSUE-105/89).
+
+#### ISSUE-42: Difficulty picker for Riddles, Trivia and Conversation has no effect (Android ISSUE-62)
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** `MoodSelectionView` routes every game straight to the age-group screen with a placeholder MEDIUM difficulty; `DifficultySelectionView` is now orphaned (documented under Known platform gaps).
+
+#### ISSUE-43: Backing out of an interstitial screen never calls stop(), so the room stays alive and the others hang
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Back on `InstructionsChoiceView` (when nearby) and on `HangmanModeChoiceView` now calls `InternetConnectionManager.shared.stop()` before popping. Back on the instructions screen itself only returns to the choice screen, so it keeps the room.
+
+#### ISSUE-44: Memory: REVEAL applied before a board exists can trap on an empty shuffledIcons
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** The REVEAL handler guards `boardReady` and `shuffledIcons.count == 12`.
+
+#### ISSUE-45: Hangman isPlainLetter accepts a base letter plus a combining mark
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** `isPlainLetter` requires exactly one unicode scalar in 0x41...0x5A.
+
+#### ISSUE-46: Join failure can show raw Firestore error text
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Join failures from our own transaction keep their message; any other error shows `describeFirestoreFailure`.
+
+#### ISSUE-47: Firestore rules caveat: the heartbeat needs any room member to be able to update lastSeen.<id>
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** The heartbeat now uses `FieldPath(["lastSeen", id])`. The rules question itself cannot be answered from the repo - **owner must confirm in the Firebase console** that any room member may update `lastSeen.*`. Left as an owner action.
+
+#### ISSUE-48: Hangman: every guesser rebroadcasts RESULT:WIN/LOSE for a mirrored guess (Android ISSUE-63)
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** `checkGameStatus(announce:)` - the GUESS-mirroring call passes `announce: false`, so only the guesser whose tap ended the round sends RESULT (Android ISSUE-63).
+
+#### ISSUE-49: Storm Chase failure message overstates rounds survived by one
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** The message uses `max(round - 1, 0)`, with a special line for failing the first round.
+
+#### ISSUE-50: Swamp Trek: an interrupted hold is never reset (Android ISSUE-99 intent)
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** The hold gesture tracks a `@GestureState isTouching`; if it goes false while `isHolding` is still true (cancelled) the hold is dropped without scoring (Android ISSUE-99).
+
+#### ISSUE-51: Unknown game type silently opens Tic-Tac-Toe (Android ISSUE-82)
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** `GameRouter`'s default now shows `ComingSoonView(gameName:)` instead of Tic-Tac-Toe (Android ISSUE-82).
+
+#### ISSUE-53: Welcome stats claim '100+' jokes, riddles and trivia but the pools are smaller
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Jokes grown to 103, riddles to 102 and trivia to 101 (all-ages, de-duplicated by answer or text), so the '100+' cards are accurate for all three.
+
+#### ISSUE-54: Riddle pool has a death-themed riddle and an ambiguous pair
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Removed the coffin riddle and the hurricane twin of the needle riddle.
+
+#### ISSUE-55: Joke pool still has weak filler (sham-poo, Fsh, A fishy, B., chili dog, ladder/shovel/flashlight cluster)
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Removed 8 weak or template jokes (sham-poo, Fsh, A fishy, B., chili dog, ladder/shovel/flashlight).
+
+#### ISSUE-56: Trivia 'Father of Computers' is debatable
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Replaced the Alan Turing distractor with Thomas Edison.
+
+#### ISSUE-57: Conversation starters contain near-duplicates and some adult-leaning prompts
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Removed 7 near-duplicate or adult-leaning starters (travel memory, comfort food, advice to younger self, concert, charity, family memory, local business) and added 5 kid-friendly ones.
+
+#### ISSUE-58: Stale NavigationStack comments in AppRoute.swift
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Comments now describe `Router.path`, `router.push` and `router.pop()`.
+
+#### ISSUE-59: CLAUDE.md says replaceTop is only for no-choice screens but the code uses it more widely
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** CLAUDE.md now lists the intentional `replaceTop` uses and documents `replaceLobby`.
+
+#### ISSUE-60: Background music file is not bundled (silent, guarded)
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Documented under 'Known platform gaps'; the file itself is an asset only the owner can supply.
 
 #### ISSUE-1: Count to 21 vs bot softlocks whenever the bot has to open a round
 - **Fixed by:** main agent on 2026-10-15

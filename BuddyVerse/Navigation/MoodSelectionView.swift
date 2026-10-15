@@ -47,15 +47,12 @@ struct MoodSelectionView: View {
 
                 ForEach(moods, id: \.value) { mood in
                     Button {
-                        // Jokes always uses the static joke pool (no content
-                        // generation of any kind happens anywhere in the app),
-                        // so a difficulty pick would have nothing to affect -
-                        // skip straight to Age Group with a placeholder value.
-                        if gameType == "JOKES" {
-                            router.push(.ageGroup(gameType: gameType, mood: mood.value, difficulty: "MEDIUM"))
-                        } else {
-                            router.push(.difficultySelection(gameType: gameType, mood: mood.value))
-                        }
+                        // Every Connect game (jokes, riddles, trivia and
+                        // conversation) draws from a static pool, and none of
+                        // them reads difficulty, so a difficulty pick would
+                        // have nothing to affect - skip straight to Age Group
+                        // with a placeholder value, same as Android does.
+                        router.push(.ageGroup(gameType: gameType, mood: mood.value, difficulty: "MEDIUM"))
                     } label: {
                         Text(mood.label)
                             .font(.system(size: 16))

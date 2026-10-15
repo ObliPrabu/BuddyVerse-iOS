@@ -17,6 +17,10 @@ struct InstructionsChoiceView: View {
             .ignoresSafeArea()
 
             Button {
+                // Backing out of the online flow here has to leave the room
+                // too: the lobby no longer owns the connection once the game
+                // has started, so nothing else would ever stop it.
+                if selection.isNearby { InternetConnectionManager.shared.stop() }
                 router.pop()
             } label: {
                 Text("Back")

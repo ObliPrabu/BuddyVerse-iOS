@@ -390,7 +390,12 @@ final class InternetConnectionManager: @unchecked Sendable {
                 return
             }
             if let error {
-                runOnMain { onJoinFailed((error as NSError).localizedDescription.isEmpty ? self.describeFirestoreFailure(error) : error.localizedDescription) }
+                // Our own rejections ("code doesn't exist", "room is full", ...)
+                // carry a message written for the player; anything else is a
+                // raw SDK error and gets the friendly generic wording instead.
+                let nsError = error as NSError
+                let message = nsError.domain == "BuddyVerse" ? nsError.localizedDescription : self.describeFirestoreFailure(error)
+                runOnMain { onJoinFailed(message) }
                 return
             }
             self.roomCode = cleanCode
@@ -710,7 +715,7 @@ final class InternetConnectionManager: @unchecked Sendable {
             for key in peerChangedAt.keys { peerChangedAt[key] = tickNow }
         }
         lastTickAt = tickNow
-        db.collection("rooms").document(code).updateData(["lastSeen.\(id)": FieldValue.serverTimestamp()]) { [weak self] error in
+        db.collection("rooms").document(code).updateData([FieldPath(["lastSeen", id]): FieldValue.serverTimestamp()]) { [weak self] error in
             if let error {
                 print("InternetConnectionManager: heartbeat write failed: \(error)")
             } else {

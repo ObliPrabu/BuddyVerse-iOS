@@ -12,6 +12,7 @@ struct SwampTrekView: View {
     @State private var energy = 100
     @State private var distance = 0
     @State private var meterValue: CGFloat = 0 // 0...100
+    @GestureState private var isTouching = false
     @State private var isHolding = false
     @State private var sweetSpotWidthFraction: CGFloat = 0.34 // fraction of container width
     @State private var sweetSpotStartFraction: CGFloat = 0    // fraction of container width, 0...1
@@ -106,6 +107,12 @@ struct SwampTrekView: View {
                     .contentShape(Rectangle())
                     .gesture(
                         DragGesture(minimumDistance: 0)
+                            // Tracks whether a finger is actually down. Unlike
+                            // onEnded, this ALSO goes back to false when the
+                            // system cancels the gesture (a call, a banner, an
+                            // app switch), which is what lets us notice a hold
+                            // that was interrupted instead of finished.
+                            .updating($isTouching) { _, state, _ in state = true }
                             .onChanged { _ in
                                 if !isHolding {
                                     isHolding = true
@@ -119,6 +126,16 @@ struct SwampTrekView: View {
                                 }
                             }
                     )
+                    .onChange(of: isTouching) { touching in
+                        // The finger went away without onEnded having run:
+                        // the gesture was cancelled. Drop the hold without
+                        // scoring it - a normal release already cleared
+                        // isHolding in onEnded, so this is then a no-op.
+                        if !touching && isHolding {
+                            isHolding = false
+                            meterValue = 0
+                        }
+                    }
                     .padding(.bottom, 30)
 
                 HStack(spacing: 10) {

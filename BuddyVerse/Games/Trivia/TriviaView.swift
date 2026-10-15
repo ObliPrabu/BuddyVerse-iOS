@@ -548,7 +548,7 @@ struct TriviaView: View {
         Question(text: "What is the capital of Thailand?", options: ["Phuket", "Pattaya", "Chiang Mai", "Bangkok"], correctAnswer: "Bangkok"),
         Question(text: "Which continent is the Sahara Desert located on?", options: ["Asia", "Africa", "South America", "Australia"], correctAnswer: "Africa"),
         Question(text: "What is the capital of South Korea?", options: ["Busan", "Incheon", "Daegu", "Seoul"], correctAnswer: "Seoul"),
-        Question(text: "Who is known as the 'Father of Computers'?", options: ["Bill Gates", "Steve Jobs", "Charles Babbage", "Alan Turing"], correctAnswer: "Charles Babbage"),
+        Question(text: "Who is known as the 'Father of Computers'?", options: ["Bill Gates", "Steve Jobs", "Charles Babbage", "Thomas Edison"], correctAnswer: "Charles Babbage"),
         Question(text: "What is the capital of Argentina?", options: ["Cordoba", "Rosario", "Mendoza", "Buenos Aires"], correctAnswer: "Buenos Aires"),
         Question(text: "How many Earths could fit inside the Sun?", options: ["100", "1,000", "10,000", "1.3 million"], correctAnswer: "1.3 million"),
         Question(text: "What is the capital of Turkey?", options: ["Istanbul", "Izmir", "Antalya", "Ankara"], correctAnswer: "Ankara"),
@@ -566,6 +566,14 @@ struct TriviaView: View {
         Question(text: "How many days are in a week?", options: ["5", "6", "7", "8"], correctAnswer: "7"),
         Question(text: "Which city is the executive (administrative) capital of South Africa?", options: ["Johannesburg", "Durban", "Cape Town", "Pretoria"], correctAnswer: "Pretoria"),
         Question(text: "Which is the largest planet in our solar system?", options: ["Saturn", "Neptune", "Jupiter", "Uranus"], correctAnswer: "Jupiter"),
-        Question(text: "What is the capital of the Netherlands?", options: ["Rotterdam", "Utrecht", "Hague", "Amsterdam"], correctAnswer: "Amsterdam")
+        Question(text: "What is the capital of the Netherlands?", options: ["Rotterdam", "Utrecht", "Hague", "Amsterdam"], correctAnswer: "Amsterdam"),
+        Question(text: "Which season comes after winter?", options: ["Summer", "Autumn", "Spring", "Monsoon"], correctAnswer: "Spring"),
+        Question(text: "What do caterpillars turn into?", options: ["Beetles", "Butterflies", "Bees", "Spiders"], correctAnswer: "Butterflies"),
+        Question(text: "Which organ pumps blood around your body?", options: ["Lungs", "Stomach", "Heart", "Brain"], correctAnswer: "Heart"),
+        Question(text: "Which sport uses a racket and a shuttlecock?", options: ["Tennis", "Badminton", "Golf", "Cricket"], correctAnswer: "Badminton"),
+        Question(text: "Which month has the fewest days?", options: ["January", "February", "April", "June"], correctAnswer: "February"),
+        Question(text: "What is the opposite direction of north?", options: ["East", "West", "South", "Up"], correctAnswer: "South"),
+        Question(text: "What is the largest land animal?", options: ["Rhino", "Hippo", "African Elephant", "Giraffe"], correctAnswer: "African Elephant"),
+        Question(text: "Which two colors mix to make green?", options: ["Red and blue", "Blue and yellow", "Red and yellow", "Black and white"], correctAnswer: "Blue and yellow")
     ]
 }

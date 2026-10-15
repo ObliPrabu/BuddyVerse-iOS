@@ -43,8 +43,11 @@ struct TicTacToeView: View {
     @State private var amX = false
     @State private var xToMove = true
     @State private var myToken: Int64 = 0
-    // Which symbol goes first next round - swaps after every finished game.
-    @State private var xStartsNext = true
+    // Nearby play has no separate "who starts" state: X opens on even
+    // rounds and O on odd ones, derived straight from roundId (see
+    // xStartsThisRound). Both phones always agree on roundId, so a win
+    // racing a manual Reset can never leave them disagreeing about whose
+    // turn it is.
 
     @State private var didSetup = false
     @State private var didHandleDisconnect = false
@@ -403,7 +406,7 @@ struct TicTacToeView: View {
             }
             amX = myToken > theirToken
             roleAssigned = true
-            xToMove = true
+            xToMove = xStartsThisRound
         } else if msg.hasPrefix("MOVE:") {
             // The peer can only legitimately move once roles are assigned and
             // it is actually their turn - otherwise a duplicate or early MOVE
@@ -439,7 +442,6 @@ struct TicTacToeView: View {
         let iWon = xWon == amX
         showToast(iWon ? "You Win! \u{1F389}" : "Opponent Wins!")
         if iWon { confetti.start() }
-        xStartsNext.toggle()
         // Both phones process the exact same MOVE stream in the same order,
         // so they reach this win independently but at the same logical
         // point - bumping the round here keeps both phones' round numbers
@@ -451,7 +453,6 @@ struct TicTacToeView: View {
     private func draw() {
         showToast("Draw!")
         if isNearbyGame {
-            xStartsNext.toggle()
             roundId += 1
         } else {
             player1StartsNext.toggle()
@@ -467,7 +468,7 @@ struct TicTacToeView: View {
         board = Array(repeating: "", count: 9)
         roundCount = 0
         if isNearbyGame {
-            xToMove = xStartsNext
+            xToMove = xStartsThisRound
         } else {
             isPlayer1Turn = player1StartsNext
             // If the bot is the one designated to start this round, kick it
@@ -478,8 +479,15 @@ struct TicTacToeView: View {
         }
     }
 
+    private var xStartsThisRound: Bool { roundId % 2 == 0 }
+
     private func onResetPressed() {
         if isNearbyGame {
+            // Until roles are assigned this phone is still waiting on the
+            // opening HELLO exchange. Bumping the round now would make the
+            // peer's round-0 HELLO look stale, and no role would ever be
+            // assigned - leaving this phone stuck on "Connecting...".
+            guard roleAssigned else { return }
             roundId += 1
             InternetConnectionManager.shared.sendMessage("\(roundId):RESET")
         }

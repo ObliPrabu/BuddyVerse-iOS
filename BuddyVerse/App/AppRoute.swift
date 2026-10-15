@@ -3,8 +3,8 @@ import SwiftUI
 
 // Mirrors the "bag of Intent extras" every Android screen threads forward
 // (GAME_TYPE/DIFFICULTY/IS_BOT/IS_NEARBY/MOOD/AGE_GROUP/WORD_MODE).
-// Passed by value along the NavigationStack path instead of Intent extras -
-// same idea (immutable state handed to the next screen), different plumbing.
+// Passed by value along `Router.path` instead of Intent extras - same idea
+// (immutable state handed to the next screen), different plumbing.
 struct GameSelection: Hashable {
     var gameType: String
     var difficulty: String? = nil
@@ -17,10 +17,10 @@ struct GameSelection: Hashable {
     var players: [Player]? = nil
 }
 
-// Every screen BuddyVerse can navigate to. NavigationStack's path is just
-// `[AppRoute]`, so pushing a screen is the direct equivalent of
-// `startActivity(Intent(...))`, and `path.removeLast()` (or popping via the
-// back button) is `finish()`.
+// Every screen BuddyVerse can navigate to. `Router.path` is just
+// `[AppRoute]` (the app has no NavigationStack - see RootView), so
+// `router.push(...)` is the direct equivalent of `startActivity(Intent(...))`
+// and `router.pop()` (every screen's own Back button) is `finish()`.
 enum AppRoute: Hashable {
     case mainWebsite
     case ageGroup(gameType: String, mood: String, difficulty: String)
@@ -84,7 +84,9 @@ enum GameRouter {
         case "SWAMP": SwampTrekView(selection: selection)
         case "STORM": StormChaseView(selection: selection)
         case "MATH": MathSprintView(roundSeconds: Int(selection.difficulty ?? "60") ?? 60)
-        default: TicTacToeView(selection: selection)
+        // An unknown game type used to silently open Tic-Tac-Toe, which hid a
+        // mistyped or missing GAME_TYPE. Show an honest screen instead.
+        default: ComingSoonView(gameName: selection.gameType)
         }
     }
 }

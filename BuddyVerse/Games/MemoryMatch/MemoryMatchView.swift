@@ -472,6 +472,9 @@ struct MemoryMatchView: View {
                 setupBoard(order: order)
             }
         } else if msg.hasPrefix("REVEAL:") {
+            // No board yet (still waiting on SETUP) means there is nothing to
+            // reveal - and indexing the empty icon list would trap.
+            guard boardReady, shuffledIcons.count == 12 else { return }
             guard let idx = Int(msg.dropFirst("REVEAL:".count)), (0..<12).contains(idx) else { return }
             // Mirrors the isProcessing guard local taps use. A REVEAL that
             // lands while our flip-back timer is running is queued, not
