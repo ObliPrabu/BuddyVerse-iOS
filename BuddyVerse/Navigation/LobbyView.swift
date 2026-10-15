@@ -93,7 +93,16 @@ struct LobbyView: View {
     }
 
     private func proceedEntitled() {
-        router.replaceTop(with: .onePhoneSelection(gameType: gameType))
+        // The entitlement check is asynchronous, so by the time it answers
+        // the player may have opened another screen (e.g. Contact Us) on top
+        // of this one. Only hand off when the Lobby is still what they're
+        // looking at - replacing whatever happens to be on top would yank
+        // them out of that other screen.
+        if case .lobby = router.path.last {
+            router.replaceLobby(with: .onePhoneSelection(gameType: gameType))
+        } else {
+            isCheckingEntitlement = false
+        }
     }
 
     private var centerContent: some View {

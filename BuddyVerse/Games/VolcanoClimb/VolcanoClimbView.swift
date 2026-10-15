@@ -108,8 +108,6 @@ struct VolcanoClimbView: View {
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: 0xD84315).ignoresSafeArea())
-        .navigationTitle("Volcano Climb")
-        .navigationBarTitleDisplayMode(.inline)
         .onDisappear { vm.stop() }
         .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "VOLCANO") }
         .sheet(isPresented: $showReport) { ReportSheetView(gameType: "VOLCANO") }
@@ -171,7 +169,7 @@ final class VolcanoClimbViewModel: ObservableObject {
 
     private func startNeedle() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.03, repeats: true) { [weak self] _ in
-            self?.tickNeedle()
+            runOnMain { self?.tickNeedle() }
         }
     }
 

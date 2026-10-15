@@ -134,7 +134,6 @@ struct RpsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: 0x4CAF50).ignoresSafeArea())
         .confettiOverlay(confetti)
-        .navigationBarTitleDisplayMode(.inline)
         .onAppear { if statusText.isEmpty { startNewMatchRound() } }
         .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "RPS") }
         .sheet(isPresented: $showReport) { ReportSheetView(gameType: "RPS") }

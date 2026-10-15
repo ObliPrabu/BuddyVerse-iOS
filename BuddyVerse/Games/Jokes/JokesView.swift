@@ -36,7 +36,7 @@ struct JokesView: View {
 
     init(selection: GameSelection) {
         self.selection = selection
-        let pool = Self.buildPool(from: selection.aiItems)
+        let pool = Self.allJokes.map(Self.splitJoke)
         self.pool = pool
         var shuffled = pool.shuffled()
         let first = shuffled.isEmpty ? Joke(setup: "Tap the button for a joke!", punchline: "") : shuffled.removeLast()
@@ -300,24 +300,6 @@ struct JokesView: View {
 
     // MARK: - Pool building
 
-    private struct AiJoke: Decodable {
-        let setup: String?
-        let punchline: String?
-    }
-
-    private static func buildPool(from aiItems: [String]?) -> [Joke] {
-        let aiJokes: [Joke] = (aiItems ?? []).compactMap { raw in
-            guard let data = raw.data(using: .utf8),
-                  let obj = try? JSONDecoder().decode(AiJoke.self, from: data) else { return nil }
-            let setup = (obj.setup ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            let punchline = (obj.punchline ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !setup.isEmpty, !punchline.isEmpty else { return nil }
-            return Joke(setup: setup, punchline: punchline)
-        }
-        if !aiJokes.isEmpty { return aiJokes }
-        return allJokes.map(splitJoke)
-    }
-
     // Every built-in joke is written as "Setup? Punchline" - split on the
     // first question mark so we can hide the punchline until revealed.
     private static func splitJoke(_ raw: String) -> Joke {
@@ -329,9 +311,9 @@ struct JokesView: View {
         return Joke(setup: raw, punchline: "")
     }
 
-    // MARK: - Static fallback pool (used whenever AI generation isn't
-    // available - ported verbatim from JokesActivity.kt's allJokes list, the
-    // baseline content most users will actually see).
+    // MARK: - Built-in joke pool (the only content source - there is no AI
+    // generation. Mood/age group intentionally don't scope it, so every entry
+    // has to be all-ages-safe.)
     private static let allJokes: [String] = [
         "Why don't scientists trust atoms? Because they make up everything!",
         "What do you call a fake noodle? An Impasta!",
@@ -385,7 +367,6 @@ struct JokesView: View {
         "Why did the barber win the race? He knew all the short cuts.",
         "What do you call a fish with no eyes? Fsh.",
         "Why did the belt go to jail? For holding up a pair of pants.",
-        "What do you call a cow with two legs? Lean beef.",
         "Why did the cookie go to the hospital? Because he felt crumb-y.",
         "What do you call a group of unorganized cats? A cat-astrophe.",
         "Why did the strawberry cross the road? Because his mom was in a jam.",
@@ -406,36 +387,17 @@ struct JokesView: View {
         "What do you call a cow that plays an instrument? A moo-sician.",
         "Why did the man build his house out of cards? He wanted to have a deck.",
         "What do you call a cat that likes to bowl? An alley cat.",
-        "Why did the golfer bring an extra pair of socks? In case he got a hole in one.",
         "What do you call a dog that likes to sunbathe? A hot dog.",
-        "Why did the man put his car in the oven? He wanted a hot rod.",
         "What do you call a pig that is a thief? A ham-burglar.",
-        "Why did the scarecrow win an award? He was out-standing in his field.",
         "What do you call a bear with no ears? B.",
         "Why did the man go to the movie theater? He wanted to see the big picture.",
         "What do you call a fish with no tail? A fishy.",
         "Why did the boy put his bed in the library? He wanted to sleep in the stacks.",
         "What do you call a bird that is a detective? A Sherlock Holmes-pigeon.",
-        "Why did the man put his watch in the oven? He wanted to have a lot of time.",
         "What do you call a cow with a sense of humor? A laughing stock.",
         "Why did the boy bring a shovel to school? He wanted to dig up some knowledge.",
-        "What do you call a fake tooth? A dental floss.",
         "Why did the man put his money in the blender? He wanted to make some liquid assets.",
-        "What do you call a dog that is a computer expert? A cyber-spaniel.",
         "Why did the boy bring a flashlight to school? He wanted to be bright.",
-        "What do you call a fake story? A tall tale.",
-        "Why did the man put his shoes in the fridge? He wanted to have cool feet.",
         "What do you call a pig that is an artist? Pig-asso.",
-        "Why did the boy bring a compass to school? He wanted to find his way.",
-        "What do you call a fake flower? A sham-rock.",
-        "Why did the man put his phone in the oven? He wanted to have a hot line.",
-        "What do you call a cow that is a doctor? A moo-dical professional.",
-        "Why did the boy bring a ruler to school? He wanted to measure up.",
-        "What do you call a fake ID? A pseudo-nym.",
-        "Why did the man put his hat in the freezer? He wanted to have a cool head.",
-        "What do you call a pig that is a scientist? A lab-rat.",
-        "Why did the boy bring a map to school? He wanted to know where he was going.",
-        "What do you call a fake diamond? A cubic zirconium.",
-        "Why did the man put his socks in the toaster? He wanted to have warm toes."
     ]
 }

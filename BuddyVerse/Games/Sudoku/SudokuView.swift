@@ -87,7 +87,6 @@ struct SudokuView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: 0x3F51B5).ignoresSafeArea())
         .confettiOverlay(confetti)
-        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if puzzleGeneration == 0 { startNewGame() }
         }

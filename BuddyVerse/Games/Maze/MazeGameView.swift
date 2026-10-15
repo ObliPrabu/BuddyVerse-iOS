@@ -88,7 +88,6 @@ struct MazeGameView: View {
         .padding()
         .background(Color(hex: 0x009688).ignoresSafeArea())
         .confettiOverlay(confetti)
-        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if cells.isEmpty {
                 configureDifficulty(selection.difficulty)

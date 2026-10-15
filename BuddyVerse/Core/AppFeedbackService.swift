@@ -117,19 +117,19 @@ enum AppFeedbackService {
     /// newer, or nil if not/the read fails - failing silent on error is
     /// intentional, since this is a non-critical convenience feature that
     /// should never be able to crash or block app startup.
-    static func checkForUpdate(onResult: @escaping ((message: String, versionName: String)?) -> Void) {
+    static func checkForUpdate(onResult: @escaping @MainActor ((message: String, versionName: String)?) -> Void) {
         db.collection("appConfig").document("latest").getDocument { doc, error in
             guard error == nil, let doc, doc.exists else {
-                onResult(nil)
+                runOnMain { onResult(nil) }
                 return
             }
             let latestVersion = doc.get("versionName") as? String
             let message = doc.get("message") as? String ?? ""
             let installedVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
             if let latestVersion, let installedVersion, isVersionNewer(latestVersion, installedVersion) {
-                onResult((message: message, versionName: latestVersion))
+                runOnMain { onResult((message: message, versionName: latestVersion)) }
             } else {
-                onResult(nil)
+                runOnMain { onResult(nil) }
             }
         }
     }

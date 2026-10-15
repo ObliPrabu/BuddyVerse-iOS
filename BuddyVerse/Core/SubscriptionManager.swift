@@ -28,8 +28,11 @@ import FirebaseAuth
 /// webhooks, which doesn't exist here. Until one does, a subscriber keeps
 /// access even after cancelling/lapsing - a deliberate, known trade-off for
 /// launching without backend infrastructure, not an oversight.
-final class SubscriptionManager {
-    nonisolated(unsafe) static let shared = SubscriptionManager()
+final class SubscriptionManager: @unchecked Sendable {
+    // @unchecked Sendable: all of this class's mutable state is only ever
+    // touched on the main thread (every Firestore callback below hops there
+    // via runOnMain first), so there is no real cross-thread sharing.
+    static let shared = SubscriptionManager()
     private init() {}
 
     private var db: Firestore { Firestore.firestore() }
@@ -42,41 +45,46 @@ final class SubscriptionManager {
     }
 
     /// Checks (and caches for the rest of this app session) whether this account is subscribed.
-    func isSubscribed(_ onResult: @escaping (Bool) -> Void) {
+    func isSubscribed(_ onResult: @escaping @MainActor (Bool) -> Void) {
         if let cachedActive {
-            onResult(cachedActive)
+            runOnMain { onResult(cachedActive) }
             return
         }
 
         guard let user = Auth.auth().currentUser, !user.isAnonymous else {
-            onResult(false)
+            runOnMain { onResult(false) }
             return
         }
 
         db.collection("subscriptions").document(user.uid).getDocument { [weak self] snapshot, error in
-            guard let self else { return }
             let active = (snapshot?.get("active") as? Bool) == true
-            if error != nil {
-                print("SubscriptionManager: couldn't read subscription status: \(error!)")
-                onResult(false)
-                return
+            let failure = error
+            runOnMain {
+                guard let self else { return }
+                if failure != nil {
+                    print("SubscriptionManager: couldn't read subscription status: \(failure!)")
+                    onResult(false)
+                    return
+                }
+                self.cachedActive = active
+                onResult(active)
             }
-            self.cachedActive = active
-            onResult(active)
         }
     }
 
     /// Call once a subscription Payment Link checkout succeeds. Requires AuthManager.isLoggedIn().
-    func markSubscribed(_ plan: String, onDone: @escaping () -> Void) {
+    func markSubscribed(_ plan: String, onDone: @escaping @MainActor () -> Void) {
         guard let uid = Auth.auth().currentUser?.uid else {
-            onDone()
+            runOnMain { onDone() }
             return
         }
         let data: [String: Any] = ["active": true, "plan": plan]
         db.collection("subscriptions").document(uid).setData(data) { [weak self] _ in
-            self?.cachedActive = true
-            self?.logPurchase(plan: plan, gameType: nil, amountCents: plan == "yearly" ? 4000 : 400)
-            onDone()
+            runOnMain {
+                self?.cachedActive = true
+                self?.logPurchase(plan: plan, gameType: nil, amountCents: plan == "yearly" ? 4000 : 400)
+                onDone()
+            }
         }
     }
 
@@ -86,41 +94,46 @@ final class SubscriptionManager {
     /// a permanent per-game entitlement, stored as one boolean field per
     /// gameType on a single `expeditionUnlocks/{uid}` doc rather than one doc
     /// per game, so checking/granting access never needs more than one round trip.
-    func isExpeditionUnlocked(gameType: String, _ onResult: @escaping (Bool) -> Void) {
+    func isExpeditionUnlocked(gameType: String, _ onResult: @escaping @MainActor (Bool) -> Void) {
         if cachedUnlockedExpeditions.contains(gameType) {
-            onResult(true)
+            runOnMain { onResult(true) }
             return
         }
 
         guard let user = Auth.auth().currentUser, !user.isAnonymous else {
-            onResult(false)
+            runOnMain { onResult(false) }
             return
         }
 
         db.collection("expeditionUnlocks").document(user.uid).getDocument { [weak self] snapshot, error in
-            guard let self else { return }
-            if error != nil {
-                print("SubscriptionManager: couldn't read expedition unlock status: \(error!)")
-                onResult(false)
-                return
-            }
             let unlocked = (snapshot?.get(gameType) as? Bool) == true
-            if unlocked { self.cachedUnlockedExpeditions.insert(gameType) }
-            onResult(unlocked)
+            let failure = error
+            runOnMain {
+                guard let self else { return }
+                if failure != nil {
+                    print("SubscriptionManager: couldn't read expedition unlock status: \(failure!)")
+                    onResult(false)
+                    return
+                }
+                if unlocked { self.cachedUnlockedExpeditions.insert(gameType) }
+                onResult(unlocked)
+            }
         }
     }
 
     /// Call once a one-time EXPEDITION Payment Link checkout succeeds for a
     /// specific game. Requires AuthManager.isLoggedIn().
-    func markExpeditionUnlocked(gameType: String, onDone: @escaping () -> Void) {
+    func markExpeditionUnlocked(gameType: String, onDone: @escaping @MainActor () -> Void) {
         guard let uid = Auth.auth().currentUser?.uid else {
-            onDone()
+            runOnMain { onDone() }
             return
         }
         db.collection("expeditionUnlocks").document(uid).setData([gameType: true], merge: true) { [weak self] _ in
-            self?.cachedUnlockedExpeditions.insert(gameType)
-            self?.logPurchase(plan: "expedition", gameType: gameType, amountCents: 50)
-            onDone()
+            runOnMain {
+                self?.cachedUnlockedExpeditions.insert(gameType)
+                self?.logPurchase(plan: "expedition", gameType: gameType, amountCents: 50)
+                onDone()
+            }
         }
     }
 

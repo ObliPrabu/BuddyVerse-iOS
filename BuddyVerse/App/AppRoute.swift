@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 // Mirrors the "bag of Intent extras" every Android screen threads forward
-// (GAME_TYPE/DIFFICULTY/IS_BOT/IS_NEARBY/MOOD/AGE_GROUP/AI_ITEMS/WORD_MODE).
+// (GAME_TYPE/DIFFICULTY/IS_BOT/IS_NEARBY/MOOD/AGE_GROUP/WORD_MODE).
 // Passed by value along the NavigationStack path instead of Intent extras -
 // same idea (immutable state handed to the next screen), different plumbing.
 struct GameSelection: Hashable {
@@ -12,7 +12,6 @@ struct GameSelection: Hashable {
     var isNearby: Bool = false
     var mood: String? = nil
     var ageGroup: String? = nil
-    var aiItems: [String]? = nil
     var wordMode: String? = nil
     var premiumSource: String = "EXPEDITION"
     var players: [Player]? = nil
@@ -54,6 +53,7 @@ enum AppRoute: Hashable {
 // mirrors InstructionsChoiceActivity.Companion.createGameIntent(), the one
 // hub every flow funnels through before a game actually opens. Adding a new
 // game means adding one case here and nowhere else.
+@MainActor
 enum GameRouter {
     @ViewBuilder
     static func gameView(for selection: GameSelection) -> some View {

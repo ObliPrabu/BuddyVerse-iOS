@@ -95,7 +95,7 @@ struct JungleRunView: View {
     private func startMovement(in size: CGSize) {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: moveInterval, repeats: true) { _ in
-            moveFruit(in: size)
+            runOnMain { moveFruit(in: size) }
         }
     }
 

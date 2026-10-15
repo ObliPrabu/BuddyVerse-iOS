@@ -41,6 +41,12 @@ struct MemoryMatchView: View {
     @State private var secondClickedIndex: Int?
     @State private var pairsFound = 0
     @State private var isProcessing = false
+    // Nearby only: REVEALs that arrive while our own 1-second flip-back timer
+    // is still running. Dropping them left this phone's board and turn order
+    // permanently out of step with the sender's, so they wait here (capped,
+    // so a flood can't grow it) and are replayed in order once the timer
+    // clears.
+    @State private var pendingReveals: [(index: Int, sender: String)] = []
     // Whether the grid currently has a real board on screen - false while a
     // nearby non-seat-0 player is waiting for the SETUP: shuffle to arrive.
     @State private var boardReady = false
@@ -202,8 +208,11 @@ struct MemoryMatchView: View {
         if isNearbyGame {
             for p in players { scores[p.id] = 0 }
             InternetConnectionManager.shared.setListeners(
-                onMessage: { msg in DispatchQueue.main.async { receiveNearbyMessage(msg) } },
-                onDisconnected: { DispatchQueue.main.async { handleOpponentDisconnected() } }
+                // Plain onMessage stays a no-op: this game uses the sender-aware
+                // callback so it can check who each message really came from.
+                onMessage: { _ in },
+                onDisconnected: { DispatchQueue.main.async { handleOpponentDisconnected() } },
+                onMessageWithSender: { sender, msg in DispatchQueue.main.async { receiveNearbyMessage(msg, from: sender) } }
             )
             beginNearbyRound()
         } else {
@@ -229,6 +238,7 @@ struct MemoryMatchView: View {
         firstClickedIndex = nil
         secondClickedIndex = nil
         isProcessing = false
+        pendingReveals.removeAll()
         boardReady = true
     }
 
@@ -237,6 +247,7 @@ struct MemoryMatchView: View {
     // everyone else waits for it over the wire so all boards match exactly.
     private func beginNearbyRound() {
         cancelPendingCallbacks()
+        pendingReveals.removeAll()
         pairsFound = 0
         for p in players { scores[p.id] = 0 }
         turnIndex = 0
@@ -312,16 +323,17 @@ struct MemoryMatchView: View {
             } else {
                 let matchedIcon = cardTexts[first]
                 botMemory = botMemory.filter { $0.value != matchedIcon }
-                // Pass-and-play only (no bot): credit whichever player's
-                // turn it currently is.
-                if !isBotGame {
-                    if isPlayerTurn { p1PairsFound += 1 } else { p2PairsFound += 1 }
-                }
+                // Credit whichever side's turn it currently is: in bot mode
+                // P1 is the human and P2 is the bot, in pass-and-play they
+                // are the two players. The end-of-game message below needs
+                // these to say who actually won.
+                if isPlayerTurn { p1PairsFound += 1 } else { p2PairsFound += 1 }
             }
 
             firstClickedIndex = nil
             secondClickedIndex = nil
             isProcessing = false
+            if isNearbyGame { drainPendingReveals() }
 
             let allPairsFound = isNearbyGame ? (scores.values.reduce(0, +) == 6) : (pairsFound == 6)
             if allPairsFound {
@@ -341,9 +353,25 @@ struct MemoryMatchView: View {
                     // Only the winner(s) see victory confetti - matches the
                     // winner-only pattern used in TicTacToe/Count21.
                     if amWinner && winners.count == 1 { confetti.start() }
+                } else if isBotGame {
+                    if p1PairsFound > p2PairsFound {
+                        showToast("GAME OVER! YOU WIN \(p1PairsFound) - \(p2PairsFound)!")
+                        confetti.start()
+                    } else if p2PairsFound > p1PairsFound {
+                        showToast("GAME OVER! The bot wins \(p2PairsFound) - \(p1PairsFound).")
+                    } else {
+                        showToast("GAME OVER! IT'S A TIE \(p1PairsFound) - \(p2PairsFound)!")
+                    }
                 } else {
-                    showToast("GAME OVER! YOU MATCHED THEM ALL!")
-                    confetti.start()
+                    if p1PairsFound > p2PairsFound {
+                        showToast("GAME OVER! PLAYER 1 WINS \(p1PairsFound) - \(p2PairsFound)!")
+                        confetti.start()
+                    } else if p2PairsFound > p1PairsFound {
+                        showToast("GAME OVER! PLAYER 2 WINS \(p2PairsFound) - \(p1PairsFound)!")
+                        confetti.start()
+                    } else {
+                        showToast("GAME OVER! IT'S A TIE \(p1PairsFound) - \(p2PairsFound)!")
+                    }
                 }
             } else if isBotGame && !isPlayerTurn {
                 runAfterDelay(1.0) { botMove() }
@@ -362,6 +390,7 @@ struct MemoryMatchView: View {
                     isPlayerTurn.toggle()
                 }
                 isProcessing = false
+                if isNearbyGame { drainPendingReveals() }
 
                 if isBotGame && !isPlayerTurn {
                     runAfterDelay(1.0) { botMove() }
@@ -400,39 +429,73 @@ struct MemoryMatchView: View {
 
     // MARK: - Nearby wire protocol
 
-    private func receiveNearbyMessage(_ raw: String) {
+    private func receiveNearbyMessage(_ raw: String, from sender: String) {
         guard let sep = raw.firstIndex(of: ":") else { return }
         guard let msgRound = Int(raw[raw.startIndex..<sep]) else { return }
         let msg = String(raw[raw.index(after: sep)...])
 
         if msg == "RESET" {
-            guard msgRound > roundId else { return }
+            // Two players pressing New at the same moment each bump to the
+            // same round. The roller (seat 0) ignores the other's RESET as
+            // a duplicate, but the other phone has just cleared its board to
+            // wait for a SETUP that may already have come and gone. If our
+            // board is still untouched, send the identical SETUP again.
+            if msgRound == roundId, isRoller, boardReady, pairsFound == 0, !isProcessing,
+               firstClickedIndex == nil, cardTexts.allSatisfy({ $0 == "?" }), !shuffledIcons.isEmpty {
+                InternetConnectionManager.shared.sendMessage("\(roundId):SETUP:" + shuffledIcons.joined(separator: ","))
+                return
+            }
+            guard msgRound > roundId, msgRound <= roundId + 3 else { return }
             roundId = msgRound
             beginNearbyRound()
             return
         }
 
         guard msgRound == roundId else { return }
-        handleNearbyMessage(msg)
+        handleNearbyMessage(msg, from: sender)
     }
 
-    private func handleNearbyMessage(_ msg: String) {
+    private var isRoller: Bool {
+        players.first?.id == myId
+    }
+
+    private func handleNearbyMessage(_ msg: String, from sender: String) {
         if msg.hasPrefix("SETUP:") {
             let order = msg.dropFirst("SETUP:".count).split(separator: ",", omittingEmptySubsequences: false).map(String.init)
             // Beyond just the right count, the order must actually be a
             // reshuffle of our own 6-pair icon set - otherwise a malformed
             // payload could strand the board with an unmatchable pair.
-            if order.count == 12 && order.sorted() == Self.icons.sorted() {
+            // And it must come from seat 0, the only phone allowed to lay the
+            // board, and only while we are still waiting for one - otherwise
+            // any peer could re-lay the board mid-round and wipe the cards.
+            if sender == players.first?.id, !boardReady, order.count == 12, order.sorted() == Self.icons.sorted() {
                 setupBoard(order: order)
             }
         } else if msg.hasPrefix("REVEAL:") {
             guard let idx = Int(msg.dropFirst("REVEAL:".count)), (0..<12).contains(idx) else { return }
-            // Mirrors the isProcessing guard local taps use, so an
-            // out-of-cadence REVEAL: can't sneak a card into play outside
-            // the score accounting.
-            if !isProcessing && cardTexts[idx] == "?" {
-                applyReveal(idx)
+            // Mirrors the isProcessing guard local taps use. A REVEAL that
+            // lands while our flip-back timer is running is queued, not
+            // dropped, and replayed in order afterwards.
+            if isProcessing {
+                if pendingReveals.count < 4 { pendingReveals.append((index: idx, sender: sender)) }
+            } else {
+                applyIncomingReveal(idx, from: sender)
             }
+        }
+    }
+
+    // Checked at the moment the reveal is actually applied (not when it
+    // arrived), so a queued REVEAL is judged against the turn it lands on.
+    private func applyIncomingReveal(_ idx: Int, from sender: String) {
+        guard !players.isEmpty, players[turnIndex % players.count].id == sender else { return }
+        guard cardTexts[idx] == "?" else { return }
+        applyReveal(idx)
+    }
+
+    private func drainPendingReveals() {
+        while !isProcessing, !pendingReveals.isEmpty {
+            let next = pendingReveals.removeFirst()
+            applyIncomingReveal(next.index, from: next.sender)
         }
     }
 

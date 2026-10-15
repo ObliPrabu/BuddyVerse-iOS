@@ -26,6 +26,22 @@ final class Router: ObservableObject {
     func replaceTop(with route: AppRoute) {
         if path.isEmpty { path.append(route) } else { path[path.count - 1] = route }
     }
+
+    /// Drops the premium Lobby entry AND every screen above it (the Account
+    /// and payment screens a purchase passes through), then puts `route` in
+    /// their place. A purchase or entitlement hand-off used to replace only
+    /// the topmost screen, which left the Lobby sitting underneath - so
+    /// pressing Back from the game picker showed the "Unlock Premium Access"
+    /// paywall again to someone who had already paid.
+    func replaceLobby(with route: AppRoute) {
+        let lobbyIndex = path.lastIndex(where: { if case .lobby = $0 { return true } else { return false } })
+        if let lobbyIndex {
+            path.removeSubrange(lobbyIndex...)
+            path.append(route)
+        } else {
+            replaceTop(with: route)
+        }
+    }
 }
 
 struct RootView: View {
@@ -140,8 +156,8 @@ struct RootView: View {
             // game the player originally wanted, same as onePhoneSelection
             // for free games.
             PaymentWebView(gameType: gameType, premiumSource: premiumSource) { selection in
-                func proceedToGame() {
-                    router.replaceTop(with: .onePhoneSelection(gameType: selection.gameType))
+                @MainActor func proceedToGame() {
+                    router.replaceLobby(with: .onePhoneSelection(gameType: selection.gameType))
                 }
                 switch premiumSource {
                 case "SUB_MONTHLY": SubscriptionManager.shared.markSubscribed("monthly") { proceedToGame() }

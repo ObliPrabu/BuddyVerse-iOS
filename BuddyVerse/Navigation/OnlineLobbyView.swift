@@ -225,9 +225,7 @@ struct OnlineLobbyView: View {
             onGameStarted: { DispatchQueue.main.async { onGameStarted() } },
             onMessage: { _ in },
             onDisconnected: {
-                DispatchQueue.main.async {
-                    if !connected { hostStatus = "Something went wrong. Tap Cancel and try again." }
-                }
+                DispatchQueue.main.async { onLobbyDisconnected(isHost: true) }
             },
             onError: { message in
                 DispatchQueue.main.async {
@@ -262,11 +260,30 @@ struct OnlineLobbyView: View {
             onGameStarted: { DispatchQueue.main.async { onGameStarted() } },
             onMessage: { _ in },
             onDisconnected: {
-                DispatchQueue.main.async {
-                    if !connected { joinStatus = "Something went wrong. Tap Cancel and try again." }
-                }
+                DispatchQueue.main.async { onLobbyDisconnected(isHost: false) }
             }
         )
+    }
+
+    // The room was lost while we are still in the lobby. Once the game has
+    // started the game screen owns disconnects, so ignore it here. If we had
+    // already joined (so the roster is on screen), tell the player and send
+    // them back to the start instead of leaving a stale roster and a
+    // spinner; if we never got in, keep the old "something went wrong" text.
+    private func onLobbyDisconnected(isHost: Bool) {
+        guard !gameStarted else { return }
+        if connected {
+            InternetConnectionManager.shared.stop()
+            connected = false
+            players = []
+            roomCode = nil
+            errorMessage = isHost ? "The connection was lost. Please create a new game." : "The game ended. Ask your friend for a new code."
+            stage = .nameEntry
+        } else if isHost {
+            hostStatus = "Something went wrong. Tap Cancel and try again."
+        } else {
+            joinStatus = "Something went wrong. Tap Cancel and try again."
+        }
     }
 
     // Room-code/name TextFields can leave the keyboard up after tapping
@@ -296,13 +313,19 @@ struct OnlineLobbyView: View {
         guard !gameStarted else { return }
         gameStarted = true
 
-        let selection = GameSelection(gameType: gameType, isBot: false, isNearby: true, players: players)
+        // Built from the host's frozen roster (falling back to the live list), so
+        // every phone - host included - hands the game the same player order.
+        let selection = GameSelection(gameType: gameType, isBot: false, isNearby: true, players: InternetConnectionManager.shared.playersForGame())
         // Hangman is the only game with a choice of how the secret word gets
         // picked, so it gets one extra screen here before the normal rules screen.
+        // Replace the lobby rather than push on top of it: once the game
+        // starts the lobby's roster and connection are no longer its to
+        // show, and leaving it underneath meant backing out of the game
+        // landed on a stale lobby over a dead connection.
         if gameType == "HANGMAN" {
-            router.push(.hangmanModeChoice(selection))
+            router.replaceTop(with: .hangmanModeChoice(selection))
         } else {
-            router.push(.instructionsChoice(selection))
+            router.replaceTop(with: .instructionsChoice(selection))
         }
     }
 }

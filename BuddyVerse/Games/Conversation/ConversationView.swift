@@ -26,7 +26,7 @@ struct ConversationView: View {
 
     init(selection: GameSelection) {
         self.selection = selection
-        let pool = Self.buildPool(from: selection.aiItems)
+        let pool = Self.allStarters
         self.pool = pool
         var shuffled = pool.shuffled()
         let first = shuffled.isEmpty ? "Tap for a question!" : shuffled.removeLast()
@@ -251,26 +251,9 @@ struct ConversationView: View {
         savedAnswers = Array(loadSavedAnswers(for: current).reversed().prefix(5))
     }
 
-    // MARK: - Pool building
-
-    private struct AiConversationItem: Decodable {
-        let question: String?
-    }
-
-    private static func buildPool(from aiItems: [String]?) -> [String] {
-        let aiStarters: [String] = (aiItems ?? []).compactMap { raw in
-            guard let data = raw.data(using: .utf8),
-                  let obj = try? JSONDecoder().decode(AiConversationItem.self, from: data) else { return nil }
-            let q = (obj.question ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            return q.isEmpty ? nil : q
-        }
-        if !aiStarters.isEmpty { return aiStarters }
-        return allStarters
-    }
-
-    // MARK: - Static fallback pool (used whenever AI generation isn't
-    // available - ported verbatim from ConversationActivity.kt's allStarters
-    // list, the baseline content most users will actually see).
+    // MARK: - Built-in starter pool (the only content source - there is no AI
+    // generation. Mood/age group intentionally don't scope it, so every entry
+    // has to be all-ages-safe.)
     private static let allStarters: [String] = [
         "If you could have any superpower, what would it be?",
         "What is your favorite travel memory?",

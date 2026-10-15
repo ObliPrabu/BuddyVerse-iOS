@@ -1,4 +1,4 @@
-import UserNotifications
+@preconcurrency import UserNotifications
 
 /// Fires a local (on-device, no backend/APNs involved) notification when the
 /// admin publishes a new version from AdminDashboardView's Updates section -

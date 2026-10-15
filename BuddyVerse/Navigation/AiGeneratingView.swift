@@ -59,7 +59,6 @@ struct AiGeneratingView: View {
                     var selection = GameSelection(gameType: gameType, difficulty: difficulty, isBot: false)
                     selection.mood = mood
                     selection.ageGroup = ageGroup
-                    selection.aiItems = nil
                     router.replaceTop(with: .instructionsChoice(selection))
                 }
             }

@@ -73,6 +73,12 @@ struct HangmanView: View {
     @State private var pickerIndex = 0
     @State private var roundOver = false
     @State private var roundId = 0
+    // RACE mode only: the lowest seat that has claimed this round's win so
+    // far. Two racers finishing at nearly the same instant each declare
+    // themselves the winner locally; every phone applies the same "lowest
+    // seat wins" rule to RACEWIN messages, so they all settle on the same
+    // winner without any new wire message.
+    @State private var raceWinnerSeat: Int?
 
     @State private var categoryText = "Category: Animals"
     @State private var wordEntryPrompt = "Pick a secret word for your friend to guess!"
@@ -244,8 +250,11 @@ struct HangmanView: View {
         if isNearbyGame {
             pickerIndex = 0
             InternetConnectionManager.shared.setListeners(
-                onMessage: { msg in DispatchQueue.main.async { receiveNearbyMessage(msg) } },
-                onDisconnected: { DispatchQueue.main.async { handleOpponentDisconnected() } }
+                // Plain onMessage stays a no-op: this game uses the sender-aware
+                // callback so it can check who each message really came from.
+                onMessage: { _ in },
+                onDisconnected: { DispatchQueue.main.async { handleOpponentDisconnected() } },
+                onMessageWithSender: { sender, msg in DispatchQueue.main.async { receiveNearbyMessage(msg, from: sender) } }
             )
             // The full player list already arrived up front, so there's no
             // handshake to wait on - jump straight into the first round.
@@ -277,7 +286,21 @@ struct HangmanView: View {
         }
     }
 
+    private static let maxWordLength = 20
+    private static let maxCategoryLength = 30
+
+    private static func isPlainLetter(_ c: Character) -> Bool {
+        ("A"..."Z").contains(c)
+    }
+
+    // The same shape check applied to a word that arrives over the wire, so a
+    // modified client can't send something the keyboard can't finish.
+    private static func isValidWireWord(_ word: String) -> Bool {
+        (2...maxWordLength).contains(word.count) && word.allSatisfy { isPlainLetter($0) }
+    }
+
     private func startRoundWithWord(_ category: String, _ word: String) {
+        raceWinnerSeat = nil
         targetWord = word
         guessedLetters = []
         wrongLetters = []
@@ -321,6 +344,7 @@ struct HangmanView: View {
     // redo - seat 0 simply rolls a fresh random word every round, since
     // there's no competitive advantage to being the roller.
     private func restartNearbyRound() {
+        raceWinnerSeat = nil
         roundOver = false
         if isRaceMode {
             phase = .connecting
@@ -374,9 +398,11 @@ struct HangmanView: View {
     // word can't be revealed on screen the same way - instead this swaps
     // the word-entry section into a "pass the phone" handoff step.
     private func submitPickedWord() {
-        let word = wordEntryInput.trimmingCharacters(in: .whitespaces).uppercased().filter { $0.isLetter }
-        guard word.count >= 2 else {
-            showToast("Type a word with at least 2 letters.")
+        // A-Z only: the on-screen keyboard has no key for an accented or
+        // non-Latin letter, so a word containing one could never be finished.
+        let word = String(wordEntryInput.trimmingCharacters(in: .whitespaces).uppercased().filter { Self.isPlainLetter($0) })
+        guard word.count >= 2, word.count <= Self.maxWordLength else {
+            showToast("Type a word with 2 to \(Self.maxWordLength) letters (A-Z only).")
             return
         }
         targetWord = word
@@ -464,6 +490,7 @@ struct HangmanView: View {
                 // exact issue), so a persistent on-screen message
                 // (categoryText) carries this too.
                 categoryText = "\u{1F389} You won the race! The word was \(targetWord)"
+                raceWinnerSeat = players.firstIndex(where: { $0.id == myId })
                 confetti.start()
                 InternetConnectionManager.shared.sendMessage("\(roundId):RESULT:RACEWIN:\(myId ?? "")")
             } else if isNearbyGame {
@@ -493,24 +520,37 @@ struct HangmanView: View {
 
     // MARK: - Nearby wire protocol
 
-    private func receiveNearbyMessage(_ raw: String) {
+    private func receiveNearbyMessage(_ raw: String, from sender: String) {
         guard let sep = raw.firstIndex(of: ":") else { return }
         guard let msgRound = Int(raw[raw.startIndex..<sep]) else { return }
         let msg = String(raw[raw.index(after: sep)...])
 
         if msg == "RESET" {
-            guard msgRound > roundId else { return }
+            guard msgRound > roundId, msgRound <= roundId + 3 else { return }
             roundId = msgRound
             restartNearbyRound()
             return
         }
 
         guard msgRound == roundId else { return }
-        handleNearbyMessage(msg)
+        handleNearbyMessage(msg, from: sender)
     }
 
-    private func handleNearbyMessage(_ msg: String) {
+    // Who is allowed to send what, checked against the real Firestore sender:
+    // the word only from this round's picker, the race word only from seat 0,
+    // guesses and results only from a guesser (never the picker), and a race
+    // win only from the player it names. Without this any peer could inject
+    // a word or declare a result.
+    private func isPicker(_ playerId: String) -> Bool {
+        !players.isEmpty && players[pickerIndex % players.count].id == playerId
+    }
+
+    private func handleNearbyMessage(_ msg: String, from sender: String) {
         if msg.hasPrefix("RACEWORD:") {
+            // Only seat 0 rolls the word, only in race mode, and only while
+            // we are still waiting for it (a repeat for a word we already
+            // have is ignored).
+            guard isRaceMode, sender == players.first?.id, phase == .connecting else { return }
             let rest = msg.dropFirst("RACEWORD:".count)
             guard let catSep = rest.firstIndex(of: ":") else { return }
             let category = String(rest[rest.startIndex..<catSep])
@@ -518,12 +558,13 @@ struct HangmanView: View {
             // Mirror submitPickedWord()'s letters-only guard - a modified
             // client sending digits/symbols would otherwise make part of
             // the word permanently unguessable.
-            if !word.isEmpty && word.allSatisfy({ $0.isLetter }) {
+            if Self.isValidWireWord(word), !category.isEmpty, category.count <= Self.maxCategoryLength {
                 startRoundWithWord(category, word)
             }
         } else if msg.hasPrefix("WORD:") {
+            guard !isRaceMode, isPicker(sender), phase == .waitingForWord else { return }
             let word = String(msg.dropFirst("WORD:".count))
-            if !word.isEmpty && word.allSatisfy({ $0.isLetter }) {
+            if Self.isValidWireWord(word) {
                 let pickerName = players[safe: pickerIndex % max(players.count, 1)]?.name ?? "Friend"
                 startRoundWithWord("\(pickerName)'s Word", word)
             }
@@ -533,7 +574,12 @@ struct HangmanView: View {
             // check whether this particular guess just ended the round for
             // the whole group.
             let rest = msg.dropFirst("GUESS:".count)
-            guard rest.count == 1, let char = rest.first else { return }
+            guard !isRaceMode, !isPicker(sender) else { return }
+            guard rest.count == 1, let char = rest.first, Self.isPlainLetter(char) else { return }
+            // A GUESS can only mean something once a word is set and the
+            // round is actually running; before that, targetWord is empty
+            // and an empty word has no blanks, which would read as a win.
+            guard !targetWord.isEmpty, phase == .playing || phase == .spectating else { return }
             if isSpectator {
                 applyGuessAsPicker(char)
             } else if !roundOver, !guessedLetters.contains(char), !wrongLetters.contains(char) {
@@ -541,6 +587,7 @@ struct HangmanView: View {
                 checkGameStatus()
             }
         } else if msg == "RESULT:WIN" {
+            guard !isRaceMode, !isPicker(sender) else { return }
             // Arrives from whichever guesser's move actually ended the
             // round - everyone else (picker included) uses it to learn the
             // round is over and rotate the picker seat, without needing to
@@ -553,6 +600,7 @@ struct HangmanView: View {
                 if !players.isEmpty { pickerIndex = (pickerIndex + 1) % players.count }
             }
         } else if msg == "RESULT:LOSE" {
+            guard !isRaceMode, !isPicker(sender) else { return }
             if !roundOver {
                 roundOver = true
                 showToast("The group ran out of guesses! The word was \(targetWord).")
@@ -561,9 +609,15 @@ struct HangmanView: View {
             }
         } else if msg.hasPrefix("RESULT:RACEWIN:") {
             // Race mode only - someone else finished guessing first.
-            if !roundOver {
+            let winnerId = String(msg.dropFirst("RESULT:RACEWIN:".count))
+            guard isRaceMode, winnerId == sender else { return }
+            let winnerSeat = players.firstIndex(where: { $0.id == winnerId }) ?? Int.max
+            // Accept the first RACEWIN, and also let a later one from a LOWER
+            // seat override it - that is the tie-break two near-simultaneous
+            // finishers (including this phone's own claimed win) both apply.
+            if !roundOver || winnerSeat < (raceWinnerSeat ?? Int.max) {
                 roundOver = true
-                let winnerId = String(msg.dropFirst("RESULT:RACEWIN:".count))
+                raceWinnerSeat = winnerSeat
                 let winnerName = players.first(where: { $0.id == winnerId })?.name ?? "Someone"
                 showToast("\(winnerName) finished first! The word was \(targetWord).")
                 categoryText = "\u{1F3C1} \(winnerName) finished first! The word was \(targetWord)."

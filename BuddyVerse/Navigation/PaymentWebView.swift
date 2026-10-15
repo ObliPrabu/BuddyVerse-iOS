@@ -12,7 +12,7 @@ import SwiftUI
 struct PaymentWebView: View {
     let gameType: String
     let premiumSource: String
-    let onSucceeded: (GameSelection) -> Void
+    let onSucceeded: @MainActor (GameSelection) -> Void
 
     @State private var showError = false
     @State private var reloadToken = UUID()

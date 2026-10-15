@@ -93,7 +93,6 @@ struct WordSearchView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: 0x673AB7).ignoresSafeArea())
         .confettiOverlay(confetti)
-        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             gridSize = gridSizeForDifficulty()
             if letters.isEmpty { setupNewPuzzle() }
@@ -152,20 +151,24 @@ struct WordSearchView: View {
         currentWord = words.randomElement() ?? "BUDDY"
         let wordLetters = Array(currentWord)
 
-        // Simple horizontal placement logic for the target word.
-        let row = Int.random(in: 0..<gridSize)
+        // Pick a random orientation (across or down) and a random start
+        // that still leaves room for the whole word - the word never
+        // starts in a fixed spot, so it can't just be read off the first
+        // column of a row. wordLetters.count is at most gridSize (every
+        // word is 5 letters, the smallest grid is 5), so the range below is
+        // never empty.
+        let across = Bool.random()
+        let maxStart = max(gridSize - wordLetters.count, 0)
+        let startRow = across ? Int.random(in: 0..<gridSize) : Int.random(in: 0...maxStart)
+        let startCol = across ? Int.random(in: 0...maxStart) : Int.random(in: 0..<gridSize)
         var placedWordCells: [GridCell] = []
-        var grid = Array(repeating: Array(repeating: "", count: gridSize), count: gridSize)
+        var grid = (0..<gridSize).map { _ in (0..<gridSize).map { _ in String(alphabet.randomElement() ?? "A") } }
 
-        for i in 0..<gridSize {
-            for j in 0..<gridSize {
-                if i == row && j < wordLetters.count {
-                    placedWordCells.append(GridCell(row: i, col: j))
-                    grid[i][j] = String(wordLetters[j])
-                } else {
-                    grid[i][j] = String(alphabet.randomElement() ?? "A")
-                }
-            }
+        for (offset, letter) in wordLetters.enumerated() {
+            let r = across ? startRow : startRow + offset
+            let c = across ? startCol + offset : startCol
+            placedWordCells.append(GridCell(row: r, col: c))
+            grid[r][c] = String(letter)
         }
 
         letters = grid
@@ -182,7 +185,8 @@ struct WordSearchView: View {
             confetti.start()
             setupNewPuzzle()
         } else {
-            if !selectedCells.isEmpty {
+            // A single tap isn't an attempt at a word, so don't scold it.
+            if selectedCells.count > 1 {
                 showToast("Try again!")
             }
             selectedCells = []

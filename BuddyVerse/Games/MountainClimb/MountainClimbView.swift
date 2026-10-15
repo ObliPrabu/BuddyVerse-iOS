@@ -85,8 +85,6 @@ struct MountainClimbView: View {
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: 0x546E7A).ignoresSafeArea())
-        .navigationTitle("Mountain Climb")
-        .navigationBarTitleDisplayMode(.inline)
         .onDisappear { vm.stop() }
         .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "MOUNTAIN") }
         .sheet(isPresented: $showReport) { ReportSheetView(gameType: "MOUNTAIN") }

@@ -22,8 +22,9 @@ struct AdminDashboardView: View {
     @State private var appUsersCountText = "Loading app users..."
     @State private var appUsersList: [String] = []
 
-    // Every delete action on this whole screen (play counts, feedback,
-    // reports) routes through here first - nothing gets removed from
+    // Every delete action on this whole screen (feedback and reports only -
+    // play counts, app users and Get Updates subscribers are read-only)
+    // routes through here first - nothing gets removed from
     // Firestore without the admin confirming, since there's no undo once a
     // doc is gone. Both alert kinds share one `.alert(item:)` (rather than
     // two separate `.alert(isPresented:)` modifiers) since SwiftUI only
@@ -86,6 +87,14 @@ struct AdminDashboardView: View {
         }
         .navigationBarHidden(true)
         .onAppear {
+            // Defence in depth: the Welcome footer link is the only way here
+            // and only shows for the admin, but this screen reads
+            // admin-only data, so it checks for itself too instead of
+            // trusting how it was reached.
+            guard AuthManager.isAdmin() else {
+                router.pop()
+                return
+            }
             previousLastViewed = AdminNotificationTracker.lastViewedAt()
             AdminNotificationTracker.markViewedNow()
             loadPlayCounts()
@@ -400,7 +409,7 @@ struct AdminDashboardView: View {
             let entries: [(gameType: String, count: Int)] = (snapshot?.documents ?? []).map { doc in
                 (gameType: doc.documentID, count: doc.get("count") as? Int ?? 0)
             }
-            playCounts = entries.sorted { $0.count > $1.count }
+            runOnMain { playCounts = entries.sorted { $0.count > $1.count } }
         }
     }
 
@@ -414,14 +423,21 @@ struct AdminDashboardView: View {
             .order(by: "createdAt", descending: true)
             .limit(to: 50)
             .getDocuments { snapshot, _ in
-                feedbackItems = (snapshot?.documents ?? []).map { doc in
-                    let createdAt = doc.get("createdAt") as? Timestamp
-                    return FeedbackItem(
+                // Pull the plain values out of the Firestore documents here,
+                // then hand only those to the main actor - the snapshot
+                // itself isn't safe to pass between threads.
+                let rows = (snapshot?.documents ?? []).map { doc in
+                    (
                         id: doc.documentID,
+                        createdAt: doc.get("createdAt") as? Timestamp,
                         gameType: doc.get("gameType") as? String ?? "",
-                        message: doc.get("message") as? String ?? "",
-                        isNew: isNewSince(createdAt)
+                        message: doc.get("message") as? String ?? ""
                     )
+                }
+                runOnMain {
+                    feedbackItems = rows.map {
+                        FeedbackItem(id: $0.id, gameType: $0.gameType, message: $0.message, isNew: isNewSince($0.createdAt))
+                    }
                 }
             }
     }
@@ -431,20 +447,24 @@ struct AdminDashboardView: View {
             .order(by: "createdAt", descending: true)
             .limit(to: 50)
             .getDocuments { snapshot, _ in
-                reportItems = (snapshot?.documents ?? []).map { doc in
-                    let createdAt = doc.get("createdAt") as? Timestamp
-                    return ReportItem(
+                let rows = (snapshot?.documents ?? []).map { doc in
+                    (
                         id: doc.documentID,
+                        createdAt: doc.get("createdAt") as? Timestamp,
                         gameType: doc.get("gameType") as? String ?? "",
                         reason: doc.get("reason") as? String ?? "",
-                        detail: doc.get("detail") as? String ?? "",
-                        isNew: isNewSince(createdAt)
+                        detail: doc.get("detail") as? String ?? ""
                     )
+                }
+                runOnMain {
+                    reportItems = rows.map {
+                        ReportItem(id: $0.id, gameType: $0.gameType, reason: $0.reason, detail: $0.detail, isNew: isNewSince($0.createdAt))
+                    }
                 }
             }
     }
 
-    private func displayFirstName(_ doc: QueryDocumentSnapshot) -> String {
+    private nonisolated func displayFirstName(_ doc: QueryDocumentSnapshot) -> String {
         let name = (doc.get("firstName") as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
         return (name?.isEmpty == false) ? name! : "(no name given)"
     }
@@ -452,15 +472,15 @@ struct AdminDashboardView: View {
     private func loadCurrentlyPublished() {
         Firestore.firestore().collection("appConfig").document("latest").getDocument { doc, error in
             guard error == nil else {
-                currentlyPublishedText = "Couldn't load current update notice."
+                runOnMain { currentlyPublishedText = "Couldn't load current update notice." }
                 return
             }
             guard let doc, doc.exists, let version = doc.get("versionName") as? String else {
-                currentlyPublishedText = "Nothing published yet."
+                runOnMain { currentlyPublishedText = "Nothing published yet." }
                 return
             }
             let message = doc.get("message") as? String ?? ""
-            currentlyPublishedText = "Currently live: v\(version) — \(message)"
+            runOnMain { currentlyPublishedText = "Currently live: v\(version) — \(message)" }
         }
     }
 
@@ -476,12 +496,15 @@ struct AdminDashboardView: View {
             "message": message,
             "updatedAt": FieldValue.serverTimestamp()
         ]) { error in
-            if error == nil {
-                activeAlert = .info(title: "Published", message: "Update notice published!")
-                loadCurrentlyPublished()
-                LocalNotificationManager.shared.notifyVersionPublished(version: version, message: message)
-            } else {
-                activeAlert = .info(title: "Publish Failed", message: "Couldn't publish - try again.")
+            let succeeded = error == nil
+            runOnMain {
+                if succeeded {
+                    activeAlert = .info(title: "Published", message: "Update notice published!")
+                    loadCurrentlyPublished()
+                    LocalNotificationManager.shared.notifyVersionPublished(version: version, message: message)
+                } else {
+                    activeAlert = .info(title: "Publish Failed", message: "Couldn't publish - try again.")
+                }
             }
         }
     }
@@ -492,8 +515,11 @@ struct AdminDashboardView: View {
             .limit(to: 50)
             .getDocuments { snapshot, _ in
                 let docs = snapshot?.documents ?? []
-                updateSubscribersCountText = "\(docs.count) subscriber\(docs.count == 1 ? "" : "s") (most recent 50 shown below)"
-                updateSubscribers = docs.map { displayFirstName($0) }
+                let names = docs.map { displayFirstName($0) }
+                runOnMain {
+                    updateSubscribersCountText = "\(names.count) subscriber\(names.count == 1 ? "" : "s") (most recent 50 shown below)"
+                    updateSubscribers = names
+                }
             }
     }
 
@@ -503,27 +529,36 @@ struct AdminDashboardView: View {
             .limit(to: 50)
             .getDocuments { snapshot, _ in
                 let docs = snapshot?.documents ?? []
-                appUsersCountText = "\(docs.count) app user\(docs.count == 1 ? "" : "s") (most recent 50 shown below)"
-                appUsersList = docs.map { displayFirstName($0) }
+                let names = docs.map { displayFirstName($0) }
+                runOnMain {
+                    appUsersCountText = "\(names.count) app user\(names.count == 1 ? "" : "s") (most recent 50 shown below)"
+                    appUsersList = names
+                }
             }
     }
 
     private func deleteFeedback(id: String) {
         Firestore.firestore().collection("feedback").document(id).delete { error in
-            if error == nil {
-                feedbackItems.removeAll { $0.id == id }
-            } else {
-                activeAlert = .deleteFailed("Couldn't delete - try again.")
+            let succeeded = error == nil
+            runOnMain {
+                if succeeded {
+                    feedbackItems.removeAll { $0.id == id }
+                } else {
+                    activeAlert = .deleteFailed("Couldn't delete - try again.")
+                }
             }
         }
     }
 
     private func deleteReport(id: String) {
         Firestore.firestore().collection("reports").document(id).delete { error in
-            if error == nil {
-                reportItems.removeAll { $0.id == id }
-            } else {
-                activeAlert = .deleteFailed("Couldn't delete - try again.")
+            let succeeded = error == nil
+            runOnMain {
+                if succeeded {
+                    reportItems.removeAll { $0.id == id }
+                } else {
+                    activeAlert = .deleteFailed("Couldn't delete - try again.")
+                }
             }
         }
     }

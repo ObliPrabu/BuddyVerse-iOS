@@ -18,6 +18,11 @@ struct MathSprintView: View {
     @State private var answerText = ""
     @State private var toastMessage: String?
     @State private var timer: Timer?
+    // Set the moment time runs out. Once true the question, answer field and
+    // SUBMIT button are gone and the final score stays on screen until the
+    // player taps Back/Home themselves - no automatic pop, so a player who
+    // taps Back during a countdown can't be ejected from a second screen.
+    @State private var gameOver = false
     @State private var showFeedback = false
     @State private var showReport = false
 
@@ -48,11 +53,20 @@ struct MathSprintView: View {
                     .foregroundColor(.white)
             }
 
-            Text("\(num1) \(op) \(num2) = ?")
-                .font(.system(size: 48, weight: .bold))
-                .foregroundColor(.white)
-                .padding(.top, 50)
-                .padding(.bottom, 20)
+            if gameOver {
+                Text("Time's Up!\nFinal Score: \(score)")
+                    .font(.system(size: 36, weight: .bold))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 50)
+                    .padding(.bottom, 20)
+            } else {
+                Text("\(num1) \(op) \(num2) = ?")
+                    .font(.system(size: 48, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.top, 50)
+                    .padding(.bottom, 20)
+            }
 
             if let toastMessage {
                 Text(toastMessage)
@@ -67,21 +81,23 @@ struct MathSprintView: View {
             // auto-focusing version lives in its own gated helper. Either
             // way the field is fully usable, just needs a manual tap to
             // bring up the keyboard pre-iOS-15.
-            if #available(iOS 15, *) {
-                AutoFocusingAnswerField(field: answerField)
-            } else {
-                answerField
-            }
+            if !gameOver {
+                if #available(iOS 15, *) {
+                    AutoFocusingAnswerField(field: answerField)
+                } else {
+                    answerField
+                }
 
-            // btnSubmitAnswer: match_parent, 60dp, bg white, text #FF5722 bold
-            Button("SUBMIT") { checkAnswer() }
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(Color(hex: 0xFF5722))
-                .frame(maxWidth: .infinity)
-                .frame(height: 60)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .buttonStyle(.plain)
+                // btnSubmitAnswer: match_parent, 60dp, bg white, text #FF5722 bold
+                Button("SUBMIT") { checkAnswer() }
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(Color(hex: 0xFF5722))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 60)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .buttonStyle(.plain)
+            }
 
             // btnBackMathSprint: match_parent, wrap_content, bg #AADDDDDD, text #333333
             HStack(spacing: 10) {
@@ -111,9 +127,8 @@ struct MathSprintView: View {
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: 0xFF5722).ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            if timeLeft == 0 && timer == nil {
+            if timeLeft == 0 && timer == nil && !gameOver {
                 timeLeft = roundSeconds
                 startNewQuestion()
                 startTimer()
@@ -151,6 +166,7 @@ struct MathSprintView: View {
     }
 
     private func checkAnswer() {
+        guard !gameOver else { return }
         guard let userAnswer = Int(answerText), userAnswer == correctAnswer else {
             showToast("Wrong! Try again.")
             return
@@ -162,14 +178,15 @@ struct MathSprintView: View {
     private func startTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            if timeLeft > 0 {
-                timeLeft -= 1
-            }
-            if timeLeft <= 0 {
-                timer?.invalidate()
-                timer = nil
-                showToast("Time's Up! Final Score: \(score)")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { router.pop() }
+            runOnMain {
+                if timeLeft > 0 {
+                    timeLeft -= 1
+                }
+                if timeLeft <= 0 {
+                    timer?.invalidate()
+                    timer = nil
+                    gameOver = true
+                }
             }
         }
     }

@@ -180,8 +180,10 @@ struct SwampTrekView: View {
     private func startFillLoop() {
         fillTimer?.invalidate()
         fillTimer = Timer.scheduledTimer(withTimeInterval: 0.04, repeats: true) { _ in
-            if isHolding {
-                meterValue = min(meterValue + fillPerTick, 100)
+            runOnMain {
+                if isHolding {
+                    meterValue = min(meterValue + fillPerTick, 100)
+                }
             }
         }
     }

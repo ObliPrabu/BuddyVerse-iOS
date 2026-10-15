@@ -52,7 +52,5 @@ struct MainWebsiteView: View {
             .buttonStyle(.plain)
             .padding(16)
         }
-        .navigationTitle("BuddyVerse.com")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }

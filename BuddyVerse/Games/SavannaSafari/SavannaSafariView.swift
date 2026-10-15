@@ -120,7 +120,7 @@ struct SavannaSafariView: View {
     private func startCycling() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: cycleInterval, repeats: true) { _ in
-            cycleAnimal()
+            runOnMain { cycleAnimal() }
         }
     }
 

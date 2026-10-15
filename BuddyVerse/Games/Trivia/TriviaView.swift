@@ -40,7 +40,7 @@ struct TriviaView: View {
 
     init(selection: GameSelection) {
         self.selection = selection
-        let pool = Self.buildPool(from: selection.aiItems)
+        let pool = Self.allQuestions
         self.pool = pool
         let round = Self.drawRound(from: pool)
         _roundQuestions = State(initialValue: round)
@@ -56,7 +56,12 @@ struct TriviaView: View {
         var bag = pool.shuffled()
         while result.count < roundSize {
             if bag.isEmpty { bag = pool.shuffled() }
-            result.append(bag.removeLast())
+            // Shuffle the answer order too - the authored order puts the
+            // right answer in the 3rd/4th slot most of the time, so a player
+            // could just keep picking those. Answer checking compares the
+            // option's text, not its position, so shuffling is safe.
+            let q = bag.removeLast()
+            result.append(Question(text: q.text, options: q.options.shuffled(), correctAnswer: q.correctAnswer))
         }
         return result
     }
@@ -465,38 +470,9 @@ struct TriviaView: View {
         phase = .playing
     }
 
-    // MARK: - Pool building
-
-    private struct AiTrivia: Decodable {
-        let question: String?
-        let options: [String]?
-        let answer: String?
-    }
-
-    private static func buildPool(from aiItems: [String]?) -> [Question] {
-        let aiQuestions: [Question] = (aiItems ?? []).compactMap { raw in
-            guard let data = raw.data(using: .utf8),
-                  let obj = try? JSONDecoder().decode(AiTrivia.self, from: data) else { return nil }
-            let q = (obj.question ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            let options = (obj.options ?? []).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            let correct = (obj.answer ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            // Match case-insensitively/trimmed so minor casing differences from
-            // Gemini don't cause an otherwise-valid question to be dropped, but
-            // still use the option's own text so later exact-match checks work.
-            let matchedOption = options.first { $0.caseInsensitiveCompare(correct) == .orderedSame }
-            // Reject options that aren't 4 genuinely distinct strings - a
-            // duplicate distractor from Gemini would otherwise render two
-            // identical-text buttons.
-            guard !q.isEmpty, options.count == 4, Set(options).count == 4, let matchedOption else { return nil }
-            return Question(text: q, options: options, correctAnswer: matchedOption)
-        }
-        if !aiQuestions.isEmpty { return aiQuestions }
-        return allQuestions
-    }
-
-    // MARK: - Static fallback pool (used whenever AI generation isn't
-    // available - ported verbatim from TriviaActivity.kt's allQuestions
-    // list, the baseline content most users will actually see).
+    // MARK: - Built-in question pool (the only content source - there is no AI
+    // generation. Mood/age group intentionally don't scope it, so every entry
+    // has to be all-ages-safe.)
     private static let allQuestions: [Question] = [
         Question(text: "What is the capital of France?", options: ["London", "Berlin", "Paris", "Rome"], correctAnswer: "Paris"),
         Question(text: "Which planet is known as the Red Planet?", options: ["Earth", "Mars", "Jupiter", "Venus"], correctAnswer: "Mars"),
@@ -527,9 +503,8 @@ struct TriviaView: View {
         Question(text: "What is the primary language spoken in Brazil?", options: ["Spanish", "English", "Portuguese", "French"], correctAnswer: "Portuguese"),
         Question(text: "Which planet is famous for its rings?", options: ["Jupiter", "Mars", "Saturn", "Neptune"], correctAnswer: "Saturn"),
         Question(text: "What is the smallest prime number?", options: ["0", "1", "2", "3"], correctAnswer: "2"),
-        Question(text: "Who invented the light bulb?", options: ["Tesla", "Einstein", "Edison", "Newton"], correctAnswer: "Edison"),
+        Question(text: "Who is most famously credited with inventing the practical light bulb?", options: ["Tesla", "Einstein", "Edison", "Newton"], correctAnswer: "Edison"),
         Question(text: "What is the capital of Canada?", options: ["Toronto", "Vancouver", "Montreal", "Ottawa"], correctAnswer: "Ottawa"),
-        Question(text: "Which ocean surrounds Hawaii?", options: ["Atlantic", "Indian", "Arctic", "Pacific"], correctAnswer: "Pacific"),
         Question(text: "What is the largest mammal in the world?", options: ["Elephant", "Blue Whale", "Giraffe", "Shark"], correctAnswer: "Blue Whale"),
         Question(text: "How many legs does a spider have?", options: ["6", "7", "8", "10"], correctAnswer: "8"),
         Question(text: "What is the capital of Spain?", options: ["Barcelona", "Seville", "Valencia", "Madrid"], correctAnswer: "Madrid"),
@@ -577,20 +552,19 @@ struct TriviaView: View {
         Question(text: "What is the capital of Argentina?", options: ["Cordoba", "Rosario", "Mendoza", "Buenos Aires"], correctAnswer: "Buenos Aires"),
         Question(text: "How many Earths could fit inside the Sun?", options: ["100", "1,000", "10,000", "1.3 million"], correctAnswer: "1.3 million"),
         Question(text: "What is the capital of Turkey?", options: ["Istanbul", "Izmir", "Antalya", "Ankara"], correctAnswer: "Ankara"),
-        Question(text: "Which is the most spoken language in the world?", options: ["English", "Spanish", "Hindi", "Mandarin"], correctAnswer: "Mandarin"),
+        Question(text: "Which language has the most native speakers in the world?", options: ["English", "Spanish", "Hindi", "Mandarin"], correctAnswer: "Mandarin"),
         Question(text: "What is the capital of Switzerland?", options: ["Zurich", "Geneva", "Bern", "Basel"], correctAnswer: "Bern"),
-        Question(text: "How many bones does a shark have?", options: ["0", "10", "20", "50"], correctAnswer: "0"),
+        Question(text: "How many true bones does a shark have? (Hint: its skeleton is made of cartilage)", options: ["0", "10", "20", "50"], correctAnswer: "0"),
         Question(text: "What is the capital of Ireland?", options: ["Belfast", "Cork", "Galway", "Dublin"], correctAnswer: "Dublin"),
         Question(text: "Which element is the most abundant in the atmosphere?", options: ["Oxygen", "Hydrogen", "Carbon", "Nitrogen"], correctAnswer: "Nitrogen"),
         Question(text: "What is the capital of New Zealand?", options: ["Auckland", "Christchurch", "Hamilton", "Wellington"], correctAnswer: "Wellington"),
         Question(text: "Who painted 'The Starry Night'?", options: ["Picasso", "Van Gogh", "Rembrandt", "Monet"], correctAnswer: "Van Gogh"),
         Question(text: "What is the capital of Austria?", options: ["Salzburg", "Graz", "Innsbruck", "Vienna"], correctAnswer: "Vienna"),
-        Question(text: "How many continents are there in the world?", options: ["5", "6", "7", "8"], correctAnswer: "7"),
         Question(text: "What is the capital of Peru?", options: ["Cusco", "Arequipa", "Lima", "Callao"], correctAnswer: "Lima"),
         Question(text: "Which country is famous for the Eiffel Tower?", options: ["Germany", "Italy", "UK", "France"], correctAnswer: "France"),
         Question(text: "What is the capital of Saudi Arabia?", options: ["Jeddah", "Mecca", "Riyadh", "Dammam"], correctAnswer: "Riyadh"),
         Question(text: "How many days are in a week?", options: ["5", "6", "7", "8"], correctAnswer: "7"),
-        Question(text: "What is the capital of South Africa?", options: ["Johannesburg", "Durban", "Cape Town", "Pretoria"], correctAnswer: "Pretoria"),
+        Question(text: "Which city is the executive (administrative) capital of South Africa?", options: ["Johannesburg", "Durban", "Cape Town", "Pretoria"], correctAnswer: "Pretoria"),
         Question(text: "Which is the largest planet in our solar system?", options: ["Saturn", "Neptune", "Jupiter", "Uranus"], correctAnswer: "Jupiter"),
         Question(text: "What is the capital of the Netherlands?", options: ["Rotterdam", "Utrecht", "Hague", "Amsterdam"], correctAnswer: "Amsterdam")
     ]

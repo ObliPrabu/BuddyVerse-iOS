@@ -104,8 +104,6 @@ struct DesertTrekView: View {
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: 0xFFC107).ignoresSafeArea())
-        .navigationTitle("Desert Trek")
-        .navigationBarTitleDisplayMode(.inline)
         .alert(item: $vm.roundOver) { (info: DesertRoundOverInfo) in
             Alert(title: Text("Round Over"), message: Text(info.message), dismissButton: .default(Text("OK")))
         }
@@ -168,7 +166,9 @@ final class DesertTrekViewModel: ObservableObject {
         guard isNearby else { return }
         turnIndex = 0
         InternetConnectionManager.shared.setListeners(
-            onMessage: { [weak self] msg in DispatchQueue.main.async { self?.receiveNearbyMessage(msg) } },
+            // Plain onMessage stays a no-op: this game uses the sender-aware
+            // callback so it can check who each TURN really came from.
+            onMessage: { _ in },
             onDisconnected: { [weak self] in
                 DispatchQueue.main.async {
                     guard let self, !self.isStopped else { return }
@@ -176,6 +176,9 @@ final class DesertTrekViewModel: ObservableObject {
                     InternetConnectionManager.shared.stop()
                     self.isDisconnected = true
                 }
+            },
+            onMessageWithSender: { [weak self] sender, msg in
+                DispatchQueue.main.async { self?.receiveNearbyMessage(msg, from: sender) }
             }
         )
     }
@@ -251,7 +254,7 @@ final class DesertTrekViewModel: ObservableObject {
         }
     }
 
-    private func receiveNearbyMessage(_ raw: String) {
+    private func receiveNearbyMessage(_ raw: String, from sender: String) {
         guard let sep = raw.firstIndex(of: ":") else { return }
         guard let msgRound = Int(raw[raw.startIndex..<sep]) else { return }
         let msg = String(raw[raw.index(after: sep)...])
@@ -263,7 +266,19 @@ final class DesertTrekViewModel: ObservableObject {
         guard parts.count == 4 else { return }
         let actorId = parts[0]
         guard actorId != myId else { return } // our own move, already applied locally
+        // The actor id inside the message is only a claim - it must match who
+        // Firestore says actually sent it, and that player must be the one
+        // whose turn it is, or one duplicate/forged TURN would advance the
+        // shared turn order for everybody.
+        guard actorId == sender, !players.isEmpty, players[turnIndex % players.count].id == sender else { return }
         guard let stake = Int(parts[1]), let travel = Int(parts[2]), let waterLost = Int(parts[3]) else { return }
+        // Same per-stake ranges the sender's own dice use.
+        switch stake {
+        case 0: guard (1...4).contains(travel), (2...6).contains(waterLost) else { return }
+        case 1: guard (5...9).contains(travel), (8...14).contains(waterLost) else { return }
+        case 2: guard (10...15).contains(travel), (16...25).contains(waterLost) else { return }
+        default: return
+        }
         applyNearbyTurn(actorId: actorId, stake: stake, travel: travel, waterLost: waterLost)
     }
 

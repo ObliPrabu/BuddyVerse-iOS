@@ -29,8 +29,8 @@ targets:
         # bump both together after a meaningful cross-platform change so the
         # version label shown on the Welcome screen can confirm two test
         # devices are running the same build.
-        MARKETING_VERSION: "1.6.6"
-        CURRENT_PROJECT_VERSION: "50"
+        MARKETING_VERSION: "1.6.8"
+        CURRENT_PROJECT_VERSION: "52"
         SWIFT_VERSION: "6.0"
         TARGETED_DEVICE_FAMILY: "1,2"
         DEVELOPMENT_TEAM: "PS8DGXJ8S8"
@@ -99,8 +99,8 @@ targets:
         # so this was silently wrong before the widget did anything
         # user-facing. Bump this alongside CURRENT_PROJECT_VERSION/
         # MARKETING_VERSION above on every version bump from now on.
-        CURRENT_PROJECT_VERSION: "50"
-        MARKETING_VERSION: "1.6.6"
+        CURRENT_PROJECT_VERSION: "52"
+        MARKETING_VERSION: "1.6.8"
         SWIFT_VERSION: "6.0"
         TARGETED_DEVICE_FAMILY: "1,2"
         DEVELOPMENT_TEAM: "PS8DGXJ8S8"
@@ -110,6 +110,12 @@ targets:
       path: BuddyVerseWidget/Info.plist
       properties:
         CFBundleDisplayName: BuddyVerseWidget
+        # Must track the main app's version exactly (App Store validation
+        # rejects a mismatch) - referencing the build settings here, the same
+        # way the main target does, keeps it from silently drifting back to
+        # a hardcoded "1".
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
 

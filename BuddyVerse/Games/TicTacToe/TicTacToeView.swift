@@ -381,7 +381,8 @@ struct TicTacToeView: View {
         let msg = String(raw[raw.index(after: sep)...])
 
         if msg == "RESET" {
-            guard msgRound > roundId else { return } // duplicate/out-of-order, already applied
+            // Duplicate/out-of-order is already applied; far-future values are bogus.
+            guard msgRound > roundId, msgRound <= roundId + 3 else { return }
             roundId = msgRound
             resetGame()
             return
@@ -404,6 +405,10 @@ struct TicTacToeView: View {
             roleAssigned = true
             xToMove = true
         } else if msg.hasPrefix("MOVE:") {
+            // The peer can only legitimately move once roles are assigned and
+            // it is actually their turn - otherwise a duplicate or early MOVE
+            // would place a piece for the wrong side.
+            guard roleAssigned, xToMove != amX else { return }
             guard let idx = Int(msg.dropFirst("MOVE:".count)), (0..<9).contains(idx), board[idx].isEmpty else { return }
             applyMove(idx, wasXMove: xToMove)
         }

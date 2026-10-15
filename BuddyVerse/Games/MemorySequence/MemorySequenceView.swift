@@ -108,7 +108,6 @@ struct MemorySequenceView: View {
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: 0x37474F).ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
         .onDisappear { cancelPending() }
         .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "SEQUENCE") }
         .sheet(isPresented: $showReport) { ReportSheetView(gameType: "SEQUENCE") }

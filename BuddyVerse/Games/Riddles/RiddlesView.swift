@@ -38,7 +38,7 @@ struct RiddlesView: View {
 
     init(selection: GameSelection) {
         self.selection = selection
-        let pool = Self.buildPool(from: selection.aiItems)
+        let pool = Self.allRiddles
         self.pool = pool
         let round = Self.drawRound(from: pool)
         _roundRiddles = State(initialValue: round)
@@ -410,29 +410,9 @@ struct RiddlesView: View {
         phase = .playing
     }
 
-    // MARK: - Pool building
-
-    private struct AiRiddle: Decodable {
-        let question: String?
-        let answer: String?
-    }
-
-    private static func buildPool(from aiItems: [String]?) -> [Riddle] {
-        let aiRiddles: [Riddle] = (aiItems ?? []).compactMap { raw in
-            guard let data = raw.data(using: .utf8),
-                  let obj = try? JSONDecoder().decode(AiRiddle.self, from: data) else { return nil }
-            let q = (obj.question ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            let a = (obj.answer ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !q.isEmpty, !a.isEmpty else { return nil }
-            return Riddle(question: q, answer: a)
-        }
-        if !aiRiddles.isEmpty { return aiRiddles }
-        return allRiddles
-    }
-
-    // MARK: - Static fallback pool (used whenever AI generation isn't
-    // available - ported verbatim from RiddlesActivity.kt's allRiddles list,
-    // the baseline content most users will actually see).
+    // MARK: - Built-in riddle pool (the only content source - there is no AI
+    // generation. Mood/age group intentionally don't scope it, so every entry
+    // has to be all-ages-safe.)
     private static let allRiddles: [Riddle] = [
         Riddle(question: "What has hands but can't clap?", answer: "A clock"),
         Riddle(question: "What has to be broken before you can use it?", answer: "An egg"),
@@ -461,40 +441,26 @@ struct RiddlesView: View {
         Riddle(question: "What has a bottom at the top?", answer: "Your legs"),
         Riddle(question: "What can you catch but not throw?", answer: "A cold"),
         Riddle(question: "What kind of room has no doors or windows?", answer: "A mushroom"),
-        Riddle(question: "I have keys, but no locks and space, and no rooms. You can enter, but you can\u{2019}t leave. What am I?", answer: "A keyboard"),
         Riddle(question: "What has a heart that doesn\u{2019}t beat?", answer: "An artichoke"),
         Riddle(question: "I follow you all day long, but when the night comes, I\u{2019}m gone. What am I?", answer: "Your shadow"),
-        Riddle(question: "What has a face and two hands but no arms or legs?", answer: "A clock"),
         Riddle(question: "What gets sharper the more you use it?", answer: "Your brain"),
         Riddle(question: "I am always hungry, I must always be fed. The finger I touch, will soon turn red. What am I?", answer: "Fire"),
-        Riddle(question: "What has one eye, but cannot see?", answer: "A needle"),
         Riddle(question: "The person who makes it, sells it. The person who buys it, never uses it. The person who uses it, never knows they are using it. What is it?", answer: "A coffin"),
         Riddle(question: "What is easy to get into but hard to get out of?", answer: "Trouble"),
         Riddle(question: "What can fill a room but takes up no space?", answer: "Light"),
         Riddle(question: "If you drop me I\u{2019}m sure to crack, but give me a smile and I\u{2019}ll always smile back. What am I?", answer: "A mirror"),
         Riddle(question: "I\u{2019}m light as a feather, yet the strongest person can\u{2019}t hold me for five minutes. What am I?", answer: "Breath"),
-        Riddle(question: "What has a bed but never sleeps, can run but never walks, and has a bank but no money?", answer: "A river"),
         Riddle(question: "What is so fragile that saying its name breaks it?", answer: "Silence"),
         Riddle(question: "What can you hold in your left hand but not in your right?", answer: "Your right elbow"),
         Riddle(question: "What has many teeth, but cannot bite?", answer: "A comb"),
-        Riddle(question: "What has four legs, but can\u{2019}t walk?", answer: "A table"),
         Riddle(question: "What starts with T, ends with T, and has T in it?", answer: "A teapot"),
         Riddle(question: "What kind of tree can you carry in your hand?", answer: "A palm"),
         Riddle(question: "Which word in the dictionary is spelled incorrectly?", answer: "Incorrectly"),
         Riddle(question: "If an electric train is moving north at 100mph and a wind is blowing west at 10mph, which way does the smoke blow?", answer: "There is no smoke (it's an electric train!)"),
         Riddle(question: "How many months have 28 days?", answer: "All 12"),
         Riddle(question: "What can you hear, but not see or touch, even though you control it?", answer: "Your voice"),
-        Riddle(question: "I have cities, but no houses. I have mountains, but no trees. I have water, but no fish. What am I?", answer: "A map"),
         Riddle(question: "What is always coming, but never arrives?", answer: "Tomorrow"),
-        Riddle(question: "What can you break without picking it up?", answer: "A promise"),
-        Riddle(question: "What has a thumb and four fingers but is not alive?", answer: "A glove"),
-        Riddle(question: "What has 88 keys but can't open a single door?", answer: "A piano"),
         Riddle(question: "What has a heart but no other organs?", answer: "A deck of cards"),
-        Riddle(question: "What has an eye but cannot see?", answer: "A needle"),
-        Riddle(question: "What gets wetter the more it dries?", answer: "A towel"),
-        Riddle(question: "What belongs to you but others use it more?", answer: "Your name"),
         Riddle(question: "I have keys but no locks. I have a space but no room. You can enter, but can\u{2019}t leave. What am I?", answer: "A keyboard"),
-        Riddle(question: "What can you hear, but not see or touch?", answer: "Your voice"),
-        Riddle(question: "What has 88 keys but can't open a door?", answer: "A piano")
     ]
 }

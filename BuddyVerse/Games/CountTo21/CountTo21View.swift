@@ -39,14 +39,12 @@ struct CountTo21View: View {
 
     // Who starts the *next* round - alternates every time a round actually
     // finishes, so whoever didn't go first last round goes first this time.
-    // starterIsPlayerOne covers bot mode/local pass-and-play; starterIndex
-    // covers nearby multiplayer, rotating through every seat instead of just
-    // flipping between two. Every phone in a nearby game advances
-    // starterIndex at the same logical point (inside applyMove(), which
-    // every phone runs identically for every move in the same order), so
-    // they stay in sync with no extra message needed - same trick roundId uses.
+    // starterIsPlayerOne covers bot mode/local pass-and-play. Nearby
+    // multiplayer has no separate starter state at all: the opener is derived
+    // straight from roundId (see resetGame()), which every phone already
+    // agrees on, so a win racing a manual Reset can never leave two phones
+    // disagreeing about whose turn it is.
     @State private var starterIsPlayerOne = true
-    @State private var starterIndex = 0
     @State private var roundId = 0
 
     @State private var didSetup = false
@@ -193,10 +191,12 @@ struct CountTo21View: View {
 
         if isNearbyGame {
             turnIndex = 0
-            starterIndex = 0
             InternetConnectionManager.shared.setListeners(
-                onMessage: { msg in DispatchQueue.main.async { receiveNearbyMessage(msg) } },
-                onDisconnected: { DispatchQueue.main.async { handleOpponentDisconnected() } }
+                // Plain onMessage stays a no-op: this game uses the sender-aware
+                // callback so it can check who a MOVE actually came from.
+                onMessage: { _ in },
+                onDisconnected: { DispatchQueue.main.async { handleOpponentDisconnected() } },
+                onMessageWithSender: { sender, msg in DispatchQueue.main.async { receiveNearbyMessage(msg, from: sender) } }
             )
         }
     }
@@ -255,7 +255,6 @@ struct CountTo21View: View {
             // everyone's state in sync automatically.
             if isNearbyGame {
                 roundId += 1
-                if !players.isEmpty { starterIndex = (starterIndex + 1) % players.count }
             }
             resetGame()
         } else {
@@ -298,29 +297,36 @@ struct CountTo21View: View {
     // Every nearby message arrives as "<round>:<rest>" - see the matching
     // comment in TicTacToeView for why RESET is the one exception allowed
     // through even when it doesn't match our current round yet.
-    private func receiveNearbyMessage(_ raw: String) {
+    private func receiveNearbyMessage(_ raw: String, from sender: String) {
         guard let sep = raw.firstIndex(of: ":") else { return }
         guard let msgRound = Int(raw[raw.startIndex..<sep]) else { return }
         let msg = String(raw[raw.index(after: sep)...])
 
         if msg == "RESET" {
-            guard msgRound > roundId else { return }
+            // A real Reset only ever moves the round forward by one, or by a
+            // few when a win and a Reset each bumped it at the same moment;
+            // anything much further ahead is a bogus value that would
+            // otherwise make every later legitimate message look stale.
+            guard msgRound > roundId, msgRound <= roundId + 3 else { return }
             roundId = msgRound
             resetGame()
             return
         }
 
         guard msgRound == roundId else { return }
-        handleNearbyMessage(msg)
+        handleNearbyMessage(msg, from: sender)
     }
 
-    private func handleNearbyMessage(_ msg: String) {
+    private func handleNearbyMessage(_ msg: String, from sender: String) {
         if msg.hasPrefix("MOVE:") {
             guard let num = Int(msg.dropFirst("MOVE:".count)) else { return }
             // Mirrors the bounds-check the other multiplayer games apply to
             // their incoming messages - the 1-3 rule is otherwise only
             // enforced on the sending side.
             guard (1...3).contains(num) else { return }
+            // Only the player whose turn it actually is may move - without
+            // this, any peer could push the count along on someone else's turn.
+            guard !players.isEmpty, players[turnIndex % players.count].id == sender else { return }
             if !isMyTurn() { applyMove(num) }
         }
     }
@@ -338,9 +344,15 @@ struct CountTo21View: View {
         cancelPendingCallbacks()
         currentCount = 0
         if isNearbyGame {
-            turnIndex = starterIndex
+            turnIndex = players.isEmpty ? 0 : roundId % players.count
         } else {
             isPlayerTurn = starterIsPlayerOne
+            // When the starter flipped to the bot, nothing else would ever
+            // hand it the turn back - the buttons are disabled on the bot's
+            // turn, so without this the round sat there forever.
+            if isBotGame && !isPlayerTurn {
+                runAfterDelay(1.0) { botMove() }
+            }
         }
     }
 

@@ -4,9 +4,9 @@ import FirebaseCore
 // Mirrors the Android BuddyVerseApp Application subclass: applies the saved
 // theme before the first screen appears (no flash-of-wrong-theme) and drives
 // MusicManager off foreground/background transitions. Firebase only
-// configures if a real GoogleService-Info.plist has been dropped in - see
-// Resources/Secrets.example.plist and CLAUDE.md for the one-time setup step
-// this project can't do for itself (it has to come from the Firebase console).
+// configures if a real GoogleService-Info.plist is present in Resources/ - see
+// CLAUDE.md for the one-time setup step this project can't do for itself (the
+// file has to come from the Firebase console).
 @main
 struct BuddyVerseApp: App {
     @StateObject private var theme = ThemeManager.shared

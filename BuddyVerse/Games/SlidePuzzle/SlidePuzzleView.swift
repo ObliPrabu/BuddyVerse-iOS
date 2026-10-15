@@ -13,6 +13,10 @@ struct SlidePuzzleView: View {
 
     // 0 represents the empty tile, same convention as Android.
     @State private var tiles: [Int] = [1, 2, 3, 4, 5, 6, 7, 8, 0]
+    // True from the moment the puzzle is solved until the next shuffle, so
+    // tiles lock after a win instead of letting the player slide one away
+    // and back to fire the win toast and confetti again.
+    @State private var puzzleSolved = false
     @State private var toastMessage: String?
     @State private var showFeedback = false
     @State private var showReport = false
@@ -80,7 +84,6 @@ struct SlidePuzzleView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: 0x795548).ignoresSafeArea())
         .confettiOverlay(confetti)
-        .navigationBarTitleDisplayMode(.inline)
         .onAppear { shuffleBoard() }
         .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "SLIDE") }
         .sheet(isPresented: $showReport) { ReportSheetView(gameType: "SLIDE") }
@@ -116,6 +119,7 @@ struct SlidePuzzleView: View {
     }
 
     private func onTileClicked(_ index: Int) {
+        guard !puzzleSolved else { return }
         guard let emptyIndex = tiles.firstIndex(of: 0) else { return }
 
         // Check if the clicked tile is adjacent to the empty one.
@@ -147,6 +151,21 @@ struct SlidePuzzleView: View {
     }
 
     private func shuffleBoard() {
+        puzzleSolved = false
+        // A short random walk can wander back to the solved layout, which
+        // would hand the player a finished puzzle - walk again (a bounded
+        // number of times), then force one legal move as a last resort.
+        for _ in 0..<10 {
+            randomWalk()
+            if tiles != solved { return }
+        }
+        if let empty = tiles.firstIndex(of: 0), let swapWith = adjacentIndices(empty).first {
+            tiles[empty] = tiles[swapWith]
+            tiles[swapWith] = 0
+        }
+    }
+
+    private func randomWalk() {
         tiles = [1, 2, 3, 4, 5, 6, 7, 8, 0]
         let moveCount: Int
         switch difficulty {
@@ -169,6 +188,7 @@ struct SlidePuzzleView: View {
 
     private func checkWin() {
         if tiles == solved {
+            puzzleSolved = true
             showToast("PUZZLE SOLVED!")
             confetti.start()
         }

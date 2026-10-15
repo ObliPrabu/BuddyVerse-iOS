@@ -120,8 +120,6 @@ struct ArcticTrekView: View {
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: 0x0288D1).ignoresSafeArea())
-        .navigationTitle("Arctic Trek")
-        .navigationBarTitleDisplayMode(.inline)
         .alert(item: $vm.roundOver) { (info: ArcticRoundOverInfo) in
             Alert(title: Text("Round Over"), message: Text(info.message), dismissButton: .default(Text("OK")))
         }
@@ -177,7 +175,9 @@ final class ArcticTrekViewModel: ObservableObject {
         guard isNearby else { return }
         turnIndex = 0
         InternetConnectionManager.shared.setListeners(
-            onMessage: { [weak self] msg in DispatchQueue.main.async { self?.receiveNearbyMessage(msg) } },
+            // Plain onMessage stays a no-op: this game uses the sender-aware
+            // callback so it can check who each TURN really came from.
+            onMessage: { _ in },
             onDisconnected: { [weak self] in
                 DispatchQueue.main.async {
                     guard let self, !self.isStopped else { return }
@@ -185,6 +185,9 @@ final class ArcticTrekViewModel: ObservableObject {
                     InternetConnectionManager.shared.stop()
                     self.isDisconnected = true
                 }
+            },
+            onMessageWithSender: { [weak self] sender, msg in
+                DispatchQueue.main.async { self?.receiveNearbyMessage(msg, from: sender) }
             }
         )
     }
@@ -263,7 +266,7 @@ final class ArcticTrekViewModel: ObservableObject {
         }
     }
 
-    private func receiveNearbyMessage(_ raw: String) {
+    private func receiveNearbyMessage(_ raw: String, from sender: String) {
         guard let sep = raw.firstIndex(of: ":") else { return }
         guard let msgRound = Int(raw[raw.startIndex..<sep]) else { return }
         let msg = String(raw[raw.index(after: sep)...])
@@ -275,9 +278,21 @@ final class ArcticTrekViewModel: ObservableObject {
         guard parts.count == 5 else { return }
         let actorId = parts[0]
         guard actorId != myId else { return } // our own move, already applied locally
+        // The actor id inside the message is only a claim - it must match who
+        // Firestore says actually sent it, and that player must be the one
+        // whose turn it is, or one duplicate/forged TURN would advance the
+        // shared turn order for everybody.
+        guard actorId == sender, !players.isEmpty, players[turnIndex % players.count].id == sender else { return }
         let chosePathLeft = parts[1] == "L"
         let isThinIce = parts[2] == "THIN"
         guard let distGain = Int(parts[3]), let warmthLost = Int(parts[4]) else { return }
+        // Same ranges the sender's own dice use: an out-of-range value from a
+        // modified client would otherwise overflow or push warmth past 100.
+        if isThinIce {
+            guard (0...2).contains(distGain), (15...30).contains(warmthLost) else { return }
+        } else {
+            guard (3...10).contains(distGain), (2...8).contains(warmthLost) else { return }
+        }
         applyNearbyTurn(actorId: actorId, chosePathLeft: chosePathLeft, isThinIce: isThinIce, distGain: distGain, warmthLost: warmthLost)
     }
 

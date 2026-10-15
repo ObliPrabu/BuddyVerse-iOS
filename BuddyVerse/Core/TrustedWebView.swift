@@ -35,6 +35,7 @@ struct TrustedWebView: UIViewRepresentable {
         base
     }
 
+    @MainActor
     final class Coordinator: NSObject, WKNavigationDelegate {
         let parent: TrustedWebView
         // Guards against onNavigate firing more than once - decidePolicyFor,
@@ -43,7 +44,7 @@ struct TrustedWebView: UIViewRepresentable {
         private var didIntercept = false
         init(_ parent: TrustedWebView) { self.parent = parent }
 
-        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
             guard let url = navigationAction.request.url, let host = url.host else {
                 decisionHandler(.allow)
                 return
