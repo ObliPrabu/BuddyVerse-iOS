@@ -14,13 +14,14 @@ enum DailyContentPool {
     enum Kind {
         case joke
         case riddle
+        case trivia
     }
 
     struct Pick {
         let kind: Kind
-        /// Joke setup / riddle question - always shown.
+        /// Joke setup / riddle or trivia question - always shown.
         let primary: String
-        /// Joke punchline / riddle answer - hidden behind "Tap to reveal"
+        /// Joke punchline / riddle or trivia answer - hidden behind "Tap to reveal"
         /// framing in the widget UI, shown in full once the app opens.
         let secondary: String
     }
@@ -29,16 +30,20 @@ enum DailyContentPool {
     /// current time zone) always resolves to the same entry, so a widget's
     /// placeholder/snapshot/timeline-entry renders never disagree with each
     /// other within one day, and the pick only changes at local midnight.
-    /// Alternates joke/riddle by day-of-year parity so consecutive days
+    /// Rotates joke/riddle/trivia by day-of-year so consecutive days
     /// differ in kind, not just content.
     static func pick(for date: Date) -> Pick {
         let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: date) ?? 1
-        if dayOfYear % 2 == 0 {
+        switch dayOfYear % 3 {
+        case 0:
             let (setup, punchline) = splitJoke(jokes[dayOfYear % jokes.count])
             return Pick(kind: .joke, primary: setup, secondary: punchline)
-        } else {
+        case 1:
             let riddle = riddles[dayOfYear % riddles.count]
             return Pick(kind: .riddle, primary: riddle.question, secondary: riddle.answer)
+        default:
+            let q = trivia[dayOfYear % trivia.count]
+            return Pick(kind: .trivia, primary: q.question, secondary: q.answer)
         }
     }
 
@@ -51,7 +56,7 @@ enum DailyContentPool {
         return (setup, punchline)
     }
 
-    // MARK: - Curated subset (30 of each, pulled verbatim from
+    // MARK: - Curated subset (30 of each, trivia from TriviaView.allQuestions; pulled verbatim from
     // JokesView.allJokes / RiddlesView.allRiddles).
 
     private static let jokes: [String] = [
@@ -118,5 +123,38 @@ enum DailyContentPool {
         ("What gets sharper the more you use it?", "Your brain"),
         ("What is easy to get into but hard to get out of?", "Trouble"),
         ("What can fill a room but takes up no space?", "Light")
+    ]
+
+    private static let trivia: [(question: String, answer: String)] = [
+        ("What is the capital of France?", "Paris"),
+        ("Which planet is known as the Red Planet?", "Mars"),
+        ("What is 5 x 5?", "25"),
+        ("Who painted the Mona Lisa?", "Da Vinci"),
+        ("Which ocean is the largest?", "Pacific"),
+        ("What is the fastest land animal?", "Cheetah"),
+        ("How many continents are there?", "7"),
+        ("What is the hardest natural substance?", "Diamond"),
+        ("What do bees collect from flowers?", "Nectar"),
+        ("What is the freezing point of water?", "0\u{00B0}C"),
+        ("What is the square root of 64?", "8"),
+        ("Who wrote 'Romeo and Juliet'?", "Shakespeare"),
+        ("What is the chemical symbol for gold?", "Au"),
+        ("Which planet is closest to the Sun?", "Mercury"),
+        ("How many colors are in a rainbow?", "7"),
+        ("What is the largest organ in the human body?", "Skin"),
+        ("Which gas do plants absorb from the atmosphere?", "Carbon Dioxide"),
+        ("What is the capital of Japan?", "Tokyo"),
+        ("How many teeth does an adult human have?", "32"),
+        ("What is the study of stars called?", "Astronomy"),
+        ("What is the tallest mountain in the world?", "Everest"),
+        ("Who was the first man to walk on the moon?", "Neil Armstrong"),
+        ("What is the capital of Italy?", "Rome"),
+        ("Which animal is known as the King of the Jungle?", "Lion"),
+        ("What is the chemical symbol for water?", "H2O"),
+        ("How many days are in a leap year?", "366"),
+        ("What is the primary language spoken in Brazil?", "Portuguese"),
+        ("Which planet is famous for its rings?", "Saturn"),
+        ("What is the smallest prime number?", "2"),
+        ("Who is most famously credited with inventing the practical light bulb?", "Edison")
     ]
 }

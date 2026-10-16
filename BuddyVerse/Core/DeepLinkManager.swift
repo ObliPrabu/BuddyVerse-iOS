@@ -17,12 +17,15 @@ final class DeepLinkManager: ObservableObject {
 
     private init() {}
 
-    /// Handles `buddyverse://daily/jokes` and `buddyverse://daily/riddles` -
-    /// the only links the widget currently sends. Anything else (unknown
+    /// Handles `buddyverse://daily/question` (what the widget sends - opens
+    /// the Question of the Day screen) plus the older `/jokes` and `/riddles`
+    /// direct-to-game links. Anything else (unknown
     /// scheme/host/path) is ignored, same as a plain cold launch.
     func handle(_ url: URL) {
         guard url.scheme == "buddyverse", url.host == "daily" else { return }
         switch url.path {
+        case "/question":
+            pendingRoute = .dailyQuestion
         case "/jokes":
             pendingRoute = .game(GameSelection(gameType: "JOKES"))
         case "/riddles":

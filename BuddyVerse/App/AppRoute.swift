@@ -47,6 +47,7 @@ enum AppRoute: Hashable {
     case login
     case adminDashboard
     case getUpdates
+    case dailyQuestion
 }
 
 // The single place that maps a GAME_TYPE string to its destination screen -

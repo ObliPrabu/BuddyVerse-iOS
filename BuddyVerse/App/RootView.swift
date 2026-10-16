@@ -189,6 +189,8 @@ struct RootView: View {
             ContactUsView()
         case .credits:
             CreditsView()
+        case .dailyQuestion:
+            DailyQuestionView()
         case .opponentDisconnected:
             OpponentDisconnectedView()
         case .login:

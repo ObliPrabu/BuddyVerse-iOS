@@ -4,8 +4,8 @@ import SwiftUI
 /// Home-screen widget showing a joke or riddle of the day, drawn from
 /// DailyContentPool (shared with the main app target - see that file's own
 /// doc comment). Tapping the widget deep-links into the main app via
-/// `buddyverse://daily/...` (handled by DeepLinkManager), landing directly
-/// on JokesView/RiddlesView rather than the Welcome screen.
+/// `buddyverse://daily/question` (handled by DeepLinkManager), landing on
+/// the Question of the Day screen rather than the Welcome screen.
 struct DailyContentEntry: TimelineEntry {
     let date: Date
     let pick: DailyContentPool.Pick
@@ -55,7 +55,7 @@ struct DailyContentWidgetView: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(entry.pick.kind == .joke ? "\u{1F602} Joke of the Day" : "\u{1F914} Riddle of the Day")
+            Text(titleText)
                 .font(.caption2.bold())
                 .foregroundColor(.white.opacity(0.7))
                 .lineLimit(1)
@@ -79,8 +79,18 @@ struct DailyContentWidgetView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
+    private var titleText: String {
+        switch entry.pick.kind {
+        case .joke: return "\u{1F602} Joke of the Day"
+        case .riddle: return "\u{1F914} Riddle of the Day"
+        case .trivia: return "\u{1F9E0} Trivia of the Day"
+        }
+    }
+
+    // Always the Question of the Day screen, which has the "Go to ..."
+    // button into the matching game.
     private var deepLinkURL: URL? {
-        URL(string: "buddyverse://daily/\(entry.pick.kind == .joke ? "jokes" : "riddles")")
+        URL(string: "buddyverse://daily/question")
     }
 }
 
@@ -109,8 +119,8 @@ struct DailyContentWidget: Widget {
         StaticConfiguration(kind: kind, provider: DailyContentProvider()) { entry in
             DailyContentWidgetView(entry: entry)
         }
-        .configurationDisplayName("Joke / Riddle of the Day")
-        .description("A fresh joke or riddle every day - tap to open it in BuddyVerse.")
+        .configurationDisplayName("Question of the Day")
+        .description("A fresh joke, riddle or trivia question every day - tap to open it in BuddyVerse.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
