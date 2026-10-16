@@ -83,6 +83,9 @@ struct RootView: View {
     private func consumePendingDeepLink() {
         guard hasEnteredName, let route = deepLink.pendingRoute else { return }
         deepLink.pendingRoute = nil
+        // Mid-checkout: dropping the Stripe screen would abandon the
+        // payment, so the widget link is simply ignored here.
+        if case .paymentWebView? = router.path.last { return }
         // Replacing the path drops every screen without running its Back
         // handler, so a live room has to be ended here or the other players
         // hang until the heartbeat times out (same leak ISSUE-43 closed for

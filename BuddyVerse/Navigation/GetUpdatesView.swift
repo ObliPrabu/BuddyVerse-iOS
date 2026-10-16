@@ -18,9 +18,11 @@ struct GetUpdatesView: View {
 
     @ObservedObject private var theme = ThemeManager.shared
     @Environment(\.colorScheme) private var systemScheme
-    @State private var firstName = ""
+    // The gate already asked for the name - reuse it instead of asking again.
+    @State private var firstName = UserDefaults.standard.string(forKey: "user_first_name") ?? ""
     @State private var isSubscribed = UserDefaults.standard.bool(forKey: "wants_notifications")
     @State private var showEmptyNameAlert = false
+    @State private var alertText = "Please enter your name to subscribe."
 
     private var isDark: Bool { theme.isDarkActive(systemScheme: systemScheme) }
     private var screenBackground: Color { isDark ? Color(hex: 0x121212) : .white }
@@ -70,7 +72,7 @@ struct GetUpdatesView: View {
         }
         .navigationBarHidden(true)
         .alert(isPresented: $showEmptyNameAlert) {
-            Alert(title: Text("Please enter your name to subscribe."))
+            Alert(title: Text(alertText))
         }
     }
 
@@ -88,6 +90,12 @@ struct GetUpdatesView: View {
             Button {
                 let trimmed = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !trimmed.isEmpty else {
+                    alertText = "Please enter your name to subscribe."
+                    showEmptyNameAlert = true
+                    return
+                }
+                guard !trimmed.contains("@"), trimmed.count <= 30 else {
+                    alertText = "Just a first name, please - no email or full name."
                     showEmptyNameAlert = true
                     return
                 }

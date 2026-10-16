@@ -143,6 +143,22 @@ struct WordSearchView: View {
         guard row >= 0, row < gridSize, col >= 0, col < gridSize else { return }
         let cell = GridCell(row: row, col: col)
         if !selectedCells.contains(cell) {
+            // A quick or wobbly drag can sample cells that aren't
+            // neighbours; walk the straight line from the previous cell so a
+            // skipped letter is still selected.
+            if let last = selectedCells.last {
+                let dr = row - last.row
+                let dc = col - last.col
+                let steps = max(abs(dr), abs(dc))
+                if steps > 1 {
+                    for step in 1..<steps {
+                        let r = last.row + Int((Double(dr) * Double(step) / Double(steps)).rounded())
+                        let c = last.col + Int((Double(dc) * Double(step) / Double(steps)).rounded())
+                        let mid = GridCell(row: r, col: c)
+                        if !selectedCells.contains(mid) { selectedCells.append(mid) }
+                    }
+                }
+            }
             selectedCells.append(cell)
         }
     }

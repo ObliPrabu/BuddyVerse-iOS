@@ -83,6 +83,9 @@ struct HangmanView: View {
     // is out can't restart the round while others are still guessing; New
     // opens once someone has won or every racer is out.
     @State private var raceOutIds: Set<String> = []
+    // Set 60 s after this racer went out with no winner announced, so an idle
+    // (still-connected) racer can't keep the out racers locked out of New.
+    @State private var raceOutUnlocked = false
     // Online only: "New" is locked until the round is over, so two phones
     // can't each start a new round before they've agreed who the picker is.
     // The one exception is a guesser who has been stuck waiting for a word
@@ -118,7 +121,7 @@ struct HangmanView: View {
 
     private var newEnabled: Bool {
         if !isNearbyGame { return true }
-        if isRaceMode { return raceWinnerSeat != nil || raceEveryoneOut || skipAvailable }
+        if isRaceMode { return raceWinnerSeat != nil || raceEveryoneOut || raceOutUnlocked || skipAvailable }
         return roundOver || skipAvailable
     }
 
@@ -345,6 +348,7 @@ struct HangmanView: View {
     private func startRoundWithWord(_ category: String, _ word: String) {
         raceWinnerSeat = nil
         raceOutIds = []
+        raceOutUnlocked = false
         skipAvailable = false
         skipToken = UUID()
         targetWord = word
@@ -391,8 +395,13 @@ struct HangmanView: View {
     // redo - seat 0 simply rolls a fresh random word every round, since
     // there's no competitive advantage to being the roller.
     private func restartNearbyRound() {
+        // A skip offer from the previous round must not carry over (it would
+        // keep New enabled mid-round for a phone that just became picker).
+        skipAvailable = false
+        skipToken = UUID()
         raceWinnerSeat = nil
         raceOutIds = []
+        raceOutUnlocked = false
         roundOver = false
         if isRaceMode {
             phase = .connecting
@@ -566,6 +575,12 @@ struct HangmanView: View {
                 // it for racers who are still guessing).
                 if let id = myId { raceOutIds.insert(id) }
                 if announce { InternetConnectionManager.shared.sendMessage("\(roundId):RESULT:RACEOUT") }
+                let outRound = roundId
+                DispatchQueue.main.asyncAfter(deadline: .now() + 60) {
+                    if roundId == outRound, roundOver, raceWinnerSeat == nil {
+                        raceOutUnlocked = true
+                    }
+                }
             }
             showToast("GAME OVER! The word was \(targetWord)")
             if isNearbyGame {

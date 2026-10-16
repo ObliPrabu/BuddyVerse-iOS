@@ -21,6 +21,7 @@ struct EnterNameView: View {
     @Environment(\.colorScheme) private var systemScheme
     @State private var firstName = ""
     @State private var showEmptyNameAlert = false
+    @State private var alertText = "Please enter your name to continue."
 
     private var isDark: Bool { theme.isDarkActive(systemScheme: systemScheme) }
     private var screenBackground: Color { isDark ? Color(hex: 0x121212) : .white }
@@ -57,6 +58,14 @@ struct EnterNameView: View {
                 Button {
                     let trimmed = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !trimmed.isEmpty else {
+                        alertText = "Please enter your name to continue."
+                        showEmptyNameAlert = true
+                        return
+                    }
+                    // Only a first name is wanted - never an email or a full
+                    // name (the copy above promises that).
+                    guard !trimmed.contains("@"), trimmed.count <= 30 else {
+                        alertText = "Just a first name, please - no email or full name."
                         showEmptyNameAlert = true
                         return
                     }
@@ -78,7 +87,7 @@ struct EnterNameView: View {
             .padding(30)
         }
         .alert(isPresented: $showEmptyNameAlert) {
-            Alert(title: Text("Please enter your name to continue."))
+            Alert(title: Text(alertText))
         }
     }
 

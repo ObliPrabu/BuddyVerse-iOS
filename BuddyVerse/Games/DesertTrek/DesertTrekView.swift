@@ -196,6 +196,7 @@ final class DesertTrekViewModel: ObservableObject {
     @Published private(set) var skipOffered = false
     private var skipToken = UUID()
     private var lastTurnSeat = -1
+    private var lastSkippedId: String?
 
     private func turnSeatChanged() {
         guard isNearby, !players.isEmpty else { return }
@@ -226,6 +227,7 @@ final class DesertTrekViewModel: ObservableObject {
     private func applySkip(_ skippedId: String) {
         guard !players.isEmpty, players[turnIndex % players.count].id == skippedId else { return }
         let name = players[turnIndex % players.count].name
+        lastSkippedId = skippedId
         turnIndex = (turnIndex + 1) % players.count
         turnMessage = "\(name)'s turn was skipped"
     }
@@ -281,7 +283,7 @@ final class DesertTrekViewModel: ObservableObject {
     // someone else's) to the shared water/distance pool. Every phone in the
     // room calls this with the exact same numbers for the exact same turn,
     // so they all end up in perfect agreement about the shared state.
-    private func applyNearbyTurn(actorId: String, stake: Int, travel: Int, waterLost: Int) {
+    private func applyNearbyTurn(actorId: String, stake: Int, travel: Int, waterLost: Int, advanceTurn: Bool = true) {
         let actorName = players.first(where: { $0.id == actorId })?.name ?? "Someone"
         distance += travel
         water -= waterLost
@@ -297,9 +299,9 @@ final class DesertTrekViewModel: ObservableObject {
             water = 100
             distance = 0
             let actorIndex = players.firstIndex(where: { $0.id == actorId })
-            turnIndex = actorIndex.map { ($0 + 1) % players.count } ?? 0
+            if advanceTurn { turnIndex = actorIndex.map { ($0 + 1) % players.count } ?? 0 }
         } else {
-            turnIndex = players.isEmpty ? 0 : (turnIndex + 1) % players.count
+            if advanceTurn { turnIndex = players.isEmpty ? 0 : (turnIndex + 1) % players.count }
         }
     }
 
@@ -324,7 +326,16 @@ final class DesertTrekViewModel: ObservableObject {
         // Firestore says actually sent it, and that player must be the one
         // whose turn it is, or one duplicate/forged TURN would advance the
         // shared turn order for everybody.
-        guard actorId == sender, !players.isEmpty, players[turnIndex % players.count].id == sender else { return }
+        guard actorId == sender, !players.isEmpty else { return }
+        // Normally only the player whose turn it is. The one exception: a
+        // TURN from the player who was JUST skipped, sent before their phone
+        // saw the SKIP. Their phone already applied it, so everyone else
+        // applies its numbers too (without moving the turn again) to stay in
+        // agreement on the shared pool.
+        let isCurrentPlayer = players[turnIndex % players.count].id == sender
+        let isLateSkipped = !isCurrentPlayer && sender == lastSkippedId
+        guard isCurrentPlayer || isLateSkipped else { return }
+        lastSkippedId = nil
         guard let stake = Int(parts[1]), let travel = Int(parts[2]), let waterLost = Int(parts[3]) else { return }
         // Same per-stake ranges the sender's own dice use.
         switch stake {
@@ -333,7 +344,7 @@ final class DesertTrekViewModel: ObservableObject {
         case 2: guard (10...15).contains(travel), (16...25).contains(waterLost) else { return }
         default: return
         }
-        applyNearbyTurn(actorId: actorId, stake: stake, travel: travel, waterLost: waterLost)
+        applyNearbyTurn(actorId: actorId, stake: stake, travel: travel, waterLost: waterLost, advanceTurn: !isLateSkipped)
     }
 
     private func takeTurn(isPlayer: Bool, stake: Int) {
@@ -354,7 +365,7 @@ final class DesertTrekViewModel: ObservableObject {
 
         if water <= 0 {
             let winner = isBot ? (isPlayer ? "Bot" : "You") : (isPlayer ? "Player 2" : "Player 1")
-            roundOver = DesertRoundOverInfo(message: "\(name) ran out of water at \(distance)km! \(name) LOSES! \(winner) WINS! 🏆")
+            roundOver = DesertRoundOverInfo(message: "\(name) ran out of water at \(distance)km! \(name) \(name == "You" ? "LOSE" : "LOSES")! \(winner) WINS! 🏆")
             water = 100
             distance = 0
             // Whoever just ran out of water doesn't automatically go first

@@ -10,7 +10,8 @@ struct DailyQuestionView: View {
     @Environment(\.colorScheme) private var systemScheme
     @State private var showAnswer = false
 
-    private let pick = DailyContentPool.pick(for: Date())
+    // Computed so a screen left mounted across midnight shows the new day's pick.
+    private var pick: DailyContentPool.Pick { DailyContentPool.pick(for: Date()) }
 
     private var isDark: Bool { theme.isDarkActive(systemScheme: systemScheme) }
     private var screenBackground: Color { isDark ? Color(hex: 0x121212) : .white }
@@ -101,5 +102,6 @@ struct DailyQuestionView: View {
             .buttonStyle(.plain)
             .padding(16)
         }
+        .onAppear { showAnswer = false }
     }
 }

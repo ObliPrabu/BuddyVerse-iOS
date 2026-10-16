@@ -413,3 +413,43 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 #### ISSUE-71: Guest roster showed the guest's own stepper value as the room cap
 - **Fixed by:** main agent on 2026-10-15
 - **Summary:** Only the host sees "N / max joined"; guests see "N joined" (Android identical). (File: Navigation/OnlineLobbyView.swift)
+
+#### ISSUE-73: Trek SKIP racing the skipped player's own TURN desynced the shared pool
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** `applySkip` records `lastSkippedId`; one TURN from that player arriving after the skip is applied (numbers only, `advanceTurn: false`) instead of dropped. Android identical. (Games/*Trek*, CaveExplorer)
+
+#### ISSUE-74: Race Hangman: an idle still-connected racer could keep out racers locked out of New
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** `raceOutUnlocked` opens New 60 s after this racer went out with no winner announced (Android identical). (Games/Hangman/HangmanView.swift)
+
+#### ISSUE-75: Hangman PICKER: a stale skip offer kept New enabled mid-round for the new picker
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** `restartNearbyRound()` clears `skipAvailable`/`skipToken`. (Games/Hangman/HangmanView.swift)
+
+#### ISSUE-76: Cave Explorer HARD bot was still practically unbeatable (threshold 24)
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Thresholds are now HARD 21 / MEDIUM 16 / EASY 10 (Android identical). (Games/CaveExplorer)
+
+#### ISSUE-77: Word Search: a fast or wobbly drag skipped a letter and failed a correct word
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Cells between two sampled touch points are filled along the straight line (Android identical). (Games/WordSearch)
+
+#### ISSUE-78: Bot-mode round-over text read "You LOSES!"
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** "You LOSE" vs "<name> LOSES". (Arctic/Cave/Desert)
+
+#### ISSUE-79: Deep link edge cases: trailing slash, mid-checkout, stale daily pick
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Trailing slashes are trimmed; the link is ignored while the payment screen is on top; `DailyQuestionView.pick` is computed and the answer re-hides on appear. (Core/DeepLinkManager.swift, App/RootView.swift, Navigation/DailyQuestionView.swift)
+
+#### ISSUE-80: Name gate had no input limits; user_first_name was write-only
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** First-name fields reject `@` and anything over 30 characters; Get Updates is prefilled from the stored name. (Navigation/EnterNameView.swift, GetUpdatesView.swift)
+
+#### ISSUE-81: autoPublishUpdateIfNewer comment claimed it left the message untouched
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** It deliberately clears the previous "what's new" message when a newer version is published (the text described the old version); comment fixed on both platforms. (Core/AppFeedbackService.swift)
+
+#### ISSUE-82: Pool polish: "Father of Computers"/"longest river" wording, relationship joke
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Qualifiers added; the gym/relationship joke removed. (Games/Trivia, Games/Jokes)

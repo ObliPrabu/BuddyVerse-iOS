@@ -342,7 +342,6 @@ struct JokesView: View {
         "What did one plate say to the other? Dinner is on me.",
         "Why was six afraid of seven? Because seven eight nine!",
         "What do you call a snowman with a six pack? An abdominal snowman.",
-        "Why don't some couples go to the gym? Because some relationships don't work out.",
         "What do you call a sleeping bull? A bulldozer.",
         "Why did the invisible man turn down the job offer? He couldn't see himself doing it.",
         "What did the finger say to the thumb? I'm in glove with you.",

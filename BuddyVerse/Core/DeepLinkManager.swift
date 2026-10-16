@@ -21,7 +21,10 @@ final class DeepLinkManager: ObservableObject {
     /// scheme/host/path) is ignored, same as a plain cold launch.
     func handle(_ url: URL) {
         guard url.scheme == "buddyverse", url.host == "daily" else { return }
-        switch url.path {
+        // Tolerate a trailing slash (buddyverse://daily/question/).
+        var path = url.path
+        while path.count > 1, path.hasSuffix("/") { path.removeLast() }
+        switch path {
         case "/question":
             pendingRoute = .dailyQuestion
         case "/jokes":

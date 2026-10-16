@@ -200,6 +200,7 @@ final class CaveExplorerViewModel: ObservableObject {
     @Published private(set) var skipOffered = false
     private var skipToken = UUID()
     private var lastTurnSeat = -1
+    private var lastSkippedId: String?
 
     private func turnSeatChanged() {
         guard isNearby, !players.isEmpty else { return }
@@ -230,6 +231,7 @@ final class CaveExplorerViewModel: ObservableObject {
     private func applySkip(_ skippedId: String) {
         guard !players.isEmpty, players[turnIndex % players.count].id == skippedId else { return }
         let name = players[turnIndex % players.count].name
+        lastSkippedId = skippedId
         turnIndex = (turnIndex + 1) % players.count
         turnMessage = "\(name)'s turn was skipped"
     }
@@ -281,7 +283,7 @@ final class CaveExplorerViewModel: ObservableObject {
     // someone else's) to the shared torch/depth pool. Every phone in the
     // room calls this with the exact same numbers for the exact same turn,
     // so they all end up in perfect agreement about the shared state.
-    private func applyNearbyTurn(actorId: String, explore: Bool, depthGained: Int, torchChange: Int) {
+    private func applyNearbyTurn(actorId: String, explore: Bool, depthGained: Int, torchChange: Int, advanceTurn: Bool = true) {
         let actorName = players.first(where: { $0.id == actorId })?.name ?? "Someone"
         depth += depthGained
         torchLight = min(torchLight + torchChange, 100)
@@ -300,9 +302,9 @@ final class CaveExplorerViewModel: ObservableObject {
             torchLight = 100
             depth = 0
             let actorIndex = players.firstIndex(where: { $0.id == actorId })
-            turnIndex = actorIndex.map { ($0 + 1) % players.count } ?? 0
+            if advanceTurn { turnIndex = actorIndex.map { ($0 + 1) % players.count } ?? 0 }
         } else {
-            turnIndex = players.isEmpty ? 0 : (turnIndex + 1) % players.count
+            if advanceTurn { turnIndex = players.isEmpty ? 0 : (turnIndex + 1) % players.count }
         }
     }
 
@@ -327,7 +329,16 @@ final class CaveExplorerViewModel: ObservableObject {
         // Firestore says actually sent it, and that player must be the one
         // whose turn it is, or one duplicate/forged TURN would advance the
         // shared turn order for everybody.
-        guard actorId == sender, !players.isEmpty, players[turnIndex % players.count].id == sender else { return }
+        guard actorId == sender, !players.isEmpty else { return }
+        // Normally only the player whose turn it is. The one exception: a
+        // TURN from the player who was JUST skipped, sent before their phone
+        // saw the SKIP. Their phone already applied it, so everyone else
+        // applies its numbers too (without moving the turn again) to stay in
+        // agreement on the shared pool.
+        let isCurrentPlayer = players[turnIndex % players.count].id == sender
+        let isLateSkipped = !isCurrentPlayer && sender == lastSkippedId
+        guard isCurrentPlayer || isLateSkipped else { return }
+        lastSkippedId = nil
         let explore = parts[1] == "EXPLORE"
         guard let depthGained = Int(parts[2]), let torchChange = Int(parts[3]) else { return }
         // Same ranges the sender's own dice use (see takeTurn / the send path).
@@ -336,7 +347,7 @@ final class CaveExplorerViewModel: ObservableObject {
         } else {
             guard depthGained == 0, (10...20).contains(torchChange) else { return }
         }
-        applyNearbyTurn(actorId: actorId, explore: explore, depthGained: depthGained, torchChange: torchChange)
+        applyNearbyTurn(actorId: actorId, explore: explore, depthGained: depthGained, torchChange: torchChange, advanceTurn: !isLateSkipped)
     }
 
     private func takeTurn(isPlayer: Bool, explore: Bool) {
@@ -362,7 +373,7 @@ final class CaveExplorerViewModel: ObservableObject {
 
         if torchLight <= 0 {
             let winner = isBot ? (isPlayer ? "Bot" : "You") : (isPlayer ? "Player 2" : "Player 1")
-            roundOver = CaveRoundOverInfo(message: "\(name) ran out of light at \(depth)m! \(name) LOSES! \(winner) WINS! 🏆")
+            roundOver = CaveRoundOverInfo(message: "\(name) ran out of light at \(depth)m! \(name) \(name == "You" ? "LOSE" : "LOSES")! \(winner) WINS! 🏆")
             torchLight = 100
             depth = 0
             // Whoever just ran out of light doesn't automatically go first
@@ -398,9 +409,9 @@ final class CaveExplorerViewModel: ObservableObject {
             guard let self, !self.isStopped else { return }
             let restThreshold: Int
             switch self.difficulty {
-            case "HARD": restThreshold = 24
+            case "HARD": restThreshold = 21
             case "EASY": restThreshold = 10
-            default: restThreshold = 19 // MEDIUM
+            default: restThreshold = 16 // MEDIUM
             }
             let explore = self.torchLight > restThreshold
             self.takeTurn(isPlayer: false, explore: explore)

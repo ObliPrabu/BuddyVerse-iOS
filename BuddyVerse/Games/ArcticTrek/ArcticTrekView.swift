@@ -205,6 +205,7 @@ final class ArcticTrekViewModel: ObservableObject {
     @Published private(set) var skipOffered = false
     private var skipToken = UUID()
     private var lastTurnSeat = -1
+    private var lastSkippedId: String?
 
     private func turnSeatChanged() {
         guard isNearby, !players.isEmpty else { return }
@@ -235,6 +236,7 @@ final class ArcticTrekViewModel: ObservableObject {
     private func applySkip(_ skippedId: String) {
         guard !players.isEmpty, players[turnIndex % players.count].id == skippedId else { return }
         let name = players[turnIndex % players.count].name
+        lastSkippedId = skippedId
         turnIndex = (turnIndex + 1) % players.count
         turnMessage = "\(name)'s turn was skipped"
     }
@@ -290,7 +292,7 @@ final class ArcticTrekViewModel: ObservableObject {
     // someone else's) to the shared warmth/distance pool. Every phone in the
     // room calls this with the exact same numbers for the exact same turn,
     // so they all end up in perfect agreement about the shared state.
-    private func applyNearbyTurn(actorId: String, chosePathLeft: Bool, isThinIce: Bool, distGain: Int, warmthLost: Int) {
+    private func applyNearbyTurn(actorId: String, chosePathLeft: Bool, isThinIce: Bool, distGain: Int, warmthLost: Int, advanceTurn: Bool = true) {
         let actorName = players.first(where: { $0.id == actorId })?.name ?? "Someone"
         distance += distGain
         warmth -= warmthLost
@@ -309,9 +311,9 @@ final class ArcticTrekViewModel: ObservableObject {
             // Whoever just froze doesn't automatically go first again -
             // start the next round with the seat right after them.
             let actorIndex = players.firstIndex(where: { $0.id == actorId })
-            turnIndex = actorIndex.map { ($0 + 1) % players.count } ?? 0
+            if advanceTurn { turnIndex = actorIndex.map { ($0 + 1) % players.count } ?? 0 }
         } else {
-            turnIndex = players.isEmpty ? 0 : (turnIndex + 1) % players.count
+            if advanceTurn { turnIndex = players.isEmpty ? 0 : (turnIndex + 1) % players.count }
         }
     }
 
@@ -336,7 +338,16 @@ final class ArcticTrekViewModel: ObservableObject {
         // Firestore says actually sent it, and that player must be the one
         // whose turn it is, or one duplicate/forged TURN would advance the
         // shared turn order for everybody.
-        guard actorId == sender, !players.isEmpty, players[turnIndex % players.count].id == sender else { return }
+        guard actorId == sender, !players.isEmpty else { return }
+        // Normally only the player whose turn it is. The one exception: a
+        // TURN from the player who was JUST skipped, sent before their phone
+        // saw the SKIP. Their phone already applied it, so everyone else
+        // applies its numbers too (without moving the turn again) to stay in
+        // agreement on the shared pool.
+        let isCurrentPlayer = players[turnIndex % players.count].id == sender
+        let isLateSkipped = !isCurrentPlayer && sender == lastSkippedId
+        guard isCurrentPlayer || isLateSkipped else { return }
+        lastSkippedId = nil
         let chosePathLeft = parts[1] == "L"
         let isThinIce = parts[2] == "THIN"
         guard let distGain = Int(parts[3]), let warmthLost = Int(parts[4]) else { return }
@@ -347,7 +358,7 @@ final class ArcticTrekViewModel: ObservableObject {
         } else {
             guard (3...10).contains(distGain), (2...8).contains(warmthLost) else { return }
         }
-        applyNearbyTurn(actorId: actorId, chosePathLeft: chosePathLeft, isThinIce: isThinIce, distGain: distGain, warmthLost: warmthLost)
+        applyNearbyTurn(actorId: actorId, chosePathLeft: chosePathLeft, isThinIce: isThinIce, distGain: distGain, warmthLost: warmthLost, advanceTurn: !isLateSkipped)
     }
 
     // DIFFICULTY only ever changes the BOT's own odds, not the human
@@ -388,7 +399,7 @@ final class ArcticTrekViewModel: ObservableObject {
 
         if warmth <= 0 {
             let winner = isBot ? (isPlayer ? "Bot" : "You") : (isPlayer ? "Player 2" : "Player 1")
-            roundOver = ArcticRoundOverInfo(message: "\(name) froze at \(distance)km! \(name) LOSES! \(winner) WINS! 🏆")
+            roundOver = ArcticRoundOverInfo(message: "\(name) froze at \(distance)km! \(name) \(name == "You" ? "LOSE" : "LOSES")! \(winner) WINS! 🏆")
             warmth = 100
             distance = 0
             // Whoever just froze doesn't automatically go first again -

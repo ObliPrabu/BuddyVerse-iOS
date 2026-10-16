@@ -141,10 +141,11 @@ enum AppFeedbackService {
     /// Only fires when the installed version is genuinely NEWER than what's
     /// already published (a real semantic-version comparison, not just
     /// "different from" - so reinstalling an older build for testing can
-    /// never downgrade what real users see), and only ever touches the
-    /// versionName field - a "what's new" message published afterward from
-    /// Android's Admin Dashboard is left untouched, since this never
-    /// re-fires again until the next real version bump.
+    /// never downgrade what real users see), and it writes the
+    /// new versionName and clears the old "what's new" message (that text
+    /// described the previous version). A message published afterward from
+    /// the Admin Dashboard is left untouched, since this never re-fires
+    /// again until the next real version bump.
     static func autoPublishUpdateIfNewer() {
         guard let installedVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else { return }
         let appConfigDoc = db.collection("appConfig").document("latest")
