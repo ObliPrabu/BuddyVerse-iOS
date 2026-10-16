@@ -79,6 +79,10 @@ struct HangmanView: View {
     // seat wins" rule to RACEWIN messages, so they all settle on the same
     // winner without any new wire message.
     @State private var raceWinnerSeat: Int?
+    // RACE mode only: racers who have run out of lives this round. A racer who
+    // is out can't restart the round while others are still guessing; New
+    // opens once someone has won or every racer is out.
+    @State private var raceOutIds: Set<String> = []
     // Online only: "New" is locked until the round is over, so two phones
     // can't each start a new round before they've agreed who the picker is.
     // The one exception is a guesser who has been stuck waiting for a word
@@ -108,8 +112,14 @@ struct HangmanView: View {
 
     private var showKeyboard: Bool { phase == .playing || phase == .spectating }
 
+    private var raceEveryoneOut: Bool {
+        !players.isEmpty && raceOutIds.count >= players.count
+    }
+
     private var newEnabled: Bool {
-        !isNearbyGame || roundOver || skipAvailable
+        if !isNearbyGame { return true }
+        if isRaceMode { return raceWinnerSeat != nil || raceEveryoneOut || skipAvailable }
+        return roundOver || skipAvailable
     }
 
     // Starts the 20s countdown after which a phone that is still waiting for
@@ -334,6 +344,7 @@ struct HangmanView: View {
 
     private func startRoundWithWord(_ category: String, _ word: String) {
         raceWinnerSeat = nil
+        raceOutIds = []
         skipAvailable = false
         skipToken = UUID()
         targetWord = word
@@ -381,6 +392,7 @@ struct HangmanView: View {
     // there's no competitive advantage to being the roller.
     private func restartNearbyRound() {
         raceWinnerSeat = nil
+        raceOutIds = []
         roundOver = false
         if isRaceMode {
             phase = .connecting
@@ -548,9 +560,18 @@ struct HangmanView: View {
             }
         } else if lives <= 0 {
             roundOver = true
+            if isRaceMode {
+                // Tell the other racers this one is out, so the round can end
+                // for everyone once all of them are (and a loser can't restart
+                // it for racers who are still guessing).
+                if let id = myId { raceOutIds.insert(id) }
+                if announce { InternetConnectionManager.shared.sendMessage("\(roundId):RESULT:RACEOUT") }
+            }
             showToast("GAME OVER! The word was \(targetWord)")
             if isNearbyGame {
-                categoryText = "\u{1F480} Game over! The word was \(targetWord)"
+                categoryText = (isRaceMode && !raceEveryoneOut)
+                    ? "\u{1F480} You're out! The word was \(targetWord). Waiting for the race to finish..."
+                    : "\u{1F480} Game over! The word was \(targetWord)"
             }
             if isNearbyGame && !isRaceMode {
                 if announce { InternetConnectionManager.shared.sendMessage("\(roundId):RESULT:LOSE") }
@@ -657,6 +678,14 @@ struct HangmanView: View {
                 showToast("The group ran out of guesses! The word was \(targetWord).")
                 categoryText = "\u{1F480} The group ran out of guesses! The word was \(targetWord)."
                 if !players.isEmpty { pickerIndex = (pickerIndex + 1) % players.count }
+            }
+        } else if msg == "RESULT:RACEOUT" {
+            // Race mode only - another racer ran out of lives.
+            guard isRaceMode else { return }
+            raceOutIds.insert(sender)
+            if raceEveryoneOut && raceWinnerSeat == nil {
+                roundOver = true
+                categoryText = "\u{1F480} Everyone's out! The word was \(targetWord)"
             }
         } else if msg.hasPrefix("RESULT:RACEWIN:") {
             // Race mode only - someone else finished guessing first.

@@ -15,6 +15,9 @@ struct SudokuView: View {
     @State private var solutionBoard: [[Int]] = SudokuView.emptyBoard()
     @State private var isBusy = false
     @State private var answerRevealed = false
+    // Set by a successful Check so the celebration can't re-fire and the grid
+    // locks until "New" (cleared in startNewGame).
+    @State private var puzzleSolved = false
     // Bumped every time a freshly-generated puzzle is applied - mirrors
     // puzzleGeneration on Android. Lets a still-open number picker notice its
     // puzzle was replaced underneath it (a background regeneration finishing
@@ -40,7 +43,7 @@ struct SudokuView: View {
                 .padding(.top, 8)
 
             sudokuGrid
-                .disabled(isBusy || answerRevealed)
+                .disabled(isBusy || answerRevealed || puzzleSolved)
 
             if let toastMessage {
                 Text(toastMessage)
@@ -130,7 +133,7 @@ struct SudokuView: View {
         let isGiven = initialBoard[row][col] != 0
         let blockShade = ((row / 3) + (col / 3)) % 2 == 0
         return Button {
-            if !isGiven && !answerRevealed { openPicker(row: row, col: col) }
+            if !isGiven && !answerRevealed && !puzzleSolved { openPicker(row: row, col: col) }
         } label: {
             Text(value == 0 ? "" : "\(value)")
                 .font(.system(size: 14, weight: (isGiven || (answerRevealed && !isGiven)) ? .bold : .regular))
@@ -166,6 +169,7 @@ struct SudokuView: View {
         guard !isBusy else { return }
         isBusy = true
         answerRevealed = false
+        puzzleSolved = false
         showToast("Building your puzzle...")
 
         // Puzzle generation (plus the uniqueness check) does real work, so it
@@ -201,12 +205,17 @@ struct SudokuView: View {
             showToast("You already revealed the answer. Tap New for a fresh puzzle.")
             return
         }
+        guard !puzzleSolved else {
+            showToast("Already solved! Tap New for a fresh puzzle.")
+            return
+        }
         let isComplete = board.allSatisfy { row in row.allSatisfy { $0 != 0 } }
         guard isComplete else {
             showToast("The board is not complete yet!")
             return
         }
         if isBoardValid() {
+            puzzleSolved = true
             showToast("CONGRATULATIONS! You solved it!")
             confetti.start()
         } else {

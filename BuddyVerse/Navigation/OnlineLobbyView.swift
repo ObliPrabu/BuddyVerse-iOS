@@ -189,7 +189,11 @@ struct OnlineLobbyView: View {
     }
 
     private var rosterText: some View {
-        Text("\(players.count) / \(maxPlayers) joined\n" + players.map(\.name).joined(separator: "\n"))
+        // Only the host's own "How many players?" value is the room's real
+        // cap; a guest's stepper value is unrelated to the room, so a guest
+        // just sees how many have joined.
+        let joined = InternetConnectionManager.shared.isHost() ? "\(players.count) / \(maxPlayers) joined" : "\(players.count) joined"
+        return Text(joined + "\n" + players.map(\.name).joined(separator: "\n"))
             .font(.system(size: 14))
             .foregroundColor(.white)
             .multilineTextAlignment(.center)

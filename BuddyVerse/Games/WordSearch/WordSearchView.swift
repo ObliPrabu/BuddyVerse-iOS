@@ -135,7 +135,9 @@ struct WordSearchView: View {
     }
 
     private func handleTouch(at point: CGPoint, cellSize: CGFloat) {
-        guard cellSize > 0 else { return }
+        // Int() truncates toward zero, so a point just left of / above the
+        // grid would otherwise land on column/row 0.
+        guard cellSize > 0, point.x >= 0, point.y >= 0 else { return }
         let col = Int(point.x / cellSize)
         let row = Int(point.y / cellSize)
         guard row >= 0, row < gridSize, col >= 0, col < gridSize else { return }
@@ -175,12 +177,23 @@ struct WordSearchView: View {
         wordCells = placedWordCells
     }
 
+    // The word's cells must appear as one unbroken run inside the drag, so a
+    // finger that grazes a neighbouring cell before/after the word (or
+    // overshoots the last letter) still counts, while scattered cells don't.
+    private static func containsRun(_ selection: [GridCell], _ run: [GridCell]) -> Bool {
+        guard !run.isEmpty, selection.count >= run.count else { return false }
+        for start in 0...(selection.count - run.count) where Array(selection[start..<start + run.count]) == run {
+            return true
+        }
+        return false
+    }
+
     private func checkWord() {
-        // Require the selected cells to be exactly the cells the word was
-        // placed into (walked forward or backward) - not just letters that
+        // Require the word's exact cells to appear, in order (forward or
+        // backward), in the selection - the cells the word was placed into - not just letters that
         // happen to spell it out - so dragging across scattered, unrelated
         // cells can't win just because the letters lined up by chance.
-        if selectedCells == wordCells || selectedCells == Array(wordCells.reversed()) {
+        if Self.containsRun(selectedCells, wordCells) || Self.containsRun(selectedCells, Array(wordCells.reversed())) {
             showToast("FOUND IT! Great job!")
             confetti.start()
             setupNewPuzzle()

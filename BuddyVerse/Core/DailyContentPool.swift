@@ -21,8 +21,8 @@ enum DailyContentPool {
         let kind: Kind
         /// Joke setup / riddle or trivia question - always shown.
         let primary: String
-        /// Joke punchline / riddle or trivia answer - hidden behind "Tap to reveal"
-        /// framing in the widget UI, shown in full once the app opens.
+        /// Joke punchline / riddle or trivia answer - shown in full on
+        /// the in-app Question of the Day screen.
         let secondary: String
     }
 
@@ -30,19 +30,21 @@ enum DailyContentPool {
     /// current time zone) always resolves to the same entry, so a widget's
     /// placeholder/snapshot/timeline-entry renders never disagree with each
     /// other within one day, and the pick only changes at local midnight.
-    /// Rotates joke/riddle/trivia by day-of-year so consecutive days
-    /// differ in kind, not just content.
+    /// Rotates joke/riddle/trivia by `dayOfYear % 3` and steps through each
+    /// pool by `dayOfYear / 3` (indexing with `% 30` too would only ever
+    /// reach 10 of each pool's 30 entries). Android's DailyContentPool.kt
+    /// uses the same rule and entry order.
     static func pick(for date: Date) -> Pick {
         let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: date) ?? 1
         switch dayOfYear % 3 {
         case 0:
-            let (setup, punchline) = splitJoke(jokes[dayOfYear % jokes.count])
+            let (setup, punchline) = splitJoke(jokes[(dayOfYear / 3) % jokes.count])
             return Pick(kind: .joke, primary: setup, secondary: punchline)
         case 1:
-            let riddle = riddles[dayOfYear % riddles.count]
+            let riddle = riddles[(dayOfYear / 3) % riddles.count]
             return Pick(kind: .riddle, primary: riddle.question, secondary: riddle.answer)
         default:
-            let q = trivia[dayOfYear % trivia.count]
+            let q = trivia[(dayOfYear / 3) % trivia.count]
             return Pick(kind: .trivia, primary: q.question, secondary: q.answer)
         }
     }
@@ -56,8 +58,10 @@ enum DailyContentPool {
         return (setup, punchline)
     }
 
-    // MARK: - Curated subset (30 of each, trivia from TriviaView.allQuestions; pulled verbatim from
-    // JokesView.allJokes / RiddlesView.allRiddles).
+    // MARK: - Curated subset (30 of each). Entries were taken from the
+    // in-game pools (JokesView/RiddlesView/TriviaView) and may drift from
+    // them after later pool edits; what must stay identical is Android's
+    // DailyContentPool.kt (same entries, same order).
 
     private static let jokes: [String] = [
         "Why don't scientists trust atoms? Because they make up everything!",

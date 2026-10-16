@@ -72,10 +72,36 @@ struct RootView: View {
             }
         }
         .environmentObject(router)
-        .onChange(of: deepLink.pendingRoute) { newRoute in
-            guard let route = newRoute else { return }
-            router.path = [route]
-            deepLink.pendingRoute = nil
+        .onChange(of: deepLink.pendingRoute) { _ in consumePendingDeepLink() }
+        // A link that arrived while the name gate was still up is held until
+        // the gate is done; one that landed before this view was observing
+        // (cold launch) is picked up on appear.
+        .onChange(of: hasEnteredName) { _ in consumePendingDeepLink() }
+        .onAppear { consumePendingDeepLink() }
+    }
+
+    private func consumePendingDeepLink() {
+        guard hasEnteredName, let route = deepLink.pendingRoute else { return }
+        deepLink.pendingRoute = nil
+        // Replacing the path drops every screen without running its Back
+        // handler, so a live room has to be ended here or the other players
+        // hang until the heartbeat times out (same leak ISSUE-43 closed for
+        // Back).
+        if router.path.contains(where: Self.holdsOnlineRoom) {
+            InternetConnectionManager.shared.stop()
+        }
+        router.path = [route]
+    }
+
+    private static func holdsOnlineRoom(_ route: AppRoute) -> Bool {
+        switch route {
+        case .onlineLobby:
+            return true
+        case .hangmanModeChoice(let selection), .instructionsChoice(let selection),
+             .instructionsView(let selection), .game(let selection):
+            return selection.isNearby
+        default:
+            return false
         }
     }
 

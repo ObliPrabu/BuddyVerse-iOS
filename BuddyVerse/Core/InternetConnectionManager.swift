@@ -246,9 +246,9 @@ final class InternetConnectionManager: @unchecked Sendable {
             guard let self else { return }
             guard session == self.sessionId else {
                 // Cancelled while in flight - don't resurrect a room nobody
-                // wants, just make sure it doesn't sit around advertising
-                // itself as "waiting". (Only if our own write actually landed.)
-                if error == nil { docRef.updateData(["status": "ended"]) }
+                // wants; delete it so the code isn't left "taken" forever.
+                // (Only if our own write actually landed.)
+                if error == nil { docRef.delete() }
                 return
             }
             if let error {
@@ -368,7 +368,7 @@ final class InternetConnectionManager: @unchecked Sendable {
             if let hostId = existingPlayers.first?["id"],
                let hostSeen = (snapshot.get("lastSeen") as? [String: Any])?[hostId] as? Timestamp,
                Date().timeIntervalSince(hostSeen.dateValue()) > Self.joinTTLSeconds {
-                errorPointer?.pointee = NSError(domain: "BuddyVerse", code: 5, userInfo: [NSLocalizedDescriptionKey: "That game is no longer available. Ask your friend to create a new one."])
+                errorPointer?.pointee = NSError(domain: "BuddyVerse", code: 5, userInfo: [NSLocalizedDescriptionKey: "That game is no longer available. Ask your friend to create a new one. (If this keeps happening, check that your phone's date and time are set to automatic.)"])
                 return nil
             }
             let maxPlayers = (snapshot.get("maxPlayers") as? Int) ?? 2
@@ -385,8 +385,10 @@ final class InternetConnectionManager: @unchecked Sendable {
                 // joined instead of leaving a ghost seat nobody's actually
                 // sitting in. Only remove OUR OWN seat, not the whole room -
                 // the host and anyone else already in it must keep playing
-                // uninterrupted.
-                self?.removeSelf(from: docRef, playerId: guestId)
+                // uninterrupted. Only when the join actually committed - a
+                // rejected join (full/started/ended room) never added a seat,
+                // and the unchanged write would just wake every phone there.
+                if error == nil { self?.removeSelf(from: docRef, playerId: guestId) }
                 return
             }
             if let error {
@@ -487,6 +489,15 @@ final class InternetConnectionManager: @unchecked Sendable {
             let someoneLeftMidGame = self.latestStatus == "playing" && status == "playing" &&
                 self.latestPlayers.contains { old in !players.contains { $0.id == old.id } }
 
+            // This phone was in the roster and now isn't while the room is
+            // still alive: the host evicted our seat as stale (e.g. we slept
+            // in the lobby past the heartbeat window). Left alone we'd sit on
+            // a roster that excludes us and later be left out of the started
+            // game, so treat it as a lost connection.
+            let evicted = status != "ended" && self.myId != nil &&
+                self.latestPlayers.contains { $0.id == self.myId } &&
+                !players.contains { $0.id == self.myId }
+
             self.latestStartedPlayers = Self.parsePlayers(snapshot.get("startedPlayers"))
 
             if players != self.latestPlayers {
@@ -494,7 +505,7 @@ final class InternetConnectionManager: @unchecked Sendable {
                 self.onPlayersChanged?(players)
             }
 
-            if someoneLeftMidGame && self.connected {
+            if (someoneLeftMidGame || evicted) && self.connected {
                 self.latestStatus = status
                 self.connected = false
                 self.onDisconnected?()
@@ -517,7 +528,7 @@ final class InternetConnectionManager: @unchecked Sendable {
                 self.latestStatus = status
             }
 
-            if status == "ended" {
+            if status == "ended" && self.connected {
                 self.connected = false
                 self.onDisconnected?()
             }

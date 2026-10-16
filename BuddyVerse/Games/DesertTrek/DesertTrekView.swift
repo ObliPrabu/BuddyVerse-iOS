@@ -40,6 +40,7 @@ struct DesertTrekView: View {
                 .padding(.top, 20)
 
             Text(vm.turnLabel)
+                .onTapGesture { vm.skipCurrentTurn() }
                 .font(.system(size: 20, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.bottom, 8)
@@ -148,7 +149,9 @@ final class DesertTrekViewModel: ObservableObject {
     let isNearby: Bool
     let players: [Player]
     private let myId: String?
-    @Published var turnIndex = 0
+    @Published var turnIndex = 0 {
+        didSet { turnSeatChanged() }
+    }
     private var roundId = 0
     private var didSetup = false
 
@@ -183,6 +186,50 @@ final class DesertTrekViewModel: ObservableObject {
         )
     }
 
+    // --- Idle-turn skip (nearby) ---
+    // Turns are strictly by seat, so a player who walks away with the app
+    // still in the foreground would stall everyone (the heartbeat only
+    // catches dead phones, not idle ones). After 45s of someone else's turn
+    // the turn label becomes tappable to skip them; SKIP is applied
+    // identically on every phone, and a second simultaneous skip is dropped
+    // because the turn has already moved on.
+    @Published private(set) var skipOffered = false
+    private var skipToken = UUID()
+    private var lastTurnSeat = -1
+
+    private func turnSeatChanged() {
+        guard isNearby, !players.isEmpty else { return }
+        let seat = turnIndex % players.count
+        guard seat != lastTurnSeat else { return }
+        lastTurnSeat = seat
+        armSkipTimer()
+    }
+
+    private func armSkipTimer() {
+        skipOffered = false
+        let token = UUID()
+        skipToken = token
+        guard isNearby, !players.isEmpty, !isMyTurn() else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 45) { [weak self] in
+            guard let self, self.skipToken == token, !self.isStopped else { return }
+            self.skipOffered = true
+        }
+    }
+
+    func skipCurrentTurn() {
+        guard isNearby, skipOffered, !players.isEmpty, !isMyTurn() else { return }
+        let skippedId = players[turnIndex % players.count].id
+        applySkip(skippedId)
+        InternetConnectionManager.shared.sendMessage("\(roundId):SKIP:\(skippedId)")
+    }
+
+    private func applySkip(_ skippedId: String) {
+        guard !players.isEmpty, players[turnIndex % players.count].id == skippedId else { return }
+        let name = players[turnIndex % players.count].name
+        turnIndex = (turnIndex + 1) % players.count
+        turnMessage = "\(name)'s turn was skipped"
+    }
+
     private func isMyTurn() -> Bool {
         guard !players.isEmpty else { return false }
         return players[turnIndex % players.count].id == myId
@@ -191,7 +238,9 @@ final class DesertTrekViewModel: ObservableObject {
     var turnLabel: String {
         if isNearby {
             if players.isEmpty { return "Connecting..." }
-            return isMyTurn() ? "Your Turn" : "\(players[turnIndex % players.count].name)'s Turn"
+            if isMyTurn() { return "Your Turn" }
+            let name = players[turnIndex % players.count].name
+            return skipOffered ? "\(name)'s Turn - tap here to skip" : "\(name)'s Turn"
         } else if isBot {
             return isPlayerTurn ? "Your Turn" : "Bot (\(difficulty)) Turn"
         } else {
@@ -260,6 +309,11 @@ final class DesertTrekViewModel: ObservableObject {
         let msg = String(raw[raw.index(after: sep)...])
 
         guard msgRound == roundId else { return } // stale - belongs to a round we've already left
+        if msg.hasPrefix("SKIP:") {
+            let skippedId = String(msg.dropFirst("SKIP:".count))
+            if sender != skippedId { applySkip(skippedId) }
+            return
+        }
         guard msg.hasPrefix("TURN:") else { return }
 
         let parts = msg.dropFirst("TURN:".count).split(separator: ":", omittingEmptySubsequences: false).map(String.init)
@@ -344,6 +398,7 @@ final class DesertTrekViewModel: ObservableObject {
 
     func stop() {
         isStopped = true
+        skipToken = UUID()
         if isNearby { InternetConnectionManager.shared.stop() }
     }
 }

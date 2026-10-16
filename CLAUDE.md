@@ -95,6 +95,9 @@ Both ported from Android features added after this file's initial architecture p
 
 Comments follow the Android project's established style: plain-English explanations of *why*, not terse dev-shorthand — match this when touching existing files.
 
+### Home-screen widget and Question of the Day
+`BuddyVerseWidget/DailyContentWidget.swift` shows a joke, riddle or trivia question of the day from `Core/DailyContentPool.swift` (shared with the widget target) - kind = `dayOfYear % 3`, entry = `(dayOfYear / 3) % 30`, identical to Android's `DailyContentPool.kt` (same entries, same order; keep them in sync). Tapping it sends `buddyverse://daily/question`; `DeepLinkManager` stashes `.dailyQuestion` and `RootView.consumePendingDeepLink()` replaces the stack with it (ending any live room first, and waiting for the name gate). `DailyQuestionView` has the "Go to Jokes/Riddles/Trivia" button.
+
 ## Known Issues
 
 _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude/agents/`) and fixed by hand or by a fixer pass. Entries are numbered sequentially and never reused or renumbered. Findings marked 'Android ISSUE-N' are fixes already made on Android that were never ported._
@@ -127,6 +130,15 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Description:** Older single-loop versions; Android ISSUE-72/73/98 balance fixes do not apply. Ocean Dive and Savanna have no win state.
 - **Suggested fix:** Owner decision; feature gap, not a crash.
 - **Status (2026-10-15):** **Left for the owner.** A feature-parity gap (porting zones/goal/streak/personal best to five games), not a bug; documented under Known platform gaps. Needs a product decision and device playtesting.
+
+#### ISSUE-72: Hangman PICKER tie and no `lastSeen` write at join (parity notes)
+- **Severity:** LOW
+- **Area:** multiplayer
+- **File:** Games/Hangman/HangmanView.swift, Core/InternetConnectionManager.swift
+- **Found by:** qa-multiplayer (2026-10-15, third /test-app pass)
+- **Description:** Two PICKER guessers ending the round in the same instant can show different outcomes locally (nothing hangs); a guest that dies within ~10 s of joining never writes `lastSeen`, so the host never judges its seat stale.
+- **Suggested fix:** Tie-break by lowest seat; write `lastSeen.<guestId>` in the join transaction (needs the live Firestore rules to allow it).
+- **Status (2026-10-15):** **Left open on purpose** - the tie is cosmetic and the join-write change touches the live protocol against rules this repo cannot see. Same as Android ISSUE-140.
 
 ### Fixed
 
@@ -357,3 +369,47 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 #### ISSUE-35: Tic-Tac-Toe accepts MOVE regardless of role or turn (Android ISSUE-78)
 - **Fixed by:** main agent on 2026-10-15
 - **Summary:** MOVE is applied only when roles are assigned and it is the opponent's turn (`roleAssigned, xToMove != amX`).
+
+#### ISSUE-61: Daily pick only ever reached 10 of 30 entries per kind
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** `dayOfYear % 3` chose the kind and `dayOfYear % 30` the entry, so only every third index was reachable. The entry is now `(dayOfYear / 3) % count` (Android identical). (File: Core/DailyContentPool.swift)
+
+#### ISSUE-62: Widget deep link wiped the nav stack without ending a live room; cold-launch/name-gate handling
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** `consumePendingDeepLink()` stops the `InternetConnectionManager` session when the stack holds an online/nearby screen, is also run on appear (cold launch), and is held until the name gate is finished. `DeepLinkManager` is now `@MainActor` with a plain `static let`. (File: App/RootView.swift)
+
+#### ISSUE-63: Cave Explorer MEDIUM/HARD bots could never run out of light
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Thresholds 35/55 -> MEDIUM 19 / HARD 24 / EASY 10, all below one explore's max cost (25), so every bot can lose (Android identical). (File: Games/CaveExplorer/CaveExplorerView.swift)
+
+#### ISSUE-64: Word Search: dragging just off the grid selected an edge cell, and a grazed neighbour failed a correct word
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Negative points are rejected before dividing, and `checkWord()` accepts the word's cells (or reverse) as a contiguous run in the selection. (File: Games/WordSearch/WordSearchView.swift)
+
+#### ISSUE-65: Sudoku: board stayed editable and the celebration re-fired after a solve
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** New `puzzleSolved` state: set on a valid Check, locks the grid and Check, cleared in `startNewGame()`. (File: Games/Sudoku/SudokuView.swift)
+
+#### ISSUE-66: Race-mode Hangman: a racer who ran out of lives could restart the round for everyone
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** `newEnabled` in RACE mode needs a RACEWIN or every racer out. A loser broadcasts `RESULT:RACEOUT` (new, mirrored on Android), and all phones track `raceOutIds`; the round ends for everyone when all racers are out. (File: Games/Hangman/HangmanView.swift)
+
+#### ISSUE-67: Arctic/Cave/Desert Trek had no skip for an idle-but-connected player
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** After 45 s of someone else's turn the turn label is tappable ("tap here to skip"); `SKIP:<id>` is applied identically on every phone only while it is still that player's turn (Android identical). (File: Games/*Trek*/, CaveExplorer)
+
+#### ISSUE-68: Connection manager: cancelled-join removeSelf on a rejected join, evicted-guest ghost, repeated `ended`, leftover room doc
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** removeSelf only runs for a join that actually committed; a guest whose seat was evicted is treated as a lost connection; `ended` fires `onDisconnected` once; a createRoom cancelled in flight deletes its doc; the TTL error mentions automatic date & time. (File: Core/InternetConnectionManager.swift)
+
+#### ISSUE-69: Count to 21 showed totals above 21
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Counter and toasts use `min(currentCount, 21)`. (File: Games/CountTo21/CountTo21View.swift)
+
+#### ISSUE-70: Stale comments and no-op `.navigationBarHidden` in the new Daily Question code
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Comments now describe `buddyverse://daily/question`; the no-op modifier was removed. (File: project.yml, Navigation/DailyQuestionView.swift, Core/DailyContentPool.swift)
+
+#### ISSUE-71: Guest roster showed the guest's own stepper value as the room cap
+- **Fixed by:** main agent on 2026-10-15
+- **Summary:** Only the host sees "N / max joined"; guests see "N joined" (Android identical). (File: Navigation/OnlineLobbyView.swift)

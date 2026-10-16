@@ -7,11 +7,9 @@ import Combine
 /// `.onOpenURL`, so an opened URL is parsed into a route and stashed here;
 /// `RootView` observes `pendingRoute` and pushes it onto its own `Router`,
 /// then clears it.
+@MainActor
 final class DeepLinkManager: ObservableObject {
-    // Only ever created/used on the main thread (SwiftUI view code), same as
-    // every other cross-cutting singleton in this app - see ThemeManager and
-    // MusicManager for the same pattern.
-    nonisolated(unsafe) static let shared = DeepLinkManager()
+    static let shared = DeepLinkManager()
 
     @Published var pendingRoute: AppRoute?
 

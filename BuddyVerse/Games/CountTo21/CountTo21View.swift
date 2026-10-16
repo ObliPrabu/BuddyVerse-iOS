@@ -96,7 +96,7 @@ struct CountTo21View: View {
                     .foregroundColor(Color(hex: 0xFFCDD2))
                     .padding(.bottom, 20)
 
-                Text("Current Count: \(currentCount)")
+                Text("Current Count: \(min(currentCount, 21))")
                     .font(.system(size: 22))
                     .foregroundColor(.white)
                     .padding(.bottom, 12)
@@ -222,8 +222,8 @@ struct CountTo21View: View {
 
         if currentCount >= 21 {
             let message = isBotGame
-                ? "You reached \(currentCount)! YOU LOSE!"
-                : "\(isPlayerTurn ? "Player 1" : "Player 2") reached \(currentCount) and loses!"
+                ? "You reached \(min(currentCount, 21))! YOU LOSE!"
+                : "\(isPlayerTurn ? "Player 1" : "Player 2") reached \(min(currentCount, 21)) and loses!"
             showToast(message)
             starterIsPlayerOne.toggle()
             resetGame()
@@ -246,7 +246,7 @@ struct CountTo21View: View {
             if !players.isEmpty {
                 let loser = players[turnIndex % players.count]
                 let iLost = loser.id == myId
-                showToast(iLost ? "You reached \(currentCount)! YOU LOSE!" : "\(loser.name) reached \(currentCount)! YOU WIN!")
+                showToast(iLost ? "You reached \(min(currentCount, 21))! YOU LOSE!" : "\(loser.name) reached \(min(currentCount, 21))! YOU WIN!")
                 if !iLost { confetti.start() }
             }
             // Every phone processes the exact same MOVE stream in the same
@@ -283,7 +283,7 @@ struct CountTo21View: View {
         showToast("Bot (\(difficulty)) added \(move)")
 
         if currentCount >= 21 {
-            showToast("Bot reached \(currentCount)! YOU WIN!")
+            showToast("Bot reached \(min(currentCount, 21))! YOU WIN!")
             confetti.start()
             starterIsPlayerOne.toggle()
             resetGame()
