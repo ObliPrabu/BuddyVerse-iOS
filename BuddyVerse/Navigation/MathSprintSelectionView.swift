@@ -50,6 +50,5 @@ struct MathSprintSelectionView: View {
             }
             .padding(20)
         }
-        .navigationBarHidden(true)
     }
 }

@@ -69,7 +69,6 @@ struct OnlineLobbyView: View {
             }
             .padding(30)
         }
-        .navigationBarHidden(true)
         // The `presenting:`/`message:` alert overload needs iOS 15 - this is
         // the iOS-13-compatible Alert(title:message:dismissButton:) form.
         .alert(isPresented: Binding(

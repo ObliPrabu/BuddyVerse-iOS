@@ -676,6 +676,11 @@ final class InternetConnectionManager: @unchecked Sendable {
     // A peer is only declared gone after peerStale, which must exceed the 60s
     // a backgrounded player is allowed (backgroundGrace) plus a margin.
     private static let peerStale: TimeInterval = 90
+    // iOS suspends a backgrounded HOST (e.g. off to paste the room code into
+    // Messages), which stops its heartbeat. While the room is still waiting,
+    // guests give the host this much longer; abandoned rooms are covered by
+    // the 3-minute join TTL anyway.
+    private static let hostLobbyStale: TimeInterval = 300
     private static let ownAckLost: TimeInterval = 45
     private static let ownAckMaxAge: TimeInterval = 25
     // A tick arriving this much later than scheduled means the app was
@@ -763,7 +768,8 @@ final class InternetConnectionManager: @unchecked Sendable {
         for player in latestPlayers {
             if player.id == myId { continue }
             guard let changedAt = peerChangedAt[player.id] else { continue }
-            if now - changedAt <= Self.peerStale { continue }
+            let isLobbyHost = !playing && player.id == hostId && !isHost()
+            if now - changedAt <= (isLobbyHost ? Self.hostLobbyStale : Self.peerStale) { continue }
             if playing || (player.id == hostId && !isHost()) {
                 handleConnectionLost(session)
                 return

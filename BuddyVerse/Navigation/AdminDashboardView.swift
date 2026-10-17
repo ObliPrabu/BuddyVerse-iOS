@@ -85,7 +85,6 @@ struct AdminDashboardView: View {
             }
             .padding(16)
         }
-        .navigationBarHidden(true)
         .onAppear {
             // Defence in depth: the Welcome footer link is the only way here
             // and only shows for the admin, but this screen reads

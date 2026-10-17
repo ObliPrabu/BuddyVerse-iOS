@@ -272,6 +272,7 @@ final class DesertTrekViewModel: ObservableObject {
             let sentRoundId = roundId
             guard let actorId = myId else { return }
             applyNearbyTurn(actorId: actorId, stake: stake, travel: travel, waterLost: waterLost)
+            lastSkippedId = nil // our own move supersedes any pending late-TURN allowance
             InternetConnectionManager.shared.sendMessage("\(sentRoundId):TURN:\(actorId):\(stake):\(travel):\(waterLost)")
             return
         }
@@ -345,6 +346,7 @@ final class DesertTrekViewModel: ObservableObject {
         default: return
         }
         applyNearbyTurn(actorId: actorId, stake: stake, travel: travel, waterLost: waterLost, advanceTurn: !isLateSkipped)
+        lastSkippedId = nil // our own move supersedes any pending late-TURN allowance
     }
 
     private func takeTurn(isPlayer: Bool, stake: Int) {

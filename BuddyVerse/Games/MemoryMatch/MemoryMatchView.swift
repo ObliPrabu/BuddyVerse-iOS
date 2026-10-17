@@ -173,7 +173,6 @@ struct MemoryMatchView: View {
             toastOverlay
         }
         .confettiOverlay(confetti)
-        .navigationBarBackButtonHidden(true)
         .onAppear { setupIfNeeded() }
         .onDisappear {
             if isNearbyGame { InternetConnectionManager.shared.stop() }

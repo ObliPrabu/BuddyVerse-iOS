@@ -38,7 +38,6 @@ struct AccountView: View {
             }
             .padding(16)
         }
-        .navigationBarHidden(true)
     }
 
     private var centerContent: some View {

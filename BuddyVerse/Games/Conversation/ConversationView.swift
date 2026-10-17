@@ -198,7 +198,6 @@ struct ConversationView: View {
             }
             .padding(20)
         }
-        .navigationBarHidden(true)
         .onAppear { refreshSavedAnswers() }
         .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "CONVERSATION") }
         .sheet(isPresented: $showReport) { ReportSheetView(gameType: "CONVERSATION") }

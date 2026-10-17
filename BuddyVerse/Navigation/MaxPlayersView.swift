@@ -65,6 +65,5 @@ struct MaxPlayersView: View {
             }
             .padding(16)
         }
-        .navigationBarHidden(true)
     }
 }

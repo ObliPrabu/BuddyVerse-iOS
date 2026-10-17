@@ -70,7 +70,6 @@ struct GetUpdatesView: View {
             .buttonStyle(.plain)
             .padding(16)
         }
-        .navigationBarHidden(true)
         .alert(isPresented: $showEmptyNameAlert) {
             Alert(title: Text(alertText))
         }
@@ -94,8 +93,8 @@ struct GetUpdatesView: View {
                     showEmptyNameAlert = true
                     return
                 }
-                guard !trimmed.contains("@"), trimmed.count <= 30, !trimmed.contains(where: { $0.isNumber }) else {
-                    alertText = "Just a first name, please - no email, numbers or full name."
+                guard !trimmed.contains("@"), trimmed.count <= 20, !trimmed.contains(where: { $0.isNumber || $0.isWhitespace }) else {
+                    alertText = "Just a first name, please - one word, no email, numbers or last name."
                     showEmptyNameAlert = true
                     return
                 }

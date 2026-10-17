@@ -279,6 +279,7 @@ final class ArcticTrekViewModel: ObservableObject {
             let sentRoundId = roundId
             guard let actorId = myId else { return }
             applyNearbyTurn(actorId: actorId, chosePathLeft: left, isThinIce: isThinIce, distGain: distGain, warmthLost: warmthLost)
+            lastSkippedId = nil // our own move supersedes any pending late-TURN allowance
             InternetConnectionManager.shared.sendMessage(
                 "\(sentRoundId):TURN:\(actorId):\(left ? "L" : "R"):\(isThinIce ? "THIN" : "SOLID"):\(distGain):\(warmthLost)"
             )
@@ -359,6 +360,7 @@ final class ArcticTrekViewModel: ObservableObject {
             guard (3...10).contains(distGain), (2...8).contains(warmthLost) else { return }
         }
         applyNearbyTurn(actorId: actorId, chosePathLeft: chosePathLeft, isThinIce: isThinIce, distGain: distGain, warmthLost: warmthLost, advanceTurn: !isLateSkipped)
+        lastSkippedId = nil // our own move supersedes any pending late-TURN allowance
     }
 
     // DIFFICULTY only ever changes the BOT's own odds, not the human

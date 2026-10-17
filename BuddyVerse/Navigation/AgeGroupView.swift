@@ -83,6 +83,5 @@ struct AgeGroupView: View {
             }
             .padding(.horizontal, 20)
         }
-        .navigationBarHidden(true)
     }
 }

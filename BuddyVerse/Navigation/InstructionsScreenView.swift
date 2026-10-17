@@ -93,7 +93,6 @@ struct InstructionsScreenView: View {
             .padding(30)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .navigationBarHidden(true)
         .guardNearbyDisconnect(selection.isNearby)
     }
 }

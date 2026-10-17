@@ -46,7 +46,5 @@ struct OpponentDisconnectedView: View {
             }
             .padding(30)
         }
-        .navigationBarHidden(true)
-        .navigationBarBackButtonHidden(true)
     }
 }

@@ -81,6 +81,5 @@ struct MoodSelectionView: View {
             }
             .padding(.horizontal, 20)
         }
-        .navigationBarHidden(true)
     }
 }

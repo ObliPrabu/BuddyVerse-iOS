@@ -62,7 +62,6 @@ struct JokesView: View {
             case .handoff: handoffView
             }
         }
-        .navigationBarHidden(true)
         .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "JOKES") }
         .sheet(isPresented: $showReport) { ReportSheetView(gameType: "JOKES") }
     }
@@ -326,10 +325,8 @@ struct JokesView: View {
         "What do you call a pony with a cough? A little hoarse.",
         "Why did the math book look sad? Because it had too many problems.",
         "What do you call a fly without wings? A walk.",
-        "Why can't you give Elsa a balloon? Because she will let it go.",
         "What did the ocean say to the beach? Nothing, it just waved.",
         "Why did the golfer wear two pairs of pants? In case he got a hole in one.",
-        "What do you call a bear with no teeth? A gummy bear!",
         "Why did the computer go to the doctor? Because it had a virus!",
         "What kind of shoes do ninjas wear? Sneakers!",
         "Why did the chicken cross the playground? To get to the other slide.",
@@ -410,11 +407,7 @@ struct JokesView: View {
         "What do you call a snake that is 3.14 meters long? A pi-thon!",
         "What do you call a shoe made from a banana? A slipper!",
         "Why did the bike get a hall pass? It had to wheel something to class!",
-        "Why did the cookie go to the doctor? It felt crummy!",
-        "What do you call cheese that isn't yours? Nacho cheese!",
         "Why did the umbrella get a promotion? It was outstanding in the rain!",
-        "What did the ocean say to the beach? Nothing, it just waved!",
-        "Why can't you give Elsa a balloon? Because she will let it go!",
-        "What do you call a bear with no teeth? A gummy bear!"
+        "Why can't a leopard hide? Because he's always spotted!",
     ]
 }

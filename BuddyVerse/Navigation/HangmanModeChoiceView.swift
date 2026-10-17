@@ -96,7 +96,6 @@ struct HangmanModeChoiceView: View {
             }
             .padding(20)
         }
-        .navigationBarHidden(true)
         .guardNearbyDisconnect(selection.isNearby)
         .onAppear {
             if !isHost {

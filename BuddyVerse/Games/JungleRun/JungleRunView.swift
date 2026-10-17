@@ -12,6 +12,8 @@ struct JungleRunView: View {
     @State private var fruitPosition: CGPoint = CGPoint(x: 0, y: 0)
     @State private var hasPlacedFruit = false
     @State private var timer: Timer?
+    // Latest screen size, so the repeating timer follows rotation/split-view resizes.
+    @State private var latestSize: CGSize = .zero
     @State private var showFeedback = false
     @State private var showReport = false
 
@@ -79,9 +81,13 @@ struct JungleRunView: View {
                 }
             }
             .onAppear {
+                latestSize = geo.size
                 fruitPosition = randomFruitPosition(in: geo.size)
                 hasPlacedFruit = true
-                startMovement(in: geo.size)
+                startMovement()
+            }
+            .onChange(of: geo.size) { newSize in
+                latestSize = newSize
             }
             .onDisappear {
                 timer?.invalidate()
@@ -92,10 +98,10 @@ struct JungleRunView: View {
         .sheet(isPresented: $showReport) { ReportSheetView(gameType: "JUNGLE") }
     }
 
-    private func startMovement(in size: CGSize) {
+    private func startMovement() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: moveInterval, repeats: true) { _ in
-            runOnMain { moveFruit(in: size) }
+            runOnMain { moveFruit(in: latestSize) }
         }
     }
 

@@ -61,7 +61,6 @@ struct LobbyView: View {
             }
             .padding(16)
         }
-        .navigationBarHidden(true)
         .onAppear { checkEntitlement() }
         .onDisappear { isCancelled = true }
     }

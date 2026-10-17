@@ -140,7 +140,6 @@ struct CountTo21View: View {
             toastOverlay
         }
         .confettiOverlay(confetti)
-        .navigationBarBackButtonHidden(true)
         // The actions:/message: alert overload (and Button's `role:`) needs
         // iOS 15 - this is the Alert(title:message:dismissButton:) form.
         .alert(isPresented: $showTrickAlert) {

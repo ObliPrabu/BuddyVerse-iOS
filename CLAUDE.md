@@ -155,6 +155,20 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Description:** countSolutions has no most-constrained-cell ordering.
 - **Status (2026-10-17):** Deferred on purpose.
 
+#### ISSUE-97: Back from an online game can land on a dead Ready-to-Play screen
+- **Severity:** LOW
+- **Area:** navigation
+- **Found by:** /test-app sixth pass (2026-10-17)
+- **Description:** InstructionsChoiceView stays in the stack under the game; Back after stop() shows it with no room behind it.
+- **Status (2026-10-17):** Deferred on purpose.
+
+#### ISSUE-98: Memory Match and Count to 21 have no idle-player skip (Android ISSUE-142 style)
+- **Severity:** MEDIUM
+- **Area:** multiplayer
+- **Found by:** /test-app sixth pass (2026-10-17)
+- **Description:** Only the Treks and Hangman offer SKIP; a connected-but-idle player stalls these games (Android finding; same protocol on iOS).
+- **Status (2026-10-17):** Deferred on purpose.
+
 ### Fixed
 
 #### ISSUE-36: RPS MEDIUM/HARD bots see the player's pick before choosing (Android ISSUE-76)
@@ -517,3 +531,38 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** /test-app fifth pass (2026-10-17)
 - **Fixed by:** main agent on 2026-10-17
 - **Summary:** Feedback Submit trims newlines; admin counts show "50+" at the query limit; no dangling dash in "Currently live"; name gate rejects digits; Conversation card copy no longer promises other people's answers; HangmanModeChoice ignores a late word-mode callback unless it is still the top screen.
+
+#### ISSUE-92: Duplicate jokes added last round; stat cards overstated
+- **Severity:** MEDIUM
+- **Area:** content
+- **Found by:** /test-app sixth pass (2026-10-17)
+- **Fixed by:** main agent on 2026-10-17
+- **Summary:** Removed the four re-added exact duplicates and the near-duplicate cookie joke; Jokes/Riddles stat cards now count to 90.
+
+#### ISSUE-93: Host suspended in lobby dropped guests after 90 s
+- **Severity:** MEDIUM
+- **Area:** multiplayer
+- **Found by:** /test-app sixth pass (2026-10-17)
+- **Fixed by:** main agent on 2026-10-17
+- **Summary:** Guests now allow the lobby host 300 s of heartbeat silence while the room is "waiting" (iOS suspends a backgrounded host).
+
+#### ISSUE-94: Name gate accepted full names; feedback text unbounded
+- **Severity:** LOW
+- **Area:** content
+- **Found by:** /test-app sixth pass (2026-10-17)
+- **Fixed by:** main agent on 2026-10-17
+- **Summary:** Names must be one word, <= 20 chars, no digits/@; feedback and report text capped at 500 chars with a "no names or contact info" hint.
+
+#### ISSUE-95: Daily pool: weak riddle and contested continents question
+- **Severity:** LOW
+- **Area:** content
+- **Found by:** /test-app sixth pass (2026-10-17)
+- **Fixed by:** main agent on 2026-10-17
+- **Summary:** Replaced "bottom at the top" with the 13-hearts riddle and reworded the continents question, identically on both platforms.
+
+#### ISSUE-96: Bot-win confetti, Jungle Run stale size, stale nav modifiers/comment
+- **Severity:** LOW
+- **Area:** game-logic
+- **Found by:** /test-app sixth pass (2026-10-17)
+- **Fixed by:** main agent on 2026-10-17
+- **Summary:** No confetti when the bot wins; Jungle Run timer follows the current screen size; removed 34 no-op navigationBar modifiers; TicTacToe comment corrected; Trek local turn clears lastSkippedId.

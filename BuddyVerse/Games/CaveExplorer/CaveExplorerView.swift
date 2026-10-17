@@ -270,6 +270,7 @@ final class CaveExplorerViewModel: ObservableObject {
             let sentRoundId = roundId
             guard let actorId = myId else { return }
             applyNearbyTurn(actorId: actorId, explore: explore, depthGained: depthGained, torchChange: torchChange)
+            lastSkippedId = nil // our own move supersedes any pending late-TURN allowance
             InternetConnectionManager.shared.sendMessage(
                 "\(sentRoundId):TURN:\(actorId):\(explore ? "EXPLORE" : "REST"):\(depthGained):\(torchChange)"
             )
@@ -348,6 +349,7 @@ final class CaveExplorerViewModel: ObservableObject {
             guard depthGained == 0, (10...20).contains(torchChange) else { return }
         }
         applyNearbyTurn(actorId: actorId, explore: explore, depthGained: depthGained, torchChange: torchChange, advanceTurn: !isLateSkipped)
+        lastSkippedId = nil // our own move supersedes any pending late-TURN allowance
     }
 
     private func takeTurn(isPlayer: Bool, explore: Bool) {

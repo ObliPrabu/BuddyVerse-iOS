@@ -76,7 +76,6 @@ struct RiddlesView: View {
             case .complete: completionView
             }
         }
-        .navigationBarHidden(true)
         .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "RIDDLES") }
         .sheet(isPresented: $showReport) { ReportSheetView(gameType: "RIDDLES") }
     }

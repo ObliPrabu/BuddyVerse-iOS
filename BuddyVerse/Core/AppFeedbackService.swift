@@ -23,7 +23,7 @@ enum AppFeedbackService {
         guard !trimmed.isEmpty else { return }
         db.collection("feedback").addDocument(data: [
             "gameType": gameType,
-            "message": trimmed,
+            "message": String(trimmed.prefix(500)),
             "createdAt": FieldValue.serverTimestamp()
         ])
     }
@@ -33,7 +33,7 @@ enum AppFeedbackService {
         db.collection("reports").addDocument(data: [
             "gameType": gameType,
             "reason": reason,
-            "detail": trimmedDetail,
+            "detail": String(trimmedDetail.prefix(500)),
             "createdAt": FieldValue.serverTimestamp()
         ])
     }

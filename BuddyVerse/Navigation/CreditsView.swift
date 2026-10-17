@@ -75,7 +75,6 @@ struct CreditsView: View {
             .buttonStyle(.plain)
             .padding(16)
         }
-        .navigationBarHidden(true)
         .confettiOverlay(confetti)
         .onAppear { confetti.start() }
     }

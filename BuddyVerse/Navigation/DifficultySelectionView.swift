@@ -76,6 +76,5 @@ struct DifficultySelectionView: View {
             }
             .padding(.horizontal, 20)
         }
-        .navigationBarHidden(true)
     }
 }

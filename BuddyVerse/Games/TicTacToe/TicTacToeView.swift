@@ -156,7 +156,6 @@ struct TicTacToeView: View {
             toastOverlay
         }
         .confettiOverlay(confetti)
-        .navigationBarBackButtonHidden(true)
         .onAppear { setupIfNeeded() }
         .onDisappear {
             if isNearbyGame { InternetConnectionManager.shared.stop() }
@@ -424,9 +423,8 @@ struct TicTacToeView: View {
         guard !didHandleDisconnect else { return }
         didHandleDisconnect = true
         // Kotlin's onDestroy (triggered by finish()) is what actually calls
-        // InternetConnectionManager.stop() here - SwiftUI's push-based
-        // NavigationStack doesn't tear this view down just because another
-        // one is pushed on top, so stop explicitly right here to get the
+        // InternetConnectionManager.stop() here - the ZStack Router
+        // keeps this view mounted when another screen is pushed on top, so stop explicitly right here to get the
         // same net effect.
         InternetConnectionManager.shared.stop()
         router.push(.opponentDisconnected)
@@ -436,7 +434,7 @@ struct TicTacToeView: View {
 
     private func playerWin(_ p: String) {
         showToast(isBotGame && p == "O" ? "Bot Wins!" : "Player \(p) Wins!")
-        confetti.start()
+        if !(isBotGame && p == "O") { confetti.start() }
         player1StartsNext.toggle()
         endRoundThenReset()
     }

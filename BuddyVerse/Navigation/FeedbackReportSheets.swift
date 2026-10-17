@@ -37,7 +37,7 @@ struct FeedbackSheetView: View {
                         .foregroundColor(Color(hex: 0xE0F7FA))
                         .padding(.bottom, 30)
 
-                    androidField("What's on your mind?", text: $message)
+                    androidField("What's on your mind? (no names or contact details)", text: $message)
                         .padding(.bottom, 30)
 
                     Button {
@@ -152,7 +152,7 @@ struct ReportSheetView: View {
                         }
                         .padding(.bottom, 24)
 
-                        androidField(selectedReason == "Other" ? "Please describe the issue" : "Any extra details? (optional)", text: $detail)
+                        androidField(selectedReason == "Other" ? "Please describe the issue" : "Extra details? (optional, no names or contact info)", text: $detail)
                             .padding(.bottom, 30)
 
                         Button {

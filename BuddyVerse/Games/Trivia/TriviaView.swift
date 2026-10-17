@@ -85,7 +85,6 @@ struct TriviaView: View {
             case .finished: finishedView
             }
         }
-        .navigationBarHidden(true)
         .sheet(isPresented: $showFeedback) { FeedbackSheetView(gameType: "TRIVIA") }
         .sheet(isPresented: $showReport) { ReportSheetView(gameType: "TRIVIA") }
     }
@@ -480,7 +479,7 @@ struct TriviaView: View {
         Question(text: "Who painted the Mona Lisa?", options: ["Van Gogh", "Picasso", "Da Vinci", "Monet"], correctAnswer: "Da Vinci"),
         Question(text: "Which ocean is the largest?", options: ["Atlantic", "Indian", "Arctic", "Pacific"], correctAnswer: "Pacific"),
         Question(text: "What is the fastest land animal?", options: ["Cheetah", "Lion", "Tiger", "Horse"], correctAnswer: "Cheetah"),
-        Question(text: "How many continents are there?", options: ["5", "6", "7", "8"], correctAnswer: "7"),
+        Question(text: "In the common 7-continent model, how many continents are there?", options: ["5", "6", "7", "8"], correctAnswer: "7"),
         Question(text: "What is the hardest natural substance?", options: ["Gold", "Iron", "Diamond", "Stone"], correctAnswer: "Diamond"),
         Question(text: "What do bees collect from flowers?", options: ["Water", "Nectar", "Leaves", "Seeds"], correctAnswer: "Nectar"),
         Question(text: "What is the freezing point of water?", options: ["0\u{00B0}C", "32\u{00B0}C", "10\u{00B0}C", "-5\u{00B0}C"], correctAnswer: "0\u{00B0}C"),

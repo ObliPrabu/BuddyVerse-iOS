@@ -76,6 +76,5 @@ struct OnePhoneSelectionView: View {
             .padding(.horizontal, 20)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .navigationBarHidden(true)
     }
 }

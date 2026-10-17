@@ -46,8 +46,6 @@ struct AiGeneratingView: View {
             }
             .padding(.horizontal, 30)
         }
-        .navigationBarBackButtonHidden(true)
-        .navigationBarHidden(true)
         .onAppear {
             // `.task {}` needs iOS 15 - `.onAppear` + a manually-started
             // `Task` gets the same "kick off async work when this screen

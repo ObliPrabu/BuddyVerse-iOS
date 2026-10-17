@@ -57,7 +57,6 @@ struct PaymentWebView: View {
                 .buttonStyle(.plain)
                 .padding(16)
         }
-        .navigationBarHidden(true)
         .onAppear {
             PendingPayment.gameType = gameType
             PendingPayment.source = premiumSource
