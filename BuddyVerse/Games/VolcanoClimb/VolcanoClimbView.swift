@@ -195,7 +195,9 @@ final class VolcanoClimbViewModel: ObservableObject {
             height += gain
             message = "Nice timing! Climbed \(gain)m higher."
             // Gets a bit harder each success so a long streak stays challenging.
-            needleStep += 0.6
+            // Capped so a long streak can't outrun the safe zone (landing
+            // would then depend on tick phase, not skill).
+            needleStep = min(needleStep + 0.6, max(Self.baseNeedleStep(for: difficulty), safeZoneWidth * 0.4))
             rollNewSafeZone()
         } else {
             message = "The lava got you at \(height)m! Starting over."

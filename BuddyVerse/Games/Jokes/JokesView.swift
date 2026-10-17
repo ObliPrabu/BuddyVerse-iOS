@@ -377,18 +377,11 @@ struct JokesView: View {
         "What do you call a funny mountain? Hill-arious.",
         "Why did the music teacher need a ladder? To reach the high notes.",
         "Why did the coffee file a police report? It got mugged.",
-        "What do you call a bird that can't fly? A penguin (or a chicken!).",
+        "What do you call a bird that can't fly? A penguin.",
         "Why did the math teacher go to the beach? To test the sine and cosine.",
         "What do you call a cow that plays an instrument? A moo-sician.",
-        "Why did the man build his house out of cards? He wanted to have a deck.",
-        "What do you call a cat that likes to bowl? An alley cat.",
         "What do you call a dog that likes to sunbathe? A hot dog.",
-        "What do you call a pig that is a thief? A ham-burglar.",
-        "Why did the man go to the movie theater? He wanted to see the big picture.",
-        "Why did the boy put his bed in the library? He wanted to sleep in the stacks.",
-        "What do you call a bird that is a detective? A Sherlock Holmes-pigeon.",
         "What do you call a cow with a sense of humor? A laughing stock.",
-        "Why did the man put his money in the blender? He wanted to make some liquid assets.",
         "What do you call a pig that is an artist? Pig-asso.",
         "What do you call a sleeping dinosaur? A dino-snore!",
         "Why can't a bicycle stand up by itself? It's two tired!",
@@ -416,6 +409,12 @@ struct JokesView: View {
         "Why did the football coach go to the bank? To get his quarterback!",
         "What do you call a snake that is 3.14 meters long? A pi-thon!",
         "What do you call a shoe made from a banana? A slipper!",
-        "Why did the bike get a hall pass? It had to wheel something to class!"
+        "Why did the bike get a hall pass? It had to wheel something to class!",
+        "Why did the cookie go to the doctor? It felt crummy!",
+        "What do you call cheese that isn't yours? Nacho cheese!",
+        "Why did the umbrella get a promotion? It was outstanding in the rain!",
+        "What did the ocean say to the beach? Nothing, it just waved!",
+        "Why can't you give Elsa a balloon? Because she will let it go!",
+        "What do you call a bear with no teeth? A gummy bear!"
     ]
 }

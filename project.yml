@@ -17,6 +17,8 @@ targets:
     deploymentTarget: "14.0"
     sources:
       - path: BuddyVerse
+        excludes:
+          - "Resources/Secrets.plist"
     resources:
       - path: BuddyVerse/Resources/Assets.xcassets
       - path: BuddyVerse/Resources/GoogleService-Info.plist

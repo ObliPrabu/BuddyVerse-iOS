@@ -58,6 +58,9 @@ struct TicTacToeView: View {
     // Cancels every pending delayed bot move at once, the same way
     // handler.removeCallbacksAndMessages(null) does on Android.
     @State private var runToken = UUID()
+    // True for the beat between a bot/pass-and-play round ending and the
+    // board wiping, so the winning line or final draw board stays visible.
+    @State private var roundOver = false
 
     private static let winLines: [[Int]] = [
         [0, 1, 2], [3, 4, 5], [6, 7, 8],
@@ -206,7 +209,7 @@ struct TicTacToeView: View {
     // MARK: - Local taps
 
     private func onButtonClicked(_ idx: Int) {
-        guard board[idx].isEmpty else { return }
+        guard board[idx].isEmpty, !roundOver else { return }
 
         if isNearbyGame {
             guard roleAssigned, xToMove == amX else { return }
@@ -435,7 +438,7 @@ struct TicTacToeView: View {
         showToast(isBotGame && p == "O" ? "Bot Wins!" : "Player \(p) Wins!")
         confetti.start()
         player1StartsNext.toggle()
-        resetGame()
+        endRoundThenReset()
     }
 
     private func playerWinNearby(_ xWon: Bool) {
@@ -457,7 +460,15 @@ struct TicTacToeView: View {
         } else {
             player1StartsNext.toggle()
         }
-        resetGame()
+        if isNearbyGame { resetGame() } else { endRoundThenReset() }
+    }
+
+    // Bot and pass-and-play: leave the finished board on screen for a moment
+    // before wiping it. (Nearby resets at once - both phones must stay in
+    // lock-step on the new round.)
+    private func endRoundThenReset() {
+        roundOver = true
+        runAfterDelay(1.6) { resetGame() }
     }
 
     // Just wipes the board - does NOT swap who starts next. That's decided
@@ -465,6 +476,7 @@ struct TicTacToeView: View {
     // Reset mid-game doesn't unfairly swap the starting turn.
     private func resetGame() {
         cancelPendingCallbacks()
+        roundOver = false
         board = Array(repeating: "", count: 9)
         roundCount = 0
         if isNearbyGame {

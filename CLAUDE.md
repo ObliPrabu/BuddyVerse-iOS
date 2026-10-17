@@ -111,7 +111,8 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** qa-content (2026-10-15)
 - **Description:** Not bundled, not committed, not referenced by code, but a live-looking secret sits in the project tree.
 - **Suggested fix:** Delete the file and revoke the key (key revocation is the owner's to do).
-- **Status (2026-10-15):** **Left for the owner.** The file is not referenced by any code, not bundled and not committed, but it holds a live-looking key. Only the owner can revoke the key in the Google console; deleting the local file is also left to the owner because it cannot be undone.
+- **Status (2026-10-17):** Local file deleted at the owner's request, and `project.yml` now excludes `Resources/Secrets.plist` from the target (xcodegen had been copying it into the app bundle, so builds up to 1.6.10 (54) may have shipped the key). **Still open for the owner:** revoke the key in the Google console, since it is in any previously built IPA and in this session's logs.
+- **Earlier status (2026-10-15):** Left for the owner. The file is not referenced by any code, not bundled and not committed, but it holds a live-looking key. Only the owner can revoke the key in the Google console; deleting the local file is also left to the owner because it cannot be undone.
 
 #### ISSUE-12: Admin dashboard shows a leftover 'TEST' pill and has a stale comment
 - **Severity:** LOW
@@ -139,6 +140,20 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Description:** Two PICKER guessers ending the round in the same instant can show different outcomes locally (nothing hangs); a guest that dies within ~10 s of joining never writes `lastSeen`, so the host never judges its seat stale.
 - **Suggested fix:** Tie-break by lowest seat; write `lastSeen.<guestId>` in the join transaction (needs the live Firestore rules to allow it).
 - **Status (2026-10-15):** **Left open on purpose** - the tie is cosmetic and the join-write change touches the live protocol against rules this repo cannot see. Same as Android ISSUE-140.
+
+#### ISSUE-90: Turning off updates leaves the updatesOptIn doc
+- **Severity:** LOW
+- **Area:** content
+- **Found by:** qa-content / qa-game-logic (2026-10-17)
+- **Description:** Opt-out only clears the local flag; the Firestore doc cannot be removed without a device link and a rules change (also duplicates on re-opt-in).
+- **Status (2026-10-17):** Deferred on purpose.
+
+#### ISSUE-91: Sudoku HARD generation may be slow on some seeds (unverified)
+- **Severity:** LOW
+- **Area:** content
+- **Found by:** qa-content / qa-game-logic (2026-10-17)
+- **Description:** countSolutions has no most-constrained-cell ordering.
+- **Status (2026-10-17):** Deferred on purpose.
 
 ### Fixed
 
@@ -453,3 +468,52 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 #### ISSUE-82: Pool polish: "Father of Computers"/"longest river" wording, relationship joke
 - **Fixed by:** main agent on 2026-10-15
 - **Summary:** Qualifiers added; the gym/relationship joke removed. (Games/Trivia, Games/Jokes)
+
+#### ISSUE-83: Lobby host lost the room after 60 s in the background
+- **Severity:** MEDIUM
+- **Area:** multiplayer
+- **Found by:** /test-app fifth pass (2026-10-17)
+- **Fixed by:** main agent on 2026-10-17
+- **Summary:** handleReturnedToForeground now tears the session down only when the room is "playing"; a lobby host pasting the code into Messages keeps the room (matches Android, whose grace runs only from game screens).
+
+#### ISSUE-84: autoPublishUpdateIfNewer treated a failed read as "nothing published"
+- **Severity:** MEDIUM
+- **Area:** content
+- **Found by:** /test-app fifth pass (2026-10-17)
+- **Fixed by:** main agent on 2026-10-17
+- **Summary:** The getDocument handler now returns on error / missing doc, so an old build can no longer downgrade appConfig/latest.
+
+#### ISSUE-85: Weak riddles and filler jokes
+- **Severity:** MEDIUM
+- **Area:** content
+- **Found by:** /test-app fifth pass (2026-10-17)
+- **Fixed by:** main agent on 2026-10-17
+- **Summary:** Removed the nonsense "dog" riddle, the overlapping cloud/deck-of-cards/legs riddles, "jumps higher than a house" and the five-letter Stone riddle; added milk-truck, tongue and 13-hearts riddles. Removed seven template jokes, fixed the penguin punchline, added six jokes. Kangaroo/hummus trivia distractors tidied.
+
+#### ISSUE-86: Math Sprint rejected answers with a stray space
+- **Severity:** MEDIUM
+- **Area:** game-logic
+- **Found by:** /test-app fifth pass (2026-10-17)
+- **Fixed by:** main agent on 2026-10-17
+- **Summary:** Answer is trimmed before Int().
+
+#### ISSUE-87: Tic-Tac-Toe wiped the board on the winning move
+- **Severity:** LOW
+- **Area:** game-logic
+- **Found by:** /test-app fifth pass (2026-10-17)
+- **Fixed by:** main agent on 2026-10-17
+- **Summary:** Bot and pass-and-play now keep the finished board for 1.6 s (input locked via roundOver) before resetting; nearby still resets at once to stay in lock-step.
+
+#### ISSUE-88: Volcano Climb needle speed unbounded
+- **Severity:** LOW
+- **Area:** game-logic
+- **Found by:** /test-app fifth pass (2026-10-17)
+- **Fixed by:** main agent on 2026-10-17
+- **Summary:** needleStep is capped at 40% of the safe-zone width.
+
+#### ISSUE-89: Small content/admin fixes
+- **Severity:** LOW
+- **Area:** content
+- **Found by:** /test-app fifth pass (2026-10-17)
+- **Fixed by:** main agent on 2026-10-17
+- **Summary:** Feedback Submit trims newlines; admin counts show "50+" at the query limit; no dangling dash in "Currently live"; name gate rejects digits; Conversation card copy no longer promises other people's answers; HangmanModeChoice ignores a late word-mode callback unless it is still the top screen.

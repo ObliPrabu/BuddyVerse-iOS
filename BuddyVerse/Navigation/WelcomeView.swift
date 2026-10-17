@@ -44,7 +44,7 @@ struct WelcomeView: View {
         ("😄", "Jokes", "Tell a quick joke to get a laugh and break the silence.", "JOKES"),
         ("🤔", "Riddles", "Stump a new friend, then enjoy the \u{201C}aha!\u{201D} together.", "RIDDLES"),
         ("🧠", "Trivia", "Surprising facts you can share \u{2014} and maybe change a mind.", "TRIVIA"),
-        ("💬", "Conversation Starters", "Pick a side, say why. See what everyone else thinks.", "CONVERSATION")
+        ("💬", "Conversation Starters", "Fun questions to spark a chat. Answer, then pass it on.", "CONVERSATION")
     ]
 
     private let freeGames: [(emoji: String, title: String, subtitle: String, gameType: String)] = [

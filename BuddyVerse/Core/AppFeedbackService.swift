@@ -149,8 +149,12 @@ enum AppFeedbackService {
     static func autoPublishUpdateIfNewer() {
         guard let installedVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else { return }
         let appConfigDoc = db.collection("appConfig").document("latest")
-        appConfigDoc.getDocument { doc, _ in
-            let publishedVersion = doc?.get("versionName") as? String
+        appConfigDoc.getDocument { doc, error in
+            // A failed read (offline, permissions) must never look like
+            // "nothing published", or an older build could downgrade
+            // everyone's banner and wipe the what's-new text.
+            guard error == nil, let doc = doc else { return }
+            let publishedVersion = doc.exists ? doc.get("versionName") as? String : nil
             if publishedVersion == nil || isVersionNewer(installedVersion, publishedVersion!) {
                 appConfigDoc.setData([
                     "versionName": installedVersion,

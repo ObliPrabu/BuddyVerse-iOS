@@ -64,8 +64,8 @@ struct EnterNameView: View {
                     }
                     // Only a first name is wanted - never an email or a full
                     // name (the copy above promises that).
-                    guard !trimmed.contains("@"), trimmed.count <= 30 else {
-                        alertText = "Just a first name, please - no email or full name."
+                    guard !trimmed.contains("@"), trimmed.count <= 30, !trimmed.contains(where: { $0.isNumber }) else {
+                        alertText = "Just a first name, please - no email, numbers or full name."
                         showEmptyNameAlert = true
                         return
                     }

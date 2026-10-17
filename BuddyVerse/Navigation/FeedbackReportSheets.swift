@@ -52,11 +52,11 @@ struct FeedbackSheetView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(message.trimmingCharacters(in: .whitespaces).isEmpty ? Color.gray : Color(hex: 0x4CAF50))
+                            .background(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray : Color(hex: 0x4CAF50))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                     .buttonStyle(.plain)
-                    .disabled(message.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .padding(.bottom, 12)
 
                     Button("Cancel") { presentationMode.wrappedValue.dismiss() }

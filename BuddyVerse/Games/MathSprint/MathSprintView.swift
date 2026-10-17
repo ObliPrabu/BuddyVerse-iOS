@@ -167,7 +167,7 @@ struct MathSprintView: View {
 
     private func checkAnswer() {
         guard !gameOver else { return }
-        guard let userAnswer = Int(answerText), userAnswer == correctAnswer else {
+        guard let userAnswer = Int(answerText.trimmingCharacters(in: .whitespacesAndNewlines)), userAnswer == correctAnswer else {
             showToast("Wrong! Try again.")
             return
         }

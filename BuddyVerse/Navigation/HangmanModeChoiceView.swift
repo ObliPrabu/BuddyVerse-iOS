@@ -115,6 +115,9 @@ struct HangmanModeChoiceView: View {
             InternetConnectionManager.shared.chooseWordMode(wordMode)
         }
         InternetConnectionManager.shared.clearWordModeObserver()
+        // A late word-mode message must not replace some other screen (e.g.
+        // the "friend left" screen the disconnect guard already pushed).
+        guard case .hangmanModeChoice = router.path.last else { return }
         var next = selection
         next.wordMode = wordMode
         router.replaceTop(with: .instructionsChoice(next))

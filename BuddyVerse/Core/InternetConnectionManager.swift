@@ -794,6 +794,10 @@ final class InternetConnectionManager: @unchecked Sendable {
     private func handleReturnedToForeground() {
         defer { backgroundedAt = nil }
         guard let left = backgroundedAt, roomCode != nil, connected else { return }
+        // Only a running game gets the grace cut-off. In the lobby a host
+        // routinely leaves to paste the room code into Messages/WhatsApp, so
+        // let the heartbeat re-sync instead of deleting the room under them.
+        guard latestStatus == "playing" else { return }
         if Self.monotonicNow() - left > Self.backgroundGrace {
             let callback = onDisconnected
             stop()

@@ -480,7 +480,7 @@ struct AdminDashboardView: View {
                 return
             }
             let message = doc.get("message") as? String ?? ""
-            runOnMain { currentlyPublishedText = "Currently live: v\(version) — \(message)" }
+            runOnMain { currentlyPublishedText = message.isEmpty ? "Currently live: v\(version)" : "Currently live: v\(version) — \(message)" }
         }
     }
 
@@ -517,7 +517,7 @@ struct AdminDashboardView: View {
                 let docs = snapshot?.documents ?? []
                 let names = docs.map { displayFirstName($0) }
                 runOnMain {
-                    updateSubscribersCountText = "\(names.count) subscriber\(names.count == 1 ? "" : "s") (most recent 50 shown below)"
+                    updateSubscribersCountText = "\(names.count >= 50 ? "50+" : "\(names.count)") subscriber\(names.count == 1 ? "" : "s") (most recent 50 shown below)"
                     updateSubscribers = names
                 }
             }
@@ -531,7 +531,7 @@ struct AdminDashboardView: View {
                 let docs = snapshot?.documents ?? []
                 let names = docs.map { displayFirstName($0) }
                 runOnMain {
-                    appUsersCountText = "\(names.count) app user\(names.count == 1 ? "" : "s") (most recent 50 shown below)"
+                    appUsersCountText = "\(names.count >= 50 ? "50+" : "\(names.count)") app user\(names.count == 1 ? "" : "s") (most recent 50 shown below)"
                     appUsersList = names
                 }
             }
