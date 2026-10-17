@@ -410,12 +410,12 @@ struct WelcomeView: View {
     }
 
     // Mirrors WelcomeActivity.animateCountUp: counts 0 -> target over 1.5s with
-    // a decelerate (ease-out) curve, same 18 hardcoded "Original games" total.
+    // a decelerate (ease-out) curve, same 22 hardcoded "Original games" total.
     private func animateStats() {
         animateCountUp(target: 90) { statJokes = $0 }
         animateCountUp(target: 90) { statRiddles = $0 }
         animateCountUp(target: 100) { statTrivia = $0 }
-        animateCountUp(target: 18) { statGames = $0 }
+        animateCountUp(target: 22) { statGames = $0 }
     }
 
     // Only bothers checking Firestore if this device has actually opted in

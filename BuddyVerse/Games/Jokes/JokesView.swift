@@ -284,7 +284,12 @@ struct JokesView: View {
 
     private func showNextJoke() {
         if remaining.isEmpty {
+            let justShown = current.setup
             remaining = pool.shuffled()
+            // The last element is shown next - never repeat the one just shown.
+            if remaining.count > 1, remaining.last?.setup == justShown {
+                remaining.swapAt(remaining.count - 1, 0)
+            }
         }
         current = remaining.removeLast()
         showPunchline = false

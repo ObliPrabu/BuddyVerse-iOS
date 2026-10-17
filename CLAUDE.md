@@ -566,3 +566,17 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** /test-app sixth pass (2026-10-17)
 - **Fixed by:** main agent on 2026-10-17
 - **Summary:** No confetti when the bot wins; Jungle Run timer follows the current screen size; removed 34 no-op navigationBar modifiers; TicTacToe comment corrected; Trek local turn clears lastSkippedId.
+
+#### ISSUE-99: Ghost seat when a guest leaves in the same snapshot window as Start Game
+- **Severity:** MEDIUM
+- **Area:** multiplayer
+- **Found by:** /test-app seventh pass, Android findings ported (2026-10-17)
+- **Fixed by:** main agent on 2026-10-17
+- **Summary:** InternetConnectionManager treats a startedPlayers seat missing from players, seen as the room flips to playing, as a disconnect (ghostSeat). Ported from Android.
+
+#### ISSUE-100: Conversation answer lost on Back/Home; reshuffle repeats last item; '|||' in answers
+- **Severity:** LOW
+- **Area:** content
+- **Found by:** /test-app seventh pass, Android findings ported (2026-10-17)
+- **Fixed by:** main agent on 2026-10-17
+- **Summary:** Back/Home save the typed answer; Jokes and Conversation swap the first item after a reshuffle if it repeats the last one shown; '|||' is replaced in saved answers. Ported from Android.

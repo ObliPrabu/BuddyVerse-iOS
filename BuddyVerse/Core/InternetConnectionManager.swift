@@ -505,7 +505,14 @@ final class InternetConnectionManager: @unchecked Sendable {
                 self.onPlayersChanged?(players)
             }
 
-            if (someoneLeftMidGame || evicted) && self.connected {
+            // A guest who left in the same snapshot window as "Start Game"
+            // never shows up as a change in a "playing" room, yet the frozen
+            // roster still holds their seat - nobody could ever take that
+            // turn. Catch it as the room flips to "playing".
+            let ghostSeat = status == "playing" && self.latestStatus != "playing" &&
+                (self.latestStartedPlayers ?? []).contains { started in !players.contains { $0.id == started.id } }
+
+            if (someoneLeftMidGame || evicted || ghostSeat) && self.connected {
                 self.latestStatus = status
                 self.connected = false
                 self.onDisconnected?()

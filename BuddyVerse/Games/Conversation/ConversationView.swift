@@ -51,6 +51,7 @@ struct ConversationView: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 10) {
                     Button {
+                        saveTypedAnswer()
                         router.pop()
                     } label: {
                         Text("Back")
@@ -64,6 +65,7 @@ struct ConversationView: View {
                     .buttonStyle(.plain)
 
                     Button {
+                        saveTypedAnswer()
                         router.popToRoot()
                     } label: {
                         Text("Home")
@@ -203,6 +205,12 @@ struct ConversationView: View {
         .sheet(isPresented: $showReport) { ReportSheetView(gameType: "CONVERSATION") }
     }
 
+    // Back/Home also keep a typed-but-unsent answer, same as Next does.
+    private func saveTypedAnswer() {
+        let typed = answerText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !typed.isEmpty { saveAnswer(typed, for: current) }
+    }
+
     private func advanceToNextQuestion() {
         // Save whatever was just typed as a REAL answer to the question
         // that's about to disappear, before moving on.
@@ -220,7 +228,12 @@ struct ConversationView: View {
         // once the pile runs out, it reshuffles a fresh pile so the button
         // keeps working.
         if remaining.isEmpty {
+            let justShown = current
             remaining = pool.shuffled()
+            // The last element is shown next - never repeat the one just shown.
+            if remaining.count > 1, remaining.last == justShown {
+                remaining.swapAt(remaining.count - 1, 0)
+            }
         }
         current = remaining.removeLast()
         answerText = ""
@@ -233,7 +246,7 @@ struct ConversationView: View {
         let key = Self.defaultsPrefix + question
         let existing = UserDefaults.standard.string(forKey: key) ?? ""
         var answers = existing.isEmpty ? [] : existing.components(separatedBy: "|||")
-        answers.append(answer)
+        answers.append(answer.replacingOccurrences(of: "|||", with: " "))
         // Keep only the most recent 20 so this doesn't grow forever.
         let trimmed = answers.count > 20 ? Array(answers.suffix(20)) : answers
         UserDefaults.standard.set(trimmed.joined(separator: "|||"), forKey: key)
