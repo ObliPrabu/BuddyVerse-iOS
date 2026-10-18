@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// First-launch Terms and Conditions gate: shows TermsText and requires all
-/// three checkmarks before "I Agree" works. Mirrors Android's TermsActivity.
+/// two checkmarks before "I Agree" works. Mirrors Android's TermsActivity.
 /// Rendered by RootView as a full-screen overlay (like EnterNameView) until
 /// `accepted_terms` is saved; no Back/Skip.
 struct TermsView: View {
@@ -11,14 +11,13 @@ struct TermsView: View {
     @Environment(\.colorScheme) private var systemScheme
     @State private var agreeTerms = false
     @State private var readPrivacy = false
-    @State private var ageOk = false
 
     private var isDark: Bool { theme.isDarkActive(systemScheme: systemScheme) }
     private var screenBackground: Color { isDark ? Color(hex: 0x121212) : .white }
     private var textPrimary: Color { isDark ? Color(hex: 0xF5F5F5) : Color(hex: 0x333333) }
     private var textSecondary: Color { isDark ? Color(hex: 0xCCCCCC) : Color(hex: 0x666666) }
     private var textMuted: Color { Color(hex: 0x999999) }
-    private var allChecked: Bool { agreeTerms && readPrivacy && ageOk }
+    private var allChecked: Bool { agreeTerms && readPrivacy }
 
     var body: some View {
         ZStack {
@@ -44,13 +43,23 @@ struct TermsView: View {
 
                 VStack(alignment: .leading, spacing: 10) {
                     checkRow("I have read and agree to the Terms and Conditions", isOn: $agreeTerms)
-                    checkRow("I have read the Privacy Policy", isOn: $readPrivacy)
-                    if let url = URL(string: TermsText.privacyURL) {
-                        Link("Open the Privacy Policy", destination: url)
-                            .font(.system(size: 14))
-                            .padding(.leading, 34)
+                    HStack(alignment: .center, spacing: 10) {
+                        Button { readPrivacy.toggle() } label: {
+                            Image(systemName: readPrivacy ? "checkmark.square.fill" : "square")
+                                .font(.system(size: 24))
+                                .foregroundColor(readPrivacy ? Color(hex: 0x2196F3) : textMuted)
+                        }
+                        .buttonStyle(.plain)
+                        if let url = URL(string: TermsText.privacyURL) {
+                            Link(destination: url) {
+                                Text("I have read the Privacy Policy")
+                                    .font(.system(size: 15))
+                                    .underline()
+                                    .foregroundColor(Color(hex: 0x2196F3))
+                            }
+                        }
+                        Spacer(minLength: 0)
                     }
-                    checkRow("I am 13 or older, or I have a parent or guardian's permission", isOn: $ageOk)
                 }
                 .padding(.vertical, 12)
 
