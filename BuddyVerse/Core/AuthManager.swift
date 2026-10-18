@@ -48,6 +48,5 @@ enum AuthManager {
 
     static func logOut() {
         try? Auth.auth().signOut()
-        SubscriptionManager.shared.clearCache()
     }
 }

@@ -4,8 +4,7 @@ import FirebaseFirestore
 /// The screen WelcomeView's "🛠️ Admin Dashboard" link opens - only ever
 /// reachable while signed in as the one designated admin account
 /// (AuthManager.isAdmin()). Purely operational stats (play counts, feedback/
-/// reports) - no revenue log, since the Stripe paywall is switched off (see
-/// WelcomeView's startPremiumFlow equivalent).
+/// reports) - there is no payment system in the app.
 struct AdminDashboardView: View {
     @EnvironmentObject private var router: Router
 

@@ -27,21 +27,6 @@ final class Router: ObservableObject {
         if path.isEmpty { path.append(route) } else { path[path.count - 1] = route }
     }
 
-    /// Drops the premium Lobby entry AND every screen above it (the Account
-    /// and payment screens a purchase passes through), then puts `route` in
-    /// their place. A purchase or entitlement hand-off used to replace only
-    /// the topmost screen, which left the Lobby sitting underneath - so
-    /// pressing Back from the game picker showed the "Unlock Premium Access"
-    /// paywall again to someone who had already paid.
-    func replaceLobby(with route: AppRoute) {
-        let lobbyIndex = path.lastIndex(where: { if case .lobby = $0 { return true } else { return false } })
-        if let lobbyIndex {
-            path.removeSubrange(lobbyIndex...)
-            path.append(route)
-        } else {
-            replaceTop(with: route)
-        }
-    }
 }
 
 struct RootView: View {
@@ -54,7 +39,9 @@ struct RootView: View {
     // is already fully live the whole time, so once `hasEnteredName` flips
     // to true it's simply revealed - no relaunch, no blank-state risk.
     @State private var hasEnteredName = UserDefaults.standard.bool(forKey: "has_entered_name")
+    @State private var acceptedTerms = UserDefaults.standard.bool(forKey: "accepted_terms")
     @State private var gateShowsUpdatesStep = false
+    private var gateDone: Bool { hasEnteredName && acceptedTerms }
 
     // Widget/URL-scheme deep links (buddyverse://daily/...) land here via
     // DeepLinkManager rather than directly on `router`, since Router is
@@ -64,9 +51,9 @@ struct RootView: View {
     var body: some View {
         ZStack {
             mainContent
-                .allowsHitTesting(hasEnteredName)
+                .allowsHitTesting(gateDone)
 
-            if !hasEnteredName {
+            if !gateDone {
                 gateOverlay
                     .zIndex(1000)
             }
@@ -77,15 +64,13 @@ struct RootView: View {
         // the gate is done; one that landed before this view was observing
         // (cold launch) is picked up on appear.
         .onChange(of: hasEnteredName) { _ in consumePendingDeepLink() }
+        .onChange(of: acceptedTerms) { _ in consumePendingDeepLink() }
         .onAppear { consumePendingDeepLink() }
     }
 
     private func consumePendingDeepLink() {
-        guard hasEnteredName, let route = deepLink.pendingRoute else { return }
+        guard gateDone, let route = deepLink.pendingRoute else { return }
         deepLink.pendingRoute = nil
-        // Mid-checkout: dropping the Stripe screen would abandon the
-        // payment, so the widget link is simply ignored here.
-        if case .paymentWebView? = router.path.last { return }
         // Replacing the path drops every screen without running its Back
         // handler, so a live room has to be ended here or the other players
         // hang until the heartbeat times out (same leak ISSUE-43 closed for
@@ -110,7 +95,9 @@ struct RootView: View {
 
     @ViewBuilder
     private var gateOverlay: some View {
-        if gateShowsUpdatesStep {
+        if !acceptedTerms {
+            TermsView(onAccept: { acceptedTerms = true })
+        } else if gateShowsUpdatesStep {
             GetUpdatesView(onBack: { hasEnteredName = true })
         } else {
             EnterNameView(onContinue: { gateShowsUpdatesStep = true })
@@ -171,30 +158,8 @@ struct RootView: View {
             FriendTypeChoiceView(gameType: gameType)
         case .botDifficulty(let gameType):
             BotDifficultyView(gameType: gameType)
-        case .lobby(let gameType):
-            LobbyView(gameType: gameType)
         case .comingSoon(let gameName):
             ComingSoonView(gameName: gameName)
-        case .account(let gameType, let premiumSource):
-            AccountView(gameType: gameType, premiumSource: premiumSource)
-        case .paymentWebView(let gameType, let premiumSource):
-            // Real internet multiplayer is free and never reaches this
-            // screen (see FriendTypeChoiceView) - every payment that lands
-            // here is either a one-time single-game unlock or a subscription
-            // purchase, both of which end the same way: straight into the
-            // game the player originally wanted, same as onePhoneSelection
-            // for free games.
-            PaymentWebView(gameType: gameType, premiumSource: premiumSource) { selection in
-                @MainActor func proceedToGame() {
-                    router.replaceLobby(with: .onePhoneSelection(gameType: selection.gameType))
-                }
-                switch premiumSource {
-                case "SUB_MONTHLY": SubscriptionManager.shared.markSubscribed("monthly") { proceedToGame() }
-                case "SUB_YEARLY": SubscriptionManager.shared.markSubscribed("yearly") { proceedToGame() }
-                case "EXPEDITION": SubscriptionManager.shared.markExpeditionUnlocked(gameType: selection.gameType) { proceedToGame() }
-                default: proceedToGame()
-                }
-            }
         case .maxPlayers(let gameType):
             MaxPlayersView(gameType: gameType)
         case .onlineLobby(let gameType, let maxPlayers):

@@ -1,9 +1,7 @@
 import SwiftUI
 
 /// A plain "log into an existing account" screen, reachable straight from
-/// WelcomeView - unlike AccountView (which only ever appears mid-purchase and
-/// jumps into PaymentWebView on success), this has nothing to hand off to
-/// afterward, so success just pops back to whatever screen pushed it.
+/// WelcomeView. Success just pops back to whatever screen pushed it.
 /// Signing in here is what makes WelcomeView's admin dashboard entry point
 /// appear for the one designated admin account (see AuthManager.isAdmin()) -
 /// there's no separate "admin login," it's the same account system every
@@ -124,11 +122,6 @@ struct LoginView: View {
         AuthManager.logIn(email: trimmedEmail, password: password) { success, error in
             isSubmitting = false
             if success {
-                // Without this, a premium-access check made earlier in this
-                // app session (even just opening the app while logged out)
-                // stays cached as "not entitled" for the rest of the
-                // session - logging in would silently never un-stick it.
-                SubscriptionManager.shared.clearCache()
                 router.pop()
             } else {
                 errorMessage = error ?? "Something went wrong. Try again."

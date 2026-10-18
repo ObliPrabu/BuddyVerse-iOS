@@ -1,8 +1,7 @@
 import SwiftUI
 import WebKit
 
-/// A WKWebView wrapper shared by MainWebView ("Try the Website") and
-/// PaymentWebView (Stripe checkout). Mirrors both Android WebView setups:
+/// A WKWebView wrapper used by MainWebView ("Try the Website"). Mirrors the Android WebView setup:
 /// navigation is restricted to a set of trusted hosts (everything else opens
 /// in the system browser instead, matching MainActivity's
 /// shouldOverrideUrlLoading fix), and the user-agent has the embedded-WebView

@@ -277,7 +277,7 @@ struct WelcomeView: View {
                     if game.comingSoon {
                         router.push(.comingSoon(gameName: game.title.replacingOccurrences(of: " (Coming Soon)", with: "")))
                     } else {
-                        router.push(.lobby(gameType: game.gameType))
+                        router.push(.onePhoneSelection(gameType: game.gameType))
                     }
                 }
                 .padding(.bottom, index == premiumGames.count - 1 ? 20 : 10)
