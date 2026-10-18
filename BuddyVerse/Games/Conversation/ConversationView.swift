@@ -184,7 +184,7 @@ struct ConversationView: View {
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(10)
                         } else {
-                            ForEach(savedAnswers, id: \.self) { answer in
+                            ForEach(Array(savedAnswers.enumerated()), id: \.offset) { _, answer in
                                 Text("\u{1F4AC} \(answer)")
                                     .font(.system(size: 15))
                                     .foregroundColor(.white)

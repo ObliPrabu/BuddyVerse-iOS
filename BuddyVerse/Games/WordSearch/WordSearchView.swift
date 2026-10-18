@@ -152,8 +152,8 @@ struct WordSearchView: View {
                 let steps = max(abs(dr), abs(dc))
                 if steps > 1 {
                     for step in 1..<steps {
-                        let r = last.row + Int((Double(dr) * Double(step) / Double(steps)).rounded())
-                        let c = last.col + Int((Double(dc) * Double(step) / Double(steps)).rounded())
+                        let r = last.row + Int((Double(dr) * Double(step) / Double(steps) + 0.5).rounded(.down))
+                        let c = last.col + Int((Double(dc) * Double(step) / Double(steps) + 0.5).rounded(.down))
                         let mid = GridCell(row: r, col: c)
                         if !selectedCells.contains(mid) { selectedCells.append(mid) }
                     }

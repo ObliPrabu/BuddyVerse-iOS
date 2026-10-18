@@ -177,11 +177,12 @@ struct MathSprintView: View {
 
     private func startTimer() {
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+        // Count against a wall-clock end time so the clock keeps running (like
+        // Android's CountDownTimer) if the app is backgrounded.
+        let endDate = Date().addingTimeInterval(TimeInterval(timeLeft))
+        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
             runOnMain {
-                if timeLeft > 0 {
-                    timeLeft -= 1
-                }
+                timeLeft = max(0, Int(ceil(endDate.timeIntervalSinceNow)))
                 if timeLeft <= 0 {
                     timer?.invalidate()
                     timer = nil
