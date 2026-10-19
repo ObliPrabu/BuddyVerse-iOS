@@ -41,6 +41,7 @@ struct RootView: View {
     @State private var hasEnteredName = UserDefaults.standard.bool(forKey: "has_entered_name")
     @State private var acceptedTerms = UserDefaults.standard.bool(forKey: "accepted_terms")
     @State private var gateShowsUpdatesStep = false
+    @State private var storeUpdate: StoreUpdate?
     private var gateDone: Bool { hasEnteredName && acceptedTerms }
 
     // Widget/URL-scheme deep links (buddyverse://daily/...) land here via
@@ -65,7 +66,18 @@ struct RootView: View {
         // (cold launch) is picked up on appear.
         .onChange(of: hasEnteredName) { _ in consumePendingDeepLink() }
         .onChange(of: acceptedTerms) { _ in consumePendingDeepLink() }
-        .onAppear { consumePendingDeepLink() }
+        .onAppear {
+            consumePendingDeepLink()
+            UpdateChecker.check { storeUpdate = $0 }
+        }
+        .alert(item: $storeUpdate) { update in
+            Alert(
+                title: Text("Update available"),
+                message: Text("BuddyVerse \(update.version) is out. Update to get the newest games and fixes."),
+                primaryButton: .default(Text("Update")) { UIApplication.shared.open(update.url) },
+                secondaryButton: .cancel(Text("Later"))
+            )
+        }
     }
 
     private func consumePendingDeepLink() {

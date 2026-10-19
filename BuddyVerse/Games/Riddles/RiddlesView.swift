@@ -512,5 +512,14 @@ struct RiddlesView: View {
         Riddle(question: "What is black and white and read all over?", answer: "A newspaper"),
         Riddle(question: "What has 13 hearts but no other organs?", answer: "A deck of cards"),
         Riddle(question: "What has a thumb but no other fingers?", answer: "A mitten"),
+        Riddle(question: "What is always in front of you but can’t be seen?", answer: "The future"),
+        Riddle(question: "What has many keys but can’t open a single lock?", answer: "A piano"),
+        Riddle(question: "What is black when it’s clean and white when it’s dirty?", answer: "A chalkboard"),
+        Riddle(question: "I’m tall when I’m young, and I’m short when I’m old. What am I?", answer: "A candle"),
+        Riddle(question: "What has a heart that doesn’t beat?", answer: "An artichoke"),
+        Riddle(question: "I follow you all day long, but when the night comes, I’m gone. What am I?", answer: "Your shadow"),
+        Riddle(question: "If you drop me I’m sure to crack, but give me a smile and I’ll always smile back. What am I?", answer: "A mirror"),
+        Riddle(question: "I’m light as a feather, yet the strongest person can’t hold me for five minutes. What am I?", answer: "Breath"),
+        Riddle(question: "I have keys but no locks. I have a space but no room. You can enter, but can’t leave. What am I?", answer: "A keyboard"),
     ]
 }

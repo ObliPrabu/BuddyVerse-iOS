@@ -414,5 +414,13 @@ struct JokesView: View {
         "Why did the bike get a hall pass? It had to wheel something to class!",
         "Why did the umbrella get a promotion? It was outstanding in the rain!",
         "Why can't a leopard hide? Because he's always spotted!",
+        "Why can't you give Elsa a balloon? Because she will let it go.",
+        "What do you call a bear with no teeth? A gummy bear!",
+        "What do you call a fish with no eyes? Fsh.",
+        "What do you call a cow with two legs? Lean beef.",
+        "What do you call a dog in the winter? A chili dog.",
+        "Why did the boy bring a ladder to school? He wanted to go to high school.",
+        "Why did the boy bring a flashlight to school? He wanted to be bright.",
+        "What do you call a fake story? A tall tale.",
     ]
 }
