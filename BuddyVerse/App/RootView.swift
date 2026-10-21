@@ -42,6 +42,7 @@ struct RootView: View {
     @State private var acceptedTerms = UserDefaults.standard.bool(forKey: "accepted_terms")
     @State private var gateShowsUpdatesStep = false
     @State private var storeUpdate: StoreUpdate?
+    @State private var updateChecked = false
     private var gateDone: Bool { hasEnteredName && acceptedTerms }
 
     // Widget/URL-scheme deep links (buddyverse://daily/...) land here via
@@ -68,15 +69,30 @@ struct RootView: View {
         .onChange(of: acceptedTerms) { _ in consumePendingDeepLink() }
         .onAppear {
             consumePendingDeepLink()
-            UpdateChecker.check { storeUpdate = $0 }
+            checkStoreUpdate()
         }
+        .onChange(of: gateDone) { _ in checkStoreUpdate() }
         .alert(item: $storeUpdate) { update in
             Alert(
                 title: Text("Update available"),
                 message: Text("BuddyVerse \(update.version) is out. Update to get the newest games and fixes."),
                 primaryButton: .default(Text("Update")) { UIApplication.shared.open(update.url) },
-                secondaryButton: .cancel(Text("Later"))
+                secondaryButton: .cancel(Text("Later")) { UserDefaults.standard.set(update.version, forKey: "dismissed_update_version") }
             )
+        }
+    }
+
+    /// Asks the App Store about a newer version, but only once the first-run
+    /// gate is done (never over the Terms/name screens) and only once per
+    /// launch and per version (a "Later" tap is remembered).
+    private func checkStoreUpdate() {
+        guard gateDone, !updateChecked else { return }
+        updateChecked = true
+        UpdateChecker.check { update in
+            guard let update = update else { return }
+            let key = "dismissed_update_version"
+            if UserDefaults.standard.string(forKey: key) == update.version { return }
+            storeUpdate = update
         }
     }
 

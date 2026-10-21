@@ -574,6 +574,5 @@ struct TriviaView: View {
         Question(text: "What is the opposite direction of north?", options: ["East", "West", "South", "Up"], correctAnswer: "South"),
         Question(text: "What is the largest land animal?", options: ["Rhino", "Hippo", "African Elephant", "Giraffe"], correctAnswer: "African Elephant"),
         Question(text: "Which two colors mix to make green?", options: ["Red and blue", "Blue and yellow", "Red and yellow", "Black and white"], correctAnswer: "Blue and yellow"),
-        Question(text: "How many bones does a shark have?", options: ["0", "10", "20", "50"], correctAnswer: "0"),
     ]
 }
