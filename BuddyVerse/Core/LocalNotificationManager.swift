@@ -13,6 +13,25 @@ final class LocalNotificationManager: NSObject, UNUserNotificationCenterDelegate
         UNUserNotificationCenter.current().delegate = self
     }
 
+    func notifyNewFeedback(feedback: Int, reports: Int) {
+        var parts: [String] = []
+        if feedback > 0 { parts.append("\(feedback) new feedback") }
+        if reports > 0 { parts.append("\(reports) new \(reports == 1 ? "report" : "reports")") }
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            guard granted else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "BuddyVerse"
+            content.body = parts.joined(separator: " and ")
+            content.sound = .default
+            center.add(UNNotificationRequest(
+                identifier: UUID().uuidString,
+                content: content,
+                trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            ))
+        }
+    }
+
     func notifyVersionPublished(version: String, message: String) {
         let center = UNUserNotificationCenter.current()
         center.requestAuthorization(options: [.alert, .sound]) { granted, _ in

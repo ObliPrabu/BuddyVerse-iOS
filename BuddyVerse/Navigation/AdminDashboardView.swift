@@ -95,6 +95,7 @@ struct AdminDashboardView: View {
             }
             previousLastViewed = AdminNotificationTracker.lastViewedAt()
             AdminNotificationTracker.markViewedNow()
+            AdminNotificationTracker.markNotifiedUpTo(millis: Date().timeIntervalSince1970 * 1000)
             loadPlayCounts()
             loadFeedback()
             loadReports()

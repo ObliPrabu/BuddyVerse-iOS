@@ -25,4 +25,24 @@ enum AdminNotificationTracker {
     static func markViewedNow() {
         UserDefaults.standard.set(Date().timeIntervalSince1970 * 1000, forKey: key)
     }
+
+    private static let notifiedKey = "admin_notifications_last_notified_millis"
+
+    /// Newest feedback/report time the admin has already been told about
+    /// (seeded to "now" the first time, like lastViewedAt).
+    static func lastNotifiedAt() -> Timestamp {
+        let defaults = UserDefaults.standard
+        var millis = defaults.double(forKey: notifiedKey)
+        if millis == 0 {
+            millis = Date().timeIntervalSince1970 * 1000
+            defaults.set(millis, forKey: notifiedKey)
+        }
+        return Timestamp(seconds: Int64(millis / 1000), nanoseconds: Int32((millis.truncatingRemainder(dividingBy: 1000)) * 1_000_000))
+    }
+
+    static func markNotifiedUpTo(millis: Double) {
+        if millis > UserDefaults.standard.double(forKey: notifiedKey) {
+            UserDefaults.standard.set(millis, forKey: notifiedKey)
+        }
+    }
 }

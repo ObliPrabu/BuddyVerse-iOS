@@ -39,6 +39,7 @@ struct BuddyVerseApp: App {
             case .active:
                 MusicManager.shared.onAppForegrounded()
                 LiveActivityManager.end()
+                AdminFeedbackChecker.checkNow()
             case .background:
                 MusicManager.shared.onAppBackgrounded()
                 LiveActivityManager.start()
