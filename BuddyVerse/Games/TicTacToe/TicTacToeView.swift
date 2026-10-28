@@ -290,13 +290,18 @@ struct TicTacToeView: View {
     // since mutating @State on every one of the (small but nontrivial)
     // number of recursive steps would trigger a SwiftUI re-render each time.
     private func getBestMove() -> Int {
-        var scratch = board
+        // The search runs over plain Ints (0 empty, 1 = X, 2 = O) rather than
+        // the String board: it visits hundreds of thousands of positions when
+        // the bot opens a round, and String comparisons on every node made the
+        // main thread hitch on older (A9/A10-era) devices. Same results as
+        // before, just far cheaper per node.
+        var scratch = board.map { $0 == "X" ? 1 : ($0 == "O" ? 2 : 0) }
         var bestScore = Int.min
         var bestMove = -1
-        for i in 0..<9 where scratch[i].isEmpty {
-            scratch[i] = "O"
+        for i in 0..<9 where scratch[i] == 0 {
+            scratch[i] = 2
             let score = minimax(&scratch, depth: 1, isMaximizing: false)
-            scratch[i] = ""
+            scratch[i] = 0
             if score > bestScore {
                 bestScore = score
                 bestMove = i
@@ -305,32 +310,40 @@ struct TicTacToeView: View {
         return bestMove
     }
 
-    // Standard minimax: the bot (O) picks the move that maximizes this
-    // score, the human (X) is assumed to play the move that minimizes it.
+    // Standard minimax: the bot (O = 2) picks the move that maximizes this
+    // score, the human (X = 1) is assumed to play the move that minimizes it.
     // Scores are offset by depth so a win found sooner scores higher than
     // one found later.
-    private func minimax(_ cells: inout [String], depth: Int, isMaximizing: Bool) -> Int {
-        if checkWinFor(cells, "O") { return 10 - depth }
-        if checkWinFor(cells, "X") { return depth - 10 }
-        if !cells.contains("") { return 0 } // draw
+    private func minimax(_ cells: inout [Int], depth: Int, isMaximizing: Bool) -> Int {
+        if intWins(cells, 2) { return 10 - depth }
+        if intWins(cells, 1) { return depth - 10 }
+        if !cells.contains(0) { return 0 } // draw
 
         if isMaximizing {
             var best = Int.min
-            for i in 0..<9 where cells[i].isEmpty {
-                cells[i] = "O"
+            for i in 0..<9 where cells[i] == 0 {
+                cells[i] = 2
                 best = max(best, minimax(&cells, depth: depth + 1, isMaximizing: false))
-                cells[i] = ""
+                cells[i] = 0
             }
             return best
         } else {
             var best = Int.max
-            for i in 0..<9 where cells[i].isEmpty {
-                cells[i] = "X"
+            for i in 0..<9 where cells[i] == 0 {
+                cells[i] = 1
                 best = min(best, minimax(&cells, depth: depth + 1, isMaximizing: true))
-                cells[i] = ""
+                cells[i] = 0
             }
             return best
         }
+    }
+
+    // Win check for the Int-board search above, using the same line table.
+    private func intWins(_ cells: [Int], _ player: Int) -> Bool {
+        for line in Self.winLines {
+            if cells[line[0]] == player && cells[line[1]] == player && cells[line[2]] == player { return true }
+        }
+        return false
     }
 
     private func checkWinFor(_ cells: [String], _ player: String) -> Bool {

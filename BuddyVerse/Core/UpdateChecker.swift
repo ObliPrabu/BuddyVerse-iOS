@@ -11,7 +11,8 @@ struct StoreUpdate: Identifiable {
 }
 
 enum UpdateChecker {
-    static func check(completion: @escaping (StoreUpdate?) -> Void) {
+    // @Sendable because the completion hops from the URLSession queue onto the main queue.
+    static func check(completion: @escaping @Sendable (StoreUpdate?) -> Void) {
         guard let bundleId = Bundle.main.bundleIdentifier,
               let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
               let lookup = URL(string: "https://itunes.apple.com/lookup?bundleId=\(bundleId)")

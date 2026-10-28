@@ -14,13 +14,13 @@ xcodebuild -project BuddyVerse.xcodeproj -scheme BuddyVerse -destination 'generi
 open BuddyVerse.xcodeproj                  # open in Xcode for day-to-day iteration
 ```
 
-**No simulators, ever (owner's rule).** Do not boot, create, download or launch an iOS Simulator, and do not run the app or the UI tests from here. To check that a change compiles, build for a generic device with signing off:
+**Simulators are allowed.** The old no-simulator rule existed because an earlier computer was short on disk space; this one has room (512 GB). Note that this Xcode (27.1) has no standalone Simulator.app; it ships DeviceHub.app instead, and `xcrun simctl` still works. To check that a change compiles without signing, you can also build for a generic device:
 
 ```bash
 xcodebuild -project BuddyVerse.xcodeproj -scheme BuddyVerse -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
 ```
 
-(The first command above, with `generic/platform=iOS Simulator`, is the old compile-only form; prefer the device form.) After adding a new `.swift` file run `xcodegen generate` first, or the file is not in the project. `.claude/commands/test-app.md` runs the iOS QA agent team in `.claude/agents/` (static review plus that device build) and records results under Known Issues below.
+After adding a new `.swift` file run `xcodegen generate` first, or the file is not in the project. `.claude/commands/test-app.md` runs the iOS QA agent team in `.claude/agents/` (static review plus that device build) and records results under Known Issues below.
 
 `project.yml` is the source of truth for the Xcode project (target, dependencies, build settings) — edit it, not the generated `.xcodeproj`, and re-run `xcodegen generate` after.
 
@@ -168,6 +168,87 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** /test-app sixth pass (2026-10-17)
 - **Description:** Only the Treks and Hangman offer SKIP; a connected-but-idle player stalls these games (Android finding; same protocol on iOS).
 - **Status (2026-10-17):** Deferred on purpose.
+
+#### ISSUE-102: iOS-only 300 s lobby tolerance breaks mixed iOS/Android lobbies
+- **Severity:** MEDIUM
+- **Area:** multiplayer
+- **File:** Core/InternetConnectionManager.swift:690 and :757-789 (Android InternetConnectionManager.kt:730, :805-819)
+- **Found by:** qa-multiplayer / parity audit (2026-10-28)
+- **Description:** An iOS host backgrounded in the lobby for over 90 s stops its `lastSeen`; an Android guest then drops the room with "game ended", while an iOS guest would wait 300 s. An iOS guest backgrounded over 90 s is quietly removed by an Android host and hits the `evicted` path on return. The code comment says the constants match Android "on purpose", which this one doesn't. Same item as Android ISSUE-170.
+- **Suggested fix:** Match the tolerance on Android, or keep the iOS host's `lastSeen` fresh while the lobby shows (ISSUE-101's fix covers most of it).
+- **Last attempt:** 2026-10-28 — Android now lets a guest wait 300 s on a silent lobby host (Android ISSUE-170), which closes the iOS-host-backgrounded case; ISSUE-101 keeps the screen awake while a room is live. Still open: an Android host evicts a stale guest after 90 s, so a backgrounded iOS lobby guest can still be removed.
+
+#### ISSUE-107: Hangman mode choice: the guest waits forever and the host's mode write can fail silently
+- **Severity:** LOW
+- **Area:** multiplayer
+- **File:** Navigation/HangmanModeChoiceView.swift:72-78; Core/InternetConnectionManager.swift:631-634
+- **Found by:** qa-multiplayer (2026-10-28)
+- **Description:** Android ISSUE-116 gave the guest's "Waiting for your friend to choose..." a 3-minute timeout; iOS has none. `chooseWordMode` calls `updateData` with no completion handler and the host moves on at once, so a failed write leaves the host in the game and the guest waiting indefinitely.
+- **Suggested fix:** Add a 3-minute guest timer that stops the session and shows the friend-left screen; check the `updateData` error and route it through `handleConnectionLost`.
+
+#### ISSUE-108: Trek late-TURN allowance can be cleared by another player's TURN, desyncing the shared pool
+- **Severity:** LOW
+- **Area:** multiplayer
+- **File:** Games/ArcticTrek/ArcticTrekView.swift:332-363 (same in Cave and Desert); Android ArcticTrekActivity.kt:229-232
+- **Found by:** qa-multiplayer (2026-10-28)
+- **Description:** If skipped player X's TURN reaches the server after the next player C's, C's TURN clears `lastSkippedId` on the other phones, X's TURN is dropped, and X's phone keeps X's numbers while the others don't. Related to Android ISSUE-164 (the 2-player turn-split variant).
+- **Suggested fix:** Clear `lastSkippedId` only on the skipped player's own TURN or when the turn wraps back to them, or add a turn counter to TURN/SKIP; change both platforms together.
+
+#### ISSUE-109: Jungle Run and Mountain Climb keep applying penalties while the Feedback/Report sheet is open
+- **Severity:** LOW
+- **Area:** game-logic
+- **File:** Games/JungleRun/JungleRunView.swift:151-153 and :231-236; Games/MountainClimb/MountainClimbView.swift:155 and :299-310
+- **Found by:** qa-game-logic (2026-10-28)
+- **Description:** They pause only on `scenePhase != .active` or disappear, and presenting a `.sheet` does neither. Jungle's fruit timeout keeps costing stamina and can reset the score to the zone floor; Mountain's armed gust can cost grip.
+- **Suggested fix:** Pause when `showFeedback`/`showReport` becomes true and resume when it clears.
+
+#### ISSUE-110: Mountain Climb: the tap that loses the last grip still arms a wind gust
+- **Severity:** LOW
+- **Area:** game-logic
+- **File:** Games/MountainClimb/MountainClimbView.swift:258-265 with :280-290
+- **Found by:** qa-game-logic (2026-10-28)
+- **Description:** After `loseGrip` resets height, grip and `hasTapped`, `onStepTapped` still runs `scheduleWindGust()`, so a gust takes a grip from a player who hasn't restarted climbing.
+- **Suggested fix:** Return early after a grip-reset `loseGrip`, or skip `scheduleWindGust()` while `hasTapped` is false.
+
+#### ISSUE-111: Four Swift concurrency (Sendable) warnings that become errors in Swift 6 mode
+- **Severity:** LOW
+- **Area:** build
+- **File:** App/RootView.swift:95; Core/AdminFeedbackChecker.swift:19 and :24; Core/LocalNotificationManager.swift:25
+- **Found by:** qa-build-lint (2026-10-28)
+- **Description:** The device build succeeds. Warnings: `storeUpdate` mutated from a Sendable closure (RootView:95, surfaced after `UpdateChecker.check`'s completion was marked `@Sendable` on 2026-10-27); captured `var feedbackDocs`/`reportDocs` mutated from Firestore callbacks; captured `var parts` read in the `requestAuthorization` closure. `xcodegen` isn't installed on this machine, so the existing `.xcodeproj` was built without regenerating from `project.yml`.
+- **Suggested fix:** Set `storeUpdate` through `runOnMain`; collect results in `DispatchGroup.notify` or a serial queue; copy `parts` into a `let` first.
+
+#### ISSUE-112: CLAUDE.md still describes a live iOS paywall; dead `premiumSource` and stale comment; Terms gate and update alert undocumented
+- **Severity:** LOW
+- **Area:** navigation
+- **File:** CLAUDE.md ("Known platform divergence", `replaceLobby` sentence, `StripeConfig`/`PaymentWebView` bullet); App/AppRoute.swift:15; Navigation/MaxPlayersView.swift:3-8; App/RootView.swift:41-44, 78-93, 114-130
+- **Found by:** qa-navigation-flow (2026-10-28)
+- **Description:** There is no `LobbyView`, `SubscriptionManager`, `StripeConfig`, `PaymentWebView` or `AccountView`, no `.lobby` route and no `Router.replaceLobby`; `WelcomeView` sends every premium button to `.onePhoneSelection`, so premium is free on both platforms. `GameSelection.premiumSource` is never set or read, and `MaxPlayersView`'s comment says "right after paying". The first-launch gate now starts with a mandatory `TermsView` (`accepted_terms`; `gateDone` needs both it and the name), and `RootView` owns an App Store "Update available" alert (`dismissed_update_version`); CLAUDE.md describes neither.
+- **Suggested fix:** Remove the divergence paragraph, `replaceLobby` sentence and Stripe bullet; delete `premiumSource` and fix the comment; add a paragraph on gate order and the update alert.
+
+#### ISSUE-113: Live Activity context stays set while "Opponent Disconnected" sits over a dead game
+- **Severity:** LOW
+- **Area:** navigation
+- **File:** App/RootView.swift:197-202; Core/LiveActivityManager.swift:26-30; App/BuddyVerseApp.swift:41-43
+- **Found by:** qa-navigation-flow (2026-10-28)
+- **Description:** Every route stays mounted, so pushing `.opponentDisconnected` doesn't fire the game's `onDisappear`; `currentContext` stays non-nil and backgrounding on that screen starts a "you vs them" Dynamic Island activity for an ended room.
+- **Suggested fix:** Clear `currentContext` where `.opponentDisconnected` is pushed, or treat it as valid only while the game is the top route.
+
+#### ISSUE-114: Covered screens and the first-run gate are still reachable by VoiceOver
+- **Severity:** LOW
+- **Area:** navigation
+- **File:** App/RootView.swift:54-61 and :156-165
+- **Found by:** qa-navigation-flow (2026-10-28)
+- **Description:** Only `.allowsHitTesting` is applied to buried screens, so VoiceOver and Switch Control can still reach the buried Welcome, game and lobby controls, including behind the Terms/name gate.
+- **Suggested fix:** `.accessibilityHidden(!gateDone)` on `mainContent`, `.accessibilityHidden(index != router.path.count - 1)` in the route `ForEach`, and `.accessibilityHidden(!router.path.isEmpty)` on `WelcomeView`.
+
+#### ISSUE-116: Contested trivia answers kept that Android dropped or qualified, and two near-duplicate gas questions
+- **Severity:** LOW
+- **Area:** content
+- **File:** Games/Trivia/TriviaView.swift:566 (South Africa), :568 (Netherlands), :512 (smallest continent), :492 and :530 (carbon dioxide)
+- **Found by:** qa-content (2026-10-28)
+- **Description:** Android removed the South Africa question as contested (ISSUE-133); on iOS the reworded version is correct but still a trick for kids. Amsterdam as the Netherlands' capital has "Hague" as a distractor some players will call right. "Smallest continent" depends on the 7-continent model. "Which gas do humans breathe out" and "which gas do plants absorb" both answer Carbon Dioxide.
+- **Suggested fix:** Drop the South Africa and Netherlands questions (or add "constitutional capital"), and replace one of the gas questions.
 
 ### Fixed
 
@@ -580,3 +661,45 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** /test-app seventh pass, Android findings ported (2026-10-17)
 - **Fixed by:** main agent on 2026-10-17
 - **Summary:** Back/Home save the typed answer; Jokes and Conversation swap the first item after a reshuffle if it repeats the last one shown; '|||' is replaced in saved answers. Ported from Android.
+
+#### ISSUE-101: Auto-lock suspends the app and drops idle online players
+- **Severity:** MEDIUM
+- **Area:** multiplayer
+- **Found by:** qa-multiplayer (2026-10-28)
+- **Fixed by:** fixer agent on 2026-10-28
+- **Summary:** New private `keepScreenAwake(_:)` sets `UIApplication.shared.isIdleTimerDisabled` through `runOnMain`: turned on right after `connected = true` in both the room-created and room-joined paths, and turned off in every session-ending path (roster-loss disconnect, room "ended", `handleConnectionLost`, `stop()`). No wire change. Auto-lock behavior itself not tested on a device.
+
+#### ISSUE-103: Space Explorer stops responding for the rest of the run if a touch is cancelled
+- **Severity:** MEDIUM
+- **Area:** game-logic
+- **Found by:** qa-game-logic (2026-10-28)
+- **Fixed by:** fixer agent on 2026-10-28
+- **Summary:** `touchActive` is now a `@GestureState` set through `.updating`, so it resets by itself when a touch ends or the system cancels it; a small `@State touchHandled` flag, cleared by `.onChange(of: touchActive)`, keeps the "first touch event only" behavior. `.onEnded` removed. Not tried with a real cancelled touch.
+
+#### ISSUE-104: Tic-Tac-Toe HARD bot runs full minimax on the main thread over a `[String]` board
+- **Severity:** MEDIUM
+- **Area:** game-logic
+- **Found by:** qa-game-logic (2026-10-28)
+- **Fixed by:** fixer agent on 2026-10-28
+- **Summary:** `getBestMove()` copies the String board into an `[Int]` (0 empty, 1 X, 2 O) and `minimax` searches that with a new `intWins` check over the existing `winLines`; same algorithm, scoring and tie-breaking (alpha-beta deliberately left out so move choice is identical). MEDIUM/EASY and multiplayer untouched. Perfect play is reasoned, not tested, and the speedup is not measured.
+
+#### ISSUE-105: Riddle pool has re-added duplicates (towel and teapot twice each)
+- **Severity:** MEDIUM
+- **Area:** content
+- **Found by:** qa-content (2026-10-28); Android has the same pairs (ISSUE-168)
+- **Fixed by:** fixer agent on 2026-10-28
+- **Summary:** Deleted the second towel ("gets wetter the more it dries") and second teapot ("begins with T") riddles; no replacements added; the rest of the pool was not re-checked for other duplicate answers. Pool is now 99 entries.
+
+#### ISSUE-106: Joke pool regressed to filler that earlier fixes removed
+- **Severity:** MEDIUM
+- **Area:** content
+- **Found by:** qa-content (2026-10-28)
+- **Fixed by:** fixer agent on 2026-10-28
+- **Summary:** Removed Fsh, the chili dog, lean beef, sham rock, the blueberry joke and the umbrella "outstanding in the rain" joke (ladder, flashlight and laughing stock kept). Pool is now 97 entries.
+
+#### ISSUE-115: Welcome stat cards count to 100 but ISSUE-92 says 90
+- **Severity:** LOW
+- **Area:** content
+- **Found by:** qa-content / qa-navigation-flow (2026-10-28)
+- **Fixed by:** main agent on 2026-10-28
+- **Summary:** Jokes and Riddles Welcome cards now count to 90 (both pools are under 100 after ISSUE-105/106); Trivia stays at 100 (about 101 entries). Code and the ISSUE-92 text now agree.

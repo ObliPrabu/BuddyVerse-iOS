@@ -14,7 +14,12 @@ struct SpaceExplorerView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showFeedback = false
     @State private var showReport = false
-    @State private var touchActive = false
+    // Auto-resets to false when the touch ends OR when the system cancels it
+    // (call, Control Center, app switcher), which .onEnded alone never reports.
+    @GestureState private var touchActive = false
+    // Whether this touch has already been handled; cleared whenever touchActive
+    // drops back to false, so a cancelled touch can never leave taps ignored.
+    @State private var touchHandled = false
 
     init(selection: GameSelection) {
         _vm = StateObject(wrappedValue: SpaceExplorerViewModel(difficulty: selection.difficulty ?? "EASY"))
@@ -31,13 +36,16 @@ struct SpaceExplorerView: View {
                     .contentShape(Rectangle())
                     .gesture(
                         DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                            .updating($touchActive) { _, state, _ in state = true }
                             .onChanged { value in
-                                guard !touchActive else { return }
-                                touchActive = true
+                                guard !touchHandled else { return }
+                                touchHandled = true
                                 vm.touch(at: value.location)
                             }
-                            .onEnded { _ in touchActive = false }
                     )
+                    .onChange(of: touchActive) { active in
+                        if !active { touchHandled = false }
+                    }
 
                 Text("🚀")
                     .font(.system(size: 40))

@@ -268,6 +268,7 @@ final class InternetConnectionManager: @unchecked Sendable {
             self.myRole = "HOST"
             self.myId = hostId
             self.connected = true
+            self.keepScreenAwake(true)
             self.startHeartbeat(code: code, session: session)
             runOnMain { onCodeReady(code) }
             self.listenToRoom(code)
@@ -404,6 +405,7 @@ final class InternetConnectionManager: @unchecked Sendable {
             self.myRole = "GUEST"
             self.myId = guestId
             self.connected = true
+            self.keepScreenAwake(true)
             self.onMessage = onMessage
             self.onDisconnected = onDisconnected
             self.startHeartbeat(code: cleanCode, session: session)
@@ -515,6 +517,7 @@ final class InternetConnectionManager: @unchecked Sendable {
             if (someoneLeftMidGame || evicted || ghostSeat) && self.connected {
                 self.latestStatus = status
                 self.connected = false
+                self.keepScreenAwake(false)
                 self.onDisconnected?()
                 return
             }
@@ -537,6 +540,7 @@ final class InternetConnectionManager: @unchecked Sendable {
 
             if status == "ended" && self.connected {
                 self.connected = false
+                self.keepScreenAwake(false)
                 self.onDisconnected?()
             }
         }
@@ -790,12 +794,23 @@ final class InternetConnectionManager: @unchecked Sendable {
         }
     }
 
+    // iOS suspends the app once auto-lock kicks in (often after 30 s), which
+    // silently stops our 10 s heartbeat and the snapshot listeners - so a
+    // player who is only waiting for someone else's turn would get dropped
+    // by their peers. Android never suspends mid-game like that, so while a
+    // room is live we ask iOS not to auto-lock, and give that back the moment
+    // the session ends. UIApplication must be touched on the main thread.
+    private func keepScreenAwake(_ on: Bool) {
+        runOnMain { UIApplication.shared.isIdleTimerDisabled = on }
+    }
+
     // Shared "we can no longer trust this connection" path for failed sends,
     // dead snapshot listeners and heartbeat timeouts. Ignored if the session
     // it was raised for is already over, or if we already told the game.
     private func handleConnectionLost(_ session: Int) {
         guard session == sessionId, connected else { return }
         connected = false
+        keepScreenAwake(false)
         onDisconnected?()
     }
 
@@ -870,6 +885,7 @@ final class InternetConnectionManager: @unchecked Sendable {
         myRole = nil
         myId = nil
         connected = false
+        keepScreenAwake(false)
         onPlayersChanged = nil
         onGameStarted = nil
         onWordModeChanged = nil

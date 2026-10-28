@@ -512,7 +512,5 @@ struct RiddlesView: View {
         Riddle(question: "What is black and white and read all over?", answer: "A newspaper"),
         Riddle(question: "What has 13 hearts but no other organs?", answer: "A deck of cards"),
         Riddle(question: "What has a thumb but no other fingers?", answer: "A mitten"),
-        Riddle(question: "What gets wetter the more it dries?", answer: "A towel"),
-        Riddle(question: "What begins with T, ends with T, and has T in it?", answer: "A teapot"),
     ]
 }
