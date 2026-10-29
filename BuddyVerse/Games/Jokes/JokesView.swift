@@ -416,5 +416,14 @@ struct JokesView: View {
         "Why did the boy bring a ladder to school? He wanted to go to high school.",
         "Why did the boy bring a flashlight to school? He wanted to be bright.",
         "What do you call a fake story? A tall tale.",
+        "Why are fish so smart? Because they live in schools!",
+        "What do elves learn in school? The elf-abet!",
+        "How does a penguin build its house? Igloos it together!",
+        "Why do cows wear bells? Because their horns don't work!",
+        "What kind of shoes do frogs wear? Open-toad shoes!",
+        "What did the big flower say to the little flower? Hi, bud!",
+        "Where do pencils go on vacation? Pencil-vania!",
+        "What does a cloud wear under its raincoat? Thunderwear!",
+        "Why did the owl invite its friends over? It didn't want to be owl by itself!",
     ]
 }

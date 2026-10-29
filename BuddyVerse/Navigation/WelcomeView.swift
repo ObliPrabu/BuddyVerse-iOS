@@ -412,8 +412,8 @@ struct WelcomeView: View {
     // Mirrors WelcomeActivity.animateCountUp: counts 0 -> target over 1.5s with
     // a decelerate (ease-out) curve, same 22 hardcoded "Original games" total.
     private func animateStats() {
-        animateCountUp(target: 90) { statJokes = $0 }
-        animateCountUp(target: 90) { statRiddles = $0 }
+        animateCountUp(target: 100) { statJokes = $0 }
+        animateCountUp(target: 100) { statRiddles = $0 }
         animateCountUp(target: 100) { statTrivia = $0 }
         animateCountUp(target: 22) { statGames = $0 }
     }

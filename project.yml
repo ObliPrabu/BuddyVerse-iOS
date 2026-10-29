@@ -1,8 +1,8 @@
 name: BuddyVerse
 options:
-  bundleIdPrefix: com.example
+  bundleIdPrefix: com.obliprabu
   deploymentTarget:
-    iOS: "14.0"
+    iOS: "15.0"
   createIntermediateGroups: true
 
 packages:
@@ -14,7 +14,7 @@ targets:
   BuddyVerse:
     type: application
     platform: iOS
-    deploymentTarget: "14.0"
+    deploymentTarget: "15.0"
     sources:
       - path: BuddyVerse
         excludes:
@@ -23,9 +23,13 @@ targets:
       - path: BuddyVerse/Resources/Assets.xcassets
       - path: BuddyVerse/Resources/GoogleService-Info.plist
         optional: true
+      # Apple's privacy manifest: declares the UserDefaults required-reason
+      # API and the little data the app sends to Firestore (first name,
+      # feedback text, anonymous multiplayer id). Firebase ships its own.
+      - path: BuddyVerse/Resources/PrivacyInfo.xcprivacy
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.buddyverse.ios
+        PRODUCT_BUNDLE_IDENTIFIER: com.obliprabu.buddyverse
         INFOPLIST_FILE: BuddyVerse/Resources/Info.plist
         # Kept in sync with Android's versionName (app/build.gradle.kts) -
         # bump both together after a meaningful cross-platform change so the
@@ -60,6 +64,9 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
+        # Only standard HTTPS (Firebase, the website WebView), which is exempt,
+        # so App Store Connect stops asking the export-compliance question.
+        ITSAppUsesNonExemptEncryption: false
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: false
         # Required for LiveActivityManager's Activity.request(...) calls to
@@ -73,7 +80,7 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLSchemes:
               - buddyverse
-            CFBundleURLName: com.example.buddyverse.ios
+            CFBundleURLName: com.obliprabu.buddyverse
 
   BuddyVerseWidget:
     type: app-extension
@@ -93,7 +100,7 @@ targets:
       - path: BuddyVerse/Core/DailyContentPool.swift
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.buddyverse.ios.BuddyVerseWidget
+        PRODUCT_BUNDLE_IDENTIFIER: com.obliprabu.buddyverse.BuddyVerseWidget
         INFOPLIST_FILE: BuddyVerseWidget/Info.plist
         # An app extension's CFBundleVersion must match its containing app's
         # (App Store validation rejects a mismatch) - xcodegen's default of
@@ -124,12 +131,12 @@ targets:
   BuddyVerseUITests:
     type: bundle.ui-testing
     platform: iOS
-    deploymentTarget: "14.0"
+    deploymentTarget: "15.0"
     sources:
       - path: BuddyVerseUITests
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.buddyverse.ios.UITests
+        PRODUCT_BUNDLE_IDENTIFIER: com.obliprabu.buddyverse.UITests
         SWIFT_VERSION: "6.0"
         TARGETED_DEVICE_FAMILY: "1,2"
         DEVELOPMENT_TEAM: "PS8DGXJ8S8"

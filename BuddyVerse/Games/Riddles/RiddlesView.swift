@@ -512,5 +512,10 @@ struct RiddlesView: View {
         Riddle(question: "What is black and white and read all over?", answer: "A newspaper"),
         Riddle(question: "What has 13 hearts but no other organs?", answer: "A deck of cards"),
         Riddle(question: "What has a thumb but no other fingers?", answer: "A mitten"),
+        Riddle(question: "The more you take, the more you leave behind. What are they?", answer: "Footsteps"),
+        Riddle(question: "If you share me, I'm gone. What am I?", answer: "A secret"),
+        Riddle(question: "What is black when you buy it, red when you use it, and gray when you throw it away?", answer: "Charcoal"),
+        Riddle(question: "What has lots of needles but can't sew?", answer: "A pine tree"),
+        Riddle(question: "What has lots of eyes but can't see?", answer: "A potato"),
     ]
 }
