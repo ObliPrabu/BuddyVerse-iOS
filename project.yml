@@ -41,6 +41,10 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
         DEVELOPMENT_TEAM: "PS8DGXJ8S8"
         CODE_SIGN_STYLE: Automatic
+        # Mac Catalyst build for the downloadable Mac app (.dmg); the Live
+        # Activity code is stubbed out there (see LiveActivityManager.swift).
+        SUPPORTS_MACCATALYST: YES
+        DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER: NO
     dependencies:
       - package: FirebaseIOS
         product: FirebaseFirestore
@@ -48,6 +52,7 @@ targets:
         product: FirebaseAuth
       - target: BuddyVerseWidget
         embed: true
+        platformFilter: iOS
     info:
       path: BuddyVerse/Resources/Info.plist
       properties:

@@ -1,3 +1,4 @@
+#if !targetEnvironment(macCatalyst)
 import ActivityKit
 import Foundation
 
@@ -26,3 +27,4 @@ struct BuddyVerseActivityAttributes: ActivityAttributes {
     /// (e.g. "Tic-Tac-Toe"), shown above the "you vs them" row.
     var gameName: String
 }
+#endif

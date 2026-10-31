@@ -1,3 +1,16 @@
+#if targetEnvironment(macCatalyst)
+import Foundation
+
+/// Live Activities / the Dynamic Island are iPhone-only (ActivityKit doesn't
+/// exist on Mac Catalyst), so on the Mac build this keeps the same API as
+/// the iOS version below but does nothing - RootView and BuddyVerseApp call
+/// it unconditionally and don't need to know which platform they run on.
+enum LiveActivityManager {
+    nonisolated(unsafe) static var currentContext: (gameType: String, myName: String, opponentNames: String)?
+    static func start() {}
+    static func end() {}
+}
+#else
 import ActivityKit
 import Foundation
 
@@ -53,3 +66,4 @@ enum LiveActivityManager {
         }
     }
 }
+#endif
