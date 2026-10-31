@@ -47,15 +47,25 @@ struct TriviaView: View {
         _current = State(initialValue: round.first ?? Question(text: "Question goes here...", options: [], correctAnswer: ""))
     }
 
+    // One shuffled bag shared by every round, refilled only when it runs out,
+    // so "Play Again" doesn't start from a fresh shuffle and repeat questions
+    // the player just saw (same approach as the Android pool).
+    nonisolated(unsafe) private static var bag: [Question] = []
+
     // Draws exactly `roundSize` questions for one round, wrapping/reshuffling
     // if the pool is smaller than that. Both players answer this same set,
     // in the same order, so their scores are directly comparable.
     private static func drawRound(from pool: [Question]) -> [Question] {
         guard !pool.isEmpty else { return [] }
         var result: [Question] = []
-        var bag = pool.shuffled()
         while result.count < roundSize {
-            if bag.isEmpty { bag = pool.shuffled() }
+            if bag.isEmpty {
+                // Refilling mid-round: put what this round already drew at
+                // the front so it comes out last (the bag is drawn from the end).
+                let drawn = Set(result.map { $0.text })
+                let fresh = pool.shuffled()
+                bag = fresh.filter { drawn.contains($0.text) } + fresh.filter { !drawn.contains($0.text) }
+            }
             // Shuffle the answer order too - the authored order puts the
             // right answer in the 3rd/4th slot most of the time, so a player
             // could just keep picking those. Answer checking compares the
@@ -491,20 +501,20 @@ struct TriviaView: View {
         Question(text: "What is the largest organ in the human body?", options: ["Heart", "Liver", "Skin", "Lungs"], correctAnswer: "Skin"),
         Question(text: "Which gas do plants absorb from the atmosphere?", options: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Hydrogen"], correctAnswer: "Carbon Dioxide"),
         Question(text: "What is the capital of Japan?", options: ["Beijing", "Seoul", "Tokyo", "Bangkok"], correctAnswer: "Tokyo"),
-        Question(text: "How many teeth does an adult human have?", options: ["28", "30", "32", "34"], correctAnswer: "32"),
+        Question(text: "How many teeth does a full adult set have, including wisdom teeth?", options: ["28", "30", "32", "34"], correctAnswer: "32"),
         Question(text: "What is the study of stars called?", options: ["Biology", "Astronomy", "Geology", "Chemistry"], correctAnswer: "Astronomy"),
         Question(text: "What is the tallest mountain in the world?", options: ["K2", "Kilimanjaro", "Everest", "Fuji"], correctAnswer: "Everest"),
         Question(text: "Who was the first man to walk on the moon?", options: ["Buzz Aldrin", "Neil Armstrong", "Yuri Gagarin", "John Glenn"], correctAnswer: "Neil Armstrong"),
         Question(text: "What is the capital of Italy?", options: ["Milan", "Naples", "Venice", "Rome"], correctAnswer: "Rome"),
         Question(text: "Which animal is known as the King of the Jungle?", options: ["Tiger", "Elephant", "Lion", "Bear"], correctAnswer: "Lion"),
-        Question(text: "What is the chemical symbol for water?", options: ["Wa", "H2O", "O2", "H2"], correctAnswer: "H2O"),
+        Question(text: "What is the chemical formula for water?", options: ["Wa", "H2O", "O2", "H2"], correctAnswer: "H2O"),
         Question(text: "How many days are in a leap year?", options: ["364", "365", "366", "367"], correctAnswer: "366"),
         Question(text: "What is the primary language spoken in Brazil?", options: ["Spanish", "English", "Portuguese", "French"], correctAnswer: "Portuguese"),
         Question(text: "Which planet is famous for its rings?", options: ["Jupiter", "Mars", "Saturn", "Neptune"], correctAnswer: "Saturn"),
         Question(text: "What is the smallest prime number?", options: ["0", "1", "2", "3"], correctAnswer: "2"),
         Question(text: "Who is most famously credited with inventing the practical light bulb?", options: ["Tesla", "Einstein", "Edison", "Newton"], correctAnswer: "Edison"),
         Question(text: "What is the capital of Canada?", options: ["Toronto", "Vancouver", "Montreal", "Ottawa"], correctAnswer: "Ottawa"),
-        Question(text: "What is the largest mammal in the world?", options: ["Elephant", "Blue Whale", "Giraffe", "Shark"], correctAnswer: "Blue Whale"),
+        Question(text: "What is the largest mammal in the world?", options: ["Elephant", "Blue Whale", "Giraffe", "Hippo"], correctAnswer: "Blue Whale"),
         Question(text: "How many legs does a spider have?", options: ["6", "7", "8", "10"], correctAnswer: "8"),
         Question(text: "What is the capital of Spain?", options: ["Barcelona", "Seville", "Valencia", "Madrid"], correctAnswer: "Madrid"),
         Question(text: "Who is the author of 'Harry Potter'?", options: ["Roald Dahl", "J.K. Rowling", "Stephen King", "Dr. Seuss"], correctAnswer: "J.K. Rowling"),
@@ -527,7 +537,7 @@ struct TriviaView: View {
         Question(text: "Which metal is liquid at room temperature?", options: ["Iron", "Silver", "Mercury", "Copper"], correctAnswer: "Mercury"),
         Question(text: "What is the capital of Mexico?", options: ["Guadalajara", "Monterrey", "Cancun", "Mexico City"], correctAnswer: "Mexico City"),
         Question(text: "How many minutes are in an hour?", options: ["50", "60", "70", "80"], correctAnswer: "60"),
-        Question(text: "Which gas do humans breathe out?", options: ["Oxygen", "Hydrogen", "Nitrogen", "Carbon Dioxide"], correctAnswer: "Carbon Dioxide"),
+        Question(text: "Which gas do your lungs add to the air you breathe out?", options: ["Helium", "Hydrogen", "Neon", "Carbon Dioxide"], correctAnswer: "Carbon Dioxide"),
         Question(text: "What is the capital of China?", options: ["Shanghai", "Guangzhou", "Beijing", "Hong Kong"], correctAnswer: "Beijing"),
         Question(text: "Which river is traditionally considered the longest in the world?", options: ["Amazon", "Nile", "Mississippi", "Yangtze"], correctAnswer: "Nile"),
         Question(text: "Who was the first President of the United States?", options: ["Jefferson", "Adams", "Lincoln", "Washington"], correctAnswer: "Washington"),
@@ -565,7 +575,7 @@ struct TriviaView: View {
         Question(text: "How many days are in a week?", options: ["5", "6", "7", "8"], correctAnswer: "7"),
         Question(text: "Which city is the executive (administrative) capital of South Africa?", options: ["Johannesburg", "Durban", "Cape Town", "Pretoria"], correctAnswer: "Pretoria"),
         Question(text: "Which is the largest planet in our solar system?", options: ["Saturn", "Neptune", "Jupiter", "Uranus"], correctAnswer: "Jupiter"),
-        Question(text: "What is the capital of the Netherlands?", options: ["Rotterdam", "Utrecht", "Hague", "Amsterdam"], correctAnswer: "Amsterdam"),
+        Question(text: "What is the capital of the Netherlands?", options: ["Rotterdam", "Utrecht", "The Hague", "Amsterdam"], correctAnswer: "Amsterdam"),
         Question(text: "Which season comes after winter?", options: ["Summer", "Autumn", "Spring", "Monsoon"], correctAnswer: "Spring"),
         Question(text: "What do caterpillars turn into?", options: ["Beetles", "Butterflies", "Bees", "Spiders"], correctAnswer: "Butterflies"),
         Question(text: "Which organ pumps blood around your body?", options: ["Lungs", "Stomach", "Heart", "Brain"], correctAnswer: "Heart"),
