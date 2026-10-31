@@ -26,6 +26,31 @@ enum DailyContentPool {
         let secondary: String
     }
 
+    // On a holiday the daily pick is always that holiday's riddle, whatever the
+    // normal rotation would have chosen. Keyed by month * 100 + day (month
+    // 1-12). Thanksgiving (the 4th Thursday of November) moves, so it is
+    // worked out separately. Android's DailyContentPool.kt has the identical
+    // list; keep them in sync.
+    private static let holidayRiddles: [Int: Pick] = [
+        101: Pick(kind: .riddle, primary: "I come once a year, I have twelve months, and everyone says \"Happy\" to me when I start. What am I?", secondary: "A new year"),
+        214: Pick(kind: .riddle, primary: "I beat all day without a drum, and I'm the shape on every Valentine's card. What am I?", secondary: "A heart"),
+        317: Pick(kind: .riddle, primary: "I'm a little green plant with three leaves, and finding a four-leaf one is said to bring luck. What am I?", secondary: "A clover"),
+        422: Pick(kind: .riddle, primary: "I'm round and blue and green, and everyone you know lives on me. What am I?", secondary: "The Earth"),
+        704: Pick(kind: .riddle, primary: "I light up the night sky with colors and a bang on the Fourth of July. What am I?", secondary: "Fireworks"),
+        1031: Pick(kind: .riddle, primary: "I wear a carved smile and a candle glows inside me, but I'm not a person. What am I?", secondary: "A jack-o'-lantern"),
+        1224: Pick(kind: .riddle, primary: "I wear a red suit, my sleigh is pulled by reindeer, and I visit on Christmas Eve. Who am I?", secondary: "Santa Claus"),
+        1225: Pick(kind: .riddle, primary: "I'm covered in lights and ornaments and I stand in the living room in December. What am I?", secondary: "A Christmas tree"),
+        1231: Pick(kind: .riddle, primary: "At midnight everyone counts me down, and when I reach zero a new year begins. What am I?", secondary: "A countdown"),
+    ]
+    private static let thanksgivingRiddle = Pick(kind: .riddle, primary: "I say \"gobble gobble\" and I'm the star of the Thanksgiving feast. What am I?", secondary: "A turkey")
+
+    private static func holidayPick(for date: Date) -> Pick? {
+        let c = Calendar.current.dateComponents([.month, .day, .weekday], from: date)
+        guard let month = c.month, let day = c.day else { return nil }
+        if month == 11, c.weekday == 5, (22...28).contains(day) { return thanksgivingRiddle }
+        return holidayRiddles[month * 100 + day]
+    }
+
     /// Deterministic per-day pick: the same calendar day (in the device's
     /// current time zone) always resolves to the same entry, so a widget's
     /// placeholder/snapshot/timeline-entry renders never disagree with each
@@ -35,6 +60,7 @@ enum DailyContentPool {
     /// reach 10 of each pool's 30 entries). Android's DailyContentPool.kt
     /// uses the same rule and entry order.
     static func pick(for date: Date) -> Pick {
+        if let holiday = holidayPick(for: date) { return holiday }
         let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: date) ?? 1
         switch dayOfYear % 3 {
         case 0:
