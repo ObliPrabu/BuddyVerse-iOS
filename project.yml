@@ -27,6 +27,11 @@ targets:
       # API and the little data the app sends to Firestore (first name,
       # feedback text, anonymous multiplayer id). Firebase ships its own.
       - path: BuddyVerse/Resources/PrivacyInfo.xcprivacy
+    entitlements:
+      path: BuddyVerse/Resources/BuddyVerse.entitlements
+      properties:
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)com.obliprabu.buddyverse
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.obliprabu.buddyverse

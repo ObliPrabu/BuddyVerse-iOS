@@ -36,14 +36,24 @@ enum AuthManager {
 
     static func signUp(email: String, password: String, onResult: @escaping (_ success: Bool, _ error: String?) -> Void) {
         Auth.auth().createUser(withEmail: email, password: password) { _, error in
-            onResult(error == nil, error?.localizedDescription)
+            onResult(error == nil, friendlyMessage(error))
         }
     }
 
     static func logIn(email: String, password: String, onResult: @escaping (_ success: Bool, _ error: String?) -> Void) {
         Auth.auth().signIn(withEmail: email, password: password) { _, error in
-            onResult(error == nil, error?.localizedDescription)
+            onResult(error == nil, friendlyMessage(error))
         }
+    }
+
+    /// The unsigned Mac download can't use the Keychain (Firebase error 17995),
+    /// so say that plainly instead of Apple's NSError text.
+    static func friendlyMessage(_ error: Error?) -> String? {
+        guard let error else { return nil }
+        if (error as NSError).code == 17995 {
+            return "Logging in isn't available in the Mac download yet. Everything else works. Use the iPhone or Android app to log in."
+        }
+        return error.localizedDescription
     }
 
     static func logOut() {
