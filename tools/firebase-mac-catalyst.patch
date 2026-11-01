@@ -1,0 +1,65 @@
+diff --git a/FirebaseAuth/Sources/Swift/Storage/AuthKeychainServices.swift b/FirebaseAuth/Sources/Swift/Storage/AuthKeychainServices.swift
+index 349da7b73f..beb1955c1d 100644
+--- a/FirebaseAuth/Sources/Swift/Storage/AuthKeychainServices.swift
++++ b/FirebaseAuth/Sources/Swift/Storage/AuthKeychainServices.swift
+@@ -230,7 +230,9 @@ final class AuthKeychainServices: Sendable {
+       kSecAttrAccount as String: kAccountPrefix + key,
+       kSecAttrService as String: service,
+     ]
++    #if !targetEnvironment(macCatalyst)
+     query[kSecUseDataProtectionKeychain as String] = true
++    #endif
+     return query
+   }
+ 
+diff --git a/FirebaseAuth/Sources/Swift/Storage/AuthKeychainStorageReal.swift b/FirebaseAuth/Sources/Swift/Storage/AuthKeychainStorageReal.swift
+index c2f4d762fc..3f63d43b34 100644
+--- a/FirebaseAuth/Sources/Swift/Storage/AuthKeychainStorageReal.swift
++++ b/FirebaseAuth/Sources/Swift/Storage/AuthKeychainStorageReal.swift
+@@ -21,6 +21,40 @@ final class AuthKeychainStorageReal: AuthKeychainStorage {
+ 
+   private init() {}
+ 
++  #if targetEnvironment(macCatalyst)
++  // BuddyVerse patch: the unsigned Mac download has no keychain entitlement
++  // (SecItemAdd fails with -34018), so keep the items in UserDefaults instead.
++  private func storeKey(_ query: [String: Any]) -> String {
++    let account = (query[kSecAttrAccount as String] as? String) ?? ""
++    let service = (query[kSecAttrService as String] as? String) ?? ""
++    return "bv.auth.\(service).\(account)"
++  }
++
++  func get(query: [String: Any], result: inout AnyObject?) -> OSStatus {
++    guard let data = UserDefaults.standard.data(forKey: storeKey(query)) else {
++      return errSecItemNotFound
++    }
++    result = [[kSecValueData as String: data]] as AnyObject
++    return noErr
++  }
++
++  func add(query: [String: Any]) -> OSStatus {
++    guard let data = query[kSecValueData as String] as? Data else { return errSecParam }
++    UserDefaults.standard.set(data, forKey: storeKey(query))
++    return noErr
++  }
++
++  func update(query: [String: Any], attributes: [String: Any]) -> OSStatus {
++    guard let data = attributes[kSecValueData as String] as? Data else { return errSecParam }
++    UserDefaults.standard.set(data, forKey: storeKey(query))
++    return noErr
++  }
++
++  @discardableResult func delete(query: [String: Any]) -> OSStatus {
++    UserDefaults.standard.removeObject(forKey: storeKey(query))
++    return noErr
++  }
++  #else
+   func get(query: [String: Any], result: inout AnyObject?) -> OSStatus {
+     return SecItemCopyMatching(query as CFDictionary, &result)
+   }
+@@ -36,4 +70,5 @@ final class AuthKeychainStorageReal: AuthKeychainStorage {
+   @discardableResult func delete(query: [String: Any]) -> OSStatus {
+     return SecItemDelete(query as CFDictionary)
+   }
++  #endif
+ }

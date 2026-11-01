@@ -146,7 +146,7 @@ final class InternetConnectionManager: @unchecked Sendable {
             if let error {
                 print("InternetConnectionManager: anonymous sign-in failed: \(error)")
                 let keychain = (error as NSError).code == 17995
-                runOnMain { onError(keychain ? "Online play isn't available in the Mac download yet. Use the iPhone or Android app to play online." : "Couldn't reach the game server - check your internet connection and try again.") }
+                runOnMain { onError((keychain ? "Online play isn't available in the Mac download yet. Use the iPhone or Android app to play online." : "Couldn't reach the game server - check your internet connection and try again.")) }
             } else {
                 onReady()
             }
