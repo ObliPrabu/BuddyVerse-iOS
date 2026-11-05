@@ -7,9 +7,19 @@ import Foundation
 /// BuddyVerseActivityAttributes.swift lives here and not under Games/ - the
 /// widget extension is a separate compilation target and can't see the main
 /// app target's files, so it's listed under both targets' `sources` in
-/// project.yml instead. This is a smaller, curated subset of the full
-/// in-game pools (not the whole ~100-entry lists) - plenty of variety for a
-/// once-a-day pick without bloating the widget extension's binary.
+/// project.yml instead. This is a smaller, curated list (not the whole
+/// ~100-entry in-game pools) - plenty of variety for a once-a-day pick
+/// without bloating the widget extension's binary.
+///
+/// The entries were first taken from the in-game pools (JokesView,
+/// RiddlesView, TriviaView), so the two mostly overlap, but this is a
+/// separate hand-kept copy rather than a strict subset: edits to the in-game
+/// pools don't carry over by themselves, so an entry here may be worded
+/// differently from its in-game twin or may be one the in-game pool has since
+/// retired (the sleeping-bull joke is one). Don't "sync" such an entry by
+/// dropping it: removing or adding an entry changes what most days show (the
+/// index is `% count`), so any change to a list has to be made at the same
+/// position in Android's DailyContentPool.kt in the same step.
 enum DailyContentPool {
     enum Kind {
         case joke
@@ -84,7 +94,7 @@ enum DailyContentPool {
         return (setup, punchline)
     }
 
-    // MARK: - Curated subset (30 of each). Entries were taken from the
+    // MARK: - Curated lists (30 of each). Entries were taken from the
     // in-game pools (JokesView/RiddlesView/TriviaView) and may drift from
     // them after later pool edits; what must stay identical is Android's
     // DailyContentPool.kt (same entries, same order).
@@ -174,13 +184,13 @@ enum DailyContentPool {
         ("What is the largest organ in the human body?", "Skin"),
         ("Which gas do plants absorb from the atmosphere?", "Carbon Dioxide"),
         ("What is the capital of Japan?", "Tokyo"),
-        ("How many teeth does an adult human have?", "32"),
+        ("How many teeth does a full adult set have, including wisdom teeth?", "32"),
         ("What is the study of stars called?", "Astronomy"),
         ("What is the tallest mountain in the world?", "Everest"),
         ("Who was the first man to walk on the moon?", "Neil Armstrong"),
         ("What is the capital of Italy?", "Rome"),
         ("Which animal is known as the King of the Jungle?", "Lion"),
-        ("What is the chemical symbol for water?", "H2O"),
+        ("What is the chemical formula for water?", "H2O"),
         ("How many days are in a leap year?", "366"),
         ("What is the primary language spoken in Brazil?", "Portuguese"),
         ("Which planet is famous for its rings?", "Saturn"),
