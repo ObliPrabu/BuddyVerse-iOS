@@ -82,7 +82,13 @@ struct ChessView: View {
         .background(Color(hex: 0x4E342E).ignoresSafeArea())
         .confettiOverlay(confetti)
         .onAppear { if seen.isEmpty { newGame() } }
-        .onDisappear { gameId += 1 }
+        .onDisappear {
+            // Drop any bot move still being computed, and clear the flag with it:
+            // the bot's callback is ignored once gameId changes, so it could
+            // never clear botThinking itself and the board would stay locked.
+            gameId += 1
+            botThinking = false
+        }
         .actionSheet(isPresented: $showPromotion) {
             ActionSheet(
                 title: Text("Promote your pawn to"),

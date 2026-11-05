@@ -156,14 +156,37 @@ targets:
     dependencies:
       - target: BuddyVerse
 
+  # Plain logic tests (chess rules/bot, Sudoku generator). The test target
+  # compiles the pure-Swift game-logic files directly instead of hosting the
+  # app, so these run with no app launch and no Firebase. Add a file here when
+  # a new logic file should be covered.
+  BuddyVerseTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: BuddyVerseTests
+      - path: BuddyVerse/Games/Chess/ChessEngine.swift
+      - path: BuddyVerse/Games/Sudoku/SudokuGenerator.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.obliprabu.buddyverse.UnitTests
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        DEVELOPMENT_TEAM: "PS8DGXJ8S8"
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: YES
+
 schemes:
   BuddyVerse:
     build:
       targets:
         BuddyVerse: all
         BuddyVerseUITests: [test]
+        BuddyVerseTests: [test]
     test:
       targets:
+        - BuddyVerseTests
         - BuddyVerseUITests
     run:
       config: Debug

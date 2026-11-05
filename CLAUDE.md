@@ -48,7 +48,7 @@ Android chains `AppCompatActivity` screens via `Intent` + extras, with (almost) 
 
 ### Chess
 
-`Games/Chess/ChessEngine.swift` is a line-for-line port of Android's `ChessEngine.kt` (rules, `ChessBot`, repetition key, insufficient material); `ChessView.swift` is the screen (free, vs bot or one-phone pass-and-play; **not** in `realMultiplayerGames`, so no "Two Phones"). The board is drawn from plain SwiftUI views, not `Canvas`, to respect the iOS 14 rules below. It was written on a machine with no Swift toolchain, so **it has not been compiled yet**: run `xcodegen generate` then a device build before relying on it. Android's `ChessEngineTest` (53 tests, perft totals included) has no Swift twin yet, because this repo has no unit-test target; port it if one is added. If the engine changes on Android, change it here too.
+`Games/Chess/ChessEngine.swift` is a line-for-line port of Android's `ChessEngine.kt` (rules, `ChessBot`, repetition key, insufficient material); `ChessView.swift` is the screen (free, vs bot or one-phone pass-and-play; **not** in `realMultiplayerGames`, so no "Two Phones"). The board is drawn from plain SwiftUI views, not `Canvas`, to respect the iOS 14 rules below. It was written on a machine with no Swift toolchain, so **it has not been compiled yet**: run `xcodegen generate` then a device build before relying on it. `BuddyVerseTests/` holds Swift twins of Android's `ChessEngineTests` (53 tests, perft totals included) and `SudokuGeneratorTests` (7); the `BuddyVerseTests` target in `project.yml` compiles `ChessEngine.swift` and `SudokuGenerator.swift` directly (no app launch, no Firebase), so add any new pure-logic file to that target's `sources` to test it. Run them with `xcodegen generate` then `xcodebuild test -project BuddyVerse.xcodeproj -scheme BuddyVerse -destination 'platform=iOS Simulator,name=iPhone 15'`. They have never been run: this was written on a machine with no Swift toolchain. If the engine changes on Android, change it here too.
 
 ### iOS 14 compatibility constraints
 
@@ -257,6 +257,30 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** qa-content (2026-10-28)
 - **Description:** Android removed the South Africa question as contested (ISSUE-133); on iOS the reworded version is correct but still a trick for kids. Amsterdam as the Netherlands' capital has "Hague" as a distractor some players will call right. "Smallest continent" depends on the 7-continent model. "Which gas do humans breathe out" and "which gas do plants absorb" both answer Carbon Dioxide.
 - **Suggested fix:** Drop the South Africa and Netherlands questions (or add "constitutional capital"), and replace one of the gas questions.
+
+#### ISSUE-117: No "still waiting for your friend" timeout in Tic-Tac-Toe, Memory or Count to 21 (Android ISSUE-183, partial port missing)
+- **Severity:** MEDIUM
+- **Area:** multiplayer
+- **File:** Games/TicTacToe/TicTacToeView.swift:185-205, Games/MemoryMatch/MemoryMatchView.swift:203-220, Games/CountTo21/CountTo21View.swift:187-201
+- **Found by:** qa-multiplayer (2026-11-05)
+- **Description:** Android shows a local toast after 90 s when still waiting for the other player (Tic-Tac-Toe roles unassigned, Memory board empty, Count to 21 at count 0 and not your turn). iOS has none. A player lingering on a lobby/instructions screen keeps heartbeating, so nobody is timed out and the others sit on "Connecting..." or an empty board with no hint; only Back gets them out.
+- **Suggested fix:** A 90 s one-shot timer after `setListeners` that shows the same toast text while the waiting condition still holds. No wire change.
+
+#### ISSUE-118: `startGame()` does not re-check that at least 2 players are seated (Android ISSUE-169)
+- **Severity:** LOW
+- **Area:** multiplayer
+- **File:** Core/InternetConnectionManager.swift:420-446; Navigation/OnlineLobbyView.swift:151
+- **Found by:** qa-multiplayer (2026-11-05)
+- **Description:** Android's transaction refuses to flip to "playing" with fewer than 2 players; iOS only checks `status == "waiting"`. The host's `players.count >= 2` gate uses a possibly stale roster, so a guest's `removeSelf` just before the transaction can start a one-seat Count to 21 or Trek game, and the failure path only `print`s.
+- **Suggested fix:** Inside the transaction, return early when the snapshot's `players` has fewer than 2 entries.
+
+#### ISSUE-119: Lobby "Cancel" jumps to Welcome instead of the previous screen
+- **Severity:** LOW
+- **Area:** navigation
+- **File:** Navigation/OnlineLobbyView.swift:60
+- **Found by:** qa-navigation-flow (2026-11-05)
+- **Description:** Cancel calls `stop()` then `router.popToRoot()`, landing on Welcome rather than `friendTypeChoice`/`maxPlayers` as other screens' Back does. Probably intentional, but inconsistent.
+- **Suggested fix:** `router.pop()` if landing on the previous screen is wanted.
 
 ### Fixed
 
@@ -711,3 +735,10 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** qa-content / qa-navigation-flow (2026-10-28)
 - **Fixed by:** main agent on 2026-10-28
 - **Summary:** Jokes and Riddles Welcome cards now count to 90 (both pools are under 100 after ISSUE-105/106); Trivia stays at 100 (about 101 entries). Code and the ISSUE-92 text now agree.
+
+#### ISSUE-120: Chess bot could leave the board locked on "Bot is thinking..." after the view disappeared
+- **Severity:** LOW
+- **Area:** game-logic
+- **Found by:** qa-game-logic (2026-11-05)
+- **Fixed by:** main agent on 2026-11-05
+- **Summary:** `ChessView.onDisappear` bumped `gameId` to drop a pending bot move, but the bot's callback returns before clearing `botThinking` when `gameId` has changed, so a disappear/reappear froze input until New Game. `onDisappear` now clears `botThinking` as well. Not run on a device (the chess code has never been compiled; see the Chess section).
