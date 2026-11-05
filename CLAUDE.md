@@ -228,6 +228,7 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Description:** The device build succeeds. Warnings: `storeUpdate` mutated from a Sendable closure (RootView:95, surfaced after `UpdateChecker.check`'s completion was marked `@Sendable` on 2026-10-27); captured `var feedbackDocs`/`reportDocs` mutated from Firestore callbacks; captured `var parts` read in the `requestAuthorization` closure. `xcodegen` isn't installed on this machine, so the existing `.xcodeproj` was built without regenerating from `project.yml`.
 - **Suggested fix:** Set `storeUpdate` through `runOnMain`; collect results in `DispatchGroup.notify` or a serial queue; copy `parts` into a `let` first.
 - **Status (2026-11-05):** qa-build-lint re-read all four sites at HEAD b83be51 and they are unchanged. Every target pins `SWIFT_VERSION: "6.0"` (project.yml:45, :123, :150, :174), while the "build succeeds with warnings" above came from an `.xcodeproj` that was not regenerated from project.yml. A project regenerated from project.yml is in the mode where these diagnostics are errors, so the rating may be too low (re-rate HIGH if they fail). The rest of the code is clearly Swift-6-hardened (`runOnMain`, `nonisolated(unsafe)`, `@unchecked Sendable`), so it may already compile. Unverified without a compiler: run `xcodegen generate` and a device build on the Mac.
+- **Status (2026-11-05, third /test-app pass):** A second qa-build-lint read reached the same conclusion and suggests rating this at least MEDIUM until a regenerated device build passes. Still unverified: `Core/MainActorHelpers.swift` shows the author already fixed Swift 6 `@Sendable` diagnostics elsewhere with `runOnMain`, and `tools/build-mac-dmg.md` records a 1.6.27 Mac build, so these four sites may already compile. See also ISSUE-145 and ISSUE-147.
 
 #### ISSUE-112: CLAUDE.md still describes a live iOS paywall; dead `premiumSource` and stale comment; Terms gate and update alert undocumented
 - **Severity:** LOW
@@ -309,6 +310,7 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** qa-game-logic (2026-11-05)
 - **Description:** `currentNeedleStep()` returns `baseNeedleStep * zone.speedMultiplier * streakBonus` with no limit. ISSUE-88 (Fixed) says "needleStep is capped at 40% of the safe-zone width", but no such cap exists in the file. The base steps 8/12/16 are Android's raw pixel values used as points (Jungle Run and Space Explorer divide by 2.75, Volcano doesn't), so the needle crosses about 3x faster than on Android. On a 353 pt track with one tick per 30 ms: HARD zone 4 has a 34.9 pt safe zone against a 30.4 pt step (33.4 at streak 10), so the needle is inside the zone for about one tick per pass and sweeps the whole bar in about 0.34 s; on a 335 pt track (iPhone SE) the step at streak 10 exceeds the zone so the needle can skip it entirely; MEDIUM zone 4 is 50 pt against 22.8 pt per tick; HARD zone 3 is 44 pt against 24.8 pt. Android's same numbers in pixels on a ~1000 px track give about 100 ms windows and 1 s sweeps (VolcanoClimbActivity.kt:116-125, 174-178).
 - **Suggested fix:** Re-add the cap (`min(step, safeZoneWidth * 0.4)`) and/or divide the base steps by 2.75 as Jungle and Space do.
+- **Status (2026-11-05, third /test-app pass):** Android's Volcano Climb has the same uncapped raw-pixel step (Android ISSUE-222); fix both together.
 
 #### ISSUE-124: Savanna Safari: Android ISSUE-167 not ported (a tap does not restart the cycle timer, and the animal can repeat)
 - **Severity:** MEDIUM
@@ -381,6 +383,7 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** qa-multiplayer (2026-11-05)
 - **Description:** Android drops any message whose `sender` isn't in `players`; iOS has no such check (Count to 21, Memory and the Treks check the turn player instead). A non-member who knows the 6-digit code can inject messages: in PICKER mode a `GUESS` or `RESULT:WIN/LOSE` passes the `!isPicker(sender)` guard, in RACE mode made-up ids in `RESULT:RACEOUT` fill `raceOutIds` until the round ends for everyone, and a `RESET` for round+1..3 restarts the room. The check only shuts out non-members; `sender` is client-written, so a member can still spoof another on either platform.
 - **Suggested fix:** At the top of `receiveNearbyMessage`, return if `!players.isEmpty && !players.contains(where: { $0.id == sender })`.
+- **Status (2026-11-05, third /test-app pass):** The other online games (the Treks, Count to 21, Memory, Tic-Tac-Toe) have the same gap on both platforms, see ISSUE-152 and Android ISSUE-219.
 
 #### ISSUE-133: A lobby guest evicted after backgrounding is told the game ended, though the room and code are still valid (ISSUE-102 residual)
 - **Severity:** LOW
@@ -461,6 +464,70 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** qa-ai-content (2026-11-05)
 - **Description:** Same text and the same problems as the Android entries: the "sine and cosine" beach joke doesn't land, and "What others are saying:" / "yours could be the first!" describe answers that are only the ones typed on this phone.
 - **Suggested fix:** See Android ISSUE-203 and ISSUE-204; make the same edits here.
+
+#### ISSUE-145: `runOnMain` uses `MainActor.assumeIsolated` (iOS 17+) and two `Text.tracking` calls (iOS 16+) on an iOS 15.0 deployment target (unverified)
+- **Severity:** MEDIUM (unverified; HIGH if a device build confirms it, because it would stop the whole app from building)
+- **Area:** build
+- **File:** Core/MainActorHelpers.swift:14 and :16; Navigation/OnlineLobbyView.swift:133; Games/Hangman/HangmanView.swift:175 (deployment targets at project.yml:5 and :17)
+- **Found by:** qa-multiplayer (2026-11-05); the main agent confirmed there is no `#available` guard at any of the three sites; no compiler available
+- **Description:** `runOnMain` is the main-thread hop behind every multiplayer completion path (InternetConnectionManager.swift:138, 149, 261, 264, 274, 298, 402, 413 and 805, plus AppFeedbackService and the admin dashboard). It calls `MainActor.assumeIsolated`, which to the best of the QA agent's and the main agent's knowledge the Swift standard library marks as available from iOS 17 (macOS 14) only; nobody could check that against the SDK. Both `.tracking(2)` calls are on a `Text`, and `Text.tracking(_:)` is iOS 16+ (`kerning(_:)` is the iOS 13 equivalent). If so, `xcodebuild` at the 15.0 floor fails with "'assumeIsolated' is only available in iOS 17.0 or newer" (and the same for `tracking`). Evidence against: all three were already in the 1.6.27 tree (commit 0c7c9ec) that `tools/build-mac-dmg.md` says was built as a Mac Catalyst app and checked, and project.yml sets no macOS deployment target for Catalyst, so that build may have used the SDK's newest macOS as its floor; an iOS device build at 15.0 is what would fail. ISSUE-111 also notes that the last device build used an `.xcodeproj` that was not regenerated from project.yml.
+- **Suggested fix:** Run `xcodegen generate` and a device build (`xcodebuild -project BuddyVerse.xcodeproj -scheme BuddyVerse -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build`) to settle it. If it fails, gate `assumeIsolated` with `if #available(iOS 17, *)` and otherwise use a plain `DispatchQueue.main.async`, and replace `.tracking(2)` with `.kerning(2)`.
+
+#### ISSUE-146: The daily pick uses `Calendar.current`, not the Gregorian calendar (parity gap with Android)
+- **Severity:** LOW
+- **Area:** content
+- **File:** Core/DailyContentPool.swift:58 (`holidayPick`) and :74 (`dayOfYear`)
+- **Found by:** qa-ai-content (2026-11-05); the main agent confirmed both `Calendar.current` calls; not run on a device
+- **Description:** `Calendar.current` follows the device's calendar setting, while Android's `Calendar.getInstance()` is always Gregorian. On an iPhone whose region defaults to an Islamic, Persian or similar calendar, the day-of-year differs, so the entry differs from Android's, and `month*100+day` fires holiday riddles on non-holiday dates (the Fourth of July riddle appears on month 7, day 4 of that calendar). Buddhist, Japanese and ROC calendars match the Gregorian month/day and day-of-year, so they are fine.
+- **Suggested fix:** Use `Calendar(identifier: .gregorian)` with `TimeZone.current` in both functions. Android needs no change.
+
+#### ISSUE-147: The iOS repo has no CI, so its compile status can only be checked on the owner's Mac
+- **Severity:** LOW
+- **Area:** build
+- **File:** N/A (the repo has no `.github` directory)
+- **Found by:** qa-build-lint (2026-11-05); the main agent confirmed by listing the repo root
+- **Description:** Android's GitHub Actions workflow is what let the Android build be confirmed from the cloud. The iOS repo has none, so the open Swift 6 question (ISSUE-111), the availability question (ISSUE-145), the Chess engine and view, and the `BuddyVerseTests` target (documented as never compiled) have no automated check.
+- **Suggested fix:** Add a macOS-runner workflow that runs `brew install xcodegen`, `xcodegen generate`, then `xcodebuild -project BuddyVerse.xcodeproj -scheme BuddyVerse -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO clean build`; optionally run the unit tests on the runner's own simulator, which doesn't touch the owner's disk.
+
+#### ISSUE-148: project.yml `resources:` is not an XcodeGen key, so the privacy manifest ships only through the `sources` glob
+- **Severity:** LOW
+- **Area:** build
+- **File:** project.yml:22-29
+- **Found by:** qa-build-lint (2026-11-05), from XcodeGen's own source read as text (not run)
+- **Description:** The agent compared every target key in project.yml with XcodeGen's `Target.swift`; `resources` on the BuddyVerse target is the only key XcodeGen doesn't read, so `optional: true` and the comment above `PrivacyInfo.xcprivacy` have no effect. `PrivacyInfo.xcprivacy`, `Assets.xcassets` and `GoogleService-Info.plist` still reach "Copy Bundle Resources" because they sit under `sources: - path: BuddyVerse`, and XcodeGen puts any extension missing from its default file-type table (no entry for `.xcprivacy` or `.plist`) into the resources phase. They would silently drop out if `sources` ever excluded `Resources` or the folder moved.
+- **Suggested fix:** Delete the `resources:` block and leave a comment that the sources glob picks the files up, or list the files as explicit `sources` entries with `buildPhase: resources`. After the next real build, check that the `.app` contains `PrivacyInfo.xcprivacy`.
+
+#### ISSUE-149: ChessEngineTests has 52 tests, while this file and the commit message say 53
+- **Severity:** LOW
+- **Area:** build
+- **File:** BuddyVerseTests/ChessEngineTests.swift; this file's "Chess" section
+- **Found by:** qa-build-lint (2026-11-05); the main agent re-counted (52 `func test` here, 53 `@Test` in Android's ChessEngineTest.kt)
+- **Description:** The test without a Swift twin is `botAlwaysReturnsALegalMove` (EASY, 12 plies). `testEveryDifficultyAlwaysPlaysALegalMove` covers EASY and MEDIUM for 6 plies, so the coverage loss is small. `SudokuGeneratorTests` has 7, as documented.
+- **Suggested fix:** Port the missing test, or correct the count to 52.
+
+#### ISSUE-150: Hangman's word list is still the 20-word list from before Android ISSUE-202 (parity only, no wire impact)
+- **Severity:** LOW
+- **Area:** game-logic
+- **File:** Games/Hangman/HangmanView.swift:43-48 (Android HangmanActivity.kt:51-68), and :312-318 for the solo pick
+- **Found by:** qa-multiplayer (2026-11-05)
+- **Description:** An iOS seat 0 in RACE mode rolls from the old five-words-per-category list that still has MOBILE and PLANET, while an Android seat 0 rolls from the 40-word list. Receivers only validate A-Z, 2-20 letters and a category of 30 characters or fewer, so mixed rooms don't desync. The iOS solo and vs-bot pick has no shuffled bag, so a word can repeat back to back.
+- **Suggested fix:** Port the Android word map and the no-repeat bag, keeping words to 8 letters or fewer and no ':' in category names.
+
+#### ISSUE-151: iOS side of Android ISSUE-225/226: the 7-continent question gives away its answer, and two daily trivia entries are arguable
+- **Severity:** LOW
+- **Area:** content
+- **File:** Core/DailyContentPool.swift:175, :177 and :178; Games/Trivia/TriviaView.swift:492
+- **Found by:** qa-ai-content (2026-11-05); the main agent confirmed the lines
+- **Description:** Same text and the same problems as the Android entries: "In the common 7-continent model, how many continents are there?" (answer 7, in its own text), and the widget's option-less "What do bees collect from flowers?" (Nectar; bees also collect pollen) and "What is the freezing point of water?" (0°C, no unit in the question).
+- **Suggested fix:** See Android ISSUE-225 and ISSUE-226. The daily lists must change identically on both platforms, so edit `DailyContentPool.swift` and `DailyContentPool.kt` together.
+
+#### ISSUE-152: iOS side of Android ISSUE-219/220: most games don't check that a sender is a room member, and player names have no length cap
+- **Severity:** LOW
+- **Area:** multiplayer
+- **File:** Games/ArcticTrek/ArcticTrekView.swift:326-331, Games/CaveExplorer/CaveExplorerView.swift:317-322, Games/DesertTrek/DesertTrekView.swift:314-319, Games/CountTo21/CountTo21View.swift:304-313, Games/MemoryMatch/MemoryMatchView.swift:436-451, Games/TicTacToe/TicTacToeView.swift:396-433 (Hangman is ISSUE-132); Navigation/OnlineLobbyView.swift:220 and :249
+- **Found by:** qa-multiplayer (2026-11-05)
+- **Description:** Same as the Android entries: Trek `SKIP:<id>` and the RESET / HELLO / MOVE messages are accepted without checking that the sender is in `players`, and the lobby name fields have no length limit, so a huge name can push the room doc past Firestore's 1 MiB limit when the host starts. Needs a modified client; nothing triggers it by accident.
+- **Suggested fix:** See Android ISSUE-219 and ISSUE-220; make the same two edits here (this extends ISSUE-132 to the other games).
 
 ### Fixed
 
