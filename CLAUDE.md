@@ -46,6 +46,10 @@ Android chains `AppCompatActivity` screens via `Intent` + extras, with (almost) 
 
 `AppRoute` (in `App/AppRoute.swift`) enumerates every screen; `GameSelection` is the Swift equivalent of Android's bag of Intent extras (`GAME_TYPE`/`DIFFICULTY`/`IS_BOT`/`IS_NEARBY`/`MOOD`/`AGE_GROUP`/`WORD_MODE`/`PLAYERS`; there is no `AI_ITEMS` anymore, the AI path was removed), passed by value along the navigation path. `GameRouter.gameView(for:)` is the direct equivalent of `InstructionsChoiceActivity.createGameIntent()` — the one place that maps a `GAME_TYPE` string to its game view; add a new game there.
 
+### Chess
+
+`Games/Chess/` holds `ChessEngine.swift` (rules and bot, a line-for-line port of Android's `ChessEngine.kt`, no chess library so no licence terms) and `ChessGameView.swift` (board and screen). Free, vs bot or one-phone pass-and-play; no online play yet (not in `GameCatalog.realMultiplayerGames`), same as Android. Keep the two engines in sync: if one changes, change the other (repetition key, insufficient material and FEN parsing were fixed on both on 2026-11-04). Unit tests live in the `BuddyVerseTests` target (`BuddyVerseTests/ChessEngineTests.swift`, `SudokuGeneratorTests.swift`; it compiles `ChessEngine.swift` and `SudokuGenerator.swift` directly, no app launch needed). Run them with `xcodebuild -project BuddyVerse.xcodeproj -scheme BuddyVerse -destination 'platform=iOS Simulator,id=<udid>' -only-testing:BuddyVerseTests test` (59 tests pass on the iPhone Duo simulator). The screen is `ChessGameView.swift`. Every board square is an accessibility element (`chess-sq-<index>`, label like "e2, white pawn"), so VoiceOver and UI tests can address squares.
+
 ### iOS 14 compatibility constraints
 
 This app's SwiftUI code was originally written assuming a modern (17.0) deployment target, then had to be systematically walked back to 14.0 — that pass touched ~50 files, since APIs that feel like basic, everyday SwiftUI (`.foregroundStyle()`, `.tint()`, `.buttonStyle(.borderedProminent)`/`.bordered`, `Canvas`, `@FocusState`, `.confirmationDialog`, `TextField(prompt:)`, `.onChange(of:)`'s newer closure forms, `.task {}`, `.overlay(alignment:) {}`, `.alert(_:isPresented:presenting:actions:message:)`, `Button(_:role:action:)`, `.scrollContentBackground`) all turned out to require iOS 15, 16, or 17. When adding new SwiftUI code to this project, default to the *older* form of anything that has one, and verify with an actual `xcodebuild ... build` (not just "it looks right") before considering a change done, since some of these fail silently in an editor but hard-error at the deployment target check:
@@ -254,7 +258,39 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Description:** Android removed the South Africa question as contested (ISSUE-133); on iOS the reworded version is correct but still a trick for kids. Amsterdam as the Netherlands' capital has "Hague" as a distractor some players will call right. "Smallest continent" depends on the 7-continent model. "Which gas do humans breathe out" and "which gas do plants absorb" both answer Carbon Dioxide.
 - **Suggested fix:** Drop the South Africa and Netherlands questions (or add "constitutional capital"), and replace one of the gas questions.
 
+#### ISSUE-117: No "still waiting for your friend" timeout in Tic-Tac-Toe, Memory or Count to 21 (Android ISSUE-183, partial port missing)
+- **Severity:** MEDIUM
+- **Area:** multiplayer
+- **File:** Games/TicTacToe/TicTacToeView.swift:185-205, Games/MemoryMatch/MemoryMatchView.swift:203-220, Games/CountTo21/CountTo21View.swift:187-201
+- **Found by:** qa-multiplayer (2026-11-05)
+- **Description:** Android shows a local toast after 90 s when still waiting for the other player (Tic-Tac-Toe roles unassigned, Memory board empty, Count to 21 at count 0 and not your turn). iOS has none. A player lingering on a lobby/instructions screen keeps heartbeating, so nobody is timed out and the others sit on "Connecting..." or an empty board with no hint; only Back gets them out.
+- **Suggested fix:** A 90 s one-shot timer after `setListeners` that shows the same toast text while the waiting condition still holds. No wire change.
+
+#### ISSUE-118: `startGame()` does not re-check that at least 2 players are seated (Android ISSUE-169)
+- **Severity:** LOW
+- **Area:** multiplayer
+- **File:** Core/InternetConnectionManager.swift:420-446; Navigation/OnlineLobbyView.swift:151
+- **Found by:** qa-multiplayer (2026-11-05)
+- **Description:** Android's transaction refuses to flip to "playing" with fewer than 2 players; iOS only checks `status == "waiting"`. The host's `players.count >= 2` gate uses a possibly stale roster, so a guest's `removeSelf` just before the transaction can start a one-seat Count to 21 or Trek game, and the failure path only `print`s.
+- **Suggested fix:** Inside the transaction, return early when the snapshot's `players` has fewer than 2 entries.
+
+#### ISSUE-119: Lobby "Cancel" jumps to Welcome instead of the previous screen
+- **Severity:** LOW
+- **Area:** navigation
+- **File:** Navigation/OnlineLobbyView.swift:60
+- **Found by:** qa-navigation-flow (2026-11-05)
+- **Description:** Cancel calls `stop()` then `router.popToRoot()`, landing on Welcome rather than `friendTypeChoice`/`maxPlayers` as other screens' Back does. Probably intentional, but inconsistent.
+- **Suggested fix:** `router.pop()` if landing on the previous screen is wanted.
+
 ### Fixed
+
+#### ISSUE-120: Chess bot could leave the board locked on "Bot is thinking..." after the view disappeared
+- **Severity:** LOW
+- **Area:** game-logic
+- **Found by:** qa-game-logic (2026-11-05)
+- **Fixed by:** main agent on 2026-11-05
+- **Summary:** `ChessView.onDisappear` bumped `gameId` to drop a pending bot move, but the bot's callback returns before clearing `botThinking` when `gameId` has changed, so a disappear/reappear froze input until New Game. `onDisappear` now clears `botThinking` as well. Not run on a device (the chess code has never been compiled; see the Chess section).
+
 
 #### ISSUE-36: RPS MEDIUM/HARD bots see the player's pick before choosing (Android ISSUE-76)
 - **Fixed by:** main agent on 2026-10-15

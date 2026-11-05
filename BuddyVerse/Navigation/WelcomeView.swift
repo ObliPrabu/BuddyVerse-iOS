@@ -58,6 +58,7 @@ struct WelcomeView: View {
         ("🎵", "Memory Sequence", "Watch & repeat the growing pattern.", "SEQUENCE"),
         ("🔀", "Slide Puzzle", "Slide the numbers back into order.", "SLIDE"),
         ("🪢", "Hangman", "Guess the word before the stickman is made.", "HANGMAN"),
+        ("♞", "Chess", "The classic game of kings. Play a friend or the bot.", "CHESS"),
         ("⚡", "Math Sprint", "Beat the clock with mental math. 3 levels.", "MATH")
     ]
 
@@ -410,12 +411,12 @@ struct WelcomeView: View {
     }
 
     // Mirrors WelcomeActivity.animateCountUp: counts 0 -> target over 1.5s with
-    // a decelerate (ease-out) curve, same 22 hardcoded "Original games" total.
+    // a decelerate (ease-out) curve, same hardcoded "Original games" total (23 with Chess).
     private func animateStats() {
         animateCountUp(target: 100) { statJokes = $0 }
         animateCountUp(target: 100) { statRiddles = $0 }
         animateCountUp(target: 100) { statTrivia = $0 }
-        animateCountUp(target: 22) { statGames = $0 }
+        animateCountUp(target: 23) { statGames = $0 }
     }
 
     // Only bothers checking Firestore if this device has actually opted in

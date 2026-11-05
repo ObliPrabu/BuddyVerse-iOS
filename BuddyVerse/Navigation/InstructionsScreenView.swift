@@ -20,6 +20,7 @@ struct InstructionsScreenView: View {
         case "RPS": return "Rock beats Scissors, Scissors beats Paper, Paper beats Rock."
         case "SEQUENCE": return "Watch the pattern of colors and repeat them in order."
         case "SLIDE": return "Slide the tiles to arrange numbers 1-8 in order."
+        case "CHESS": return "Trap the other king! Tap a piece, then tap a highlighted square to move it."
         case "SPACE": return "Tap to move your rocket and collect stars."
         case "JUNGLE": return "Tap the jumping fruits as fast as you can."
         case "OCEAN": return "Tap the sea creatures to dive deep before your bubbles run out."

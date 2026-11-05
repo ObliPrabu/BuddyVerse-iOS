@@ -73,6 +73,7 @@ enum GameRouter {
         case "OCEAN": OceanDiveView(selection: selection)
         case "SEQUENCE": MemorySequenceView(selection: selection)
         case "SLIDE": SlidePuzzleView(selection: selection)
+        case "CHESS": ChessGameView(selection: selection)
         case "MOUNTAIN": MountainClimbView(selection: selection)
         case "DESERT": DesertTrekView(selection: selection)
         case "VOLCANO": VolcanoClimbView(selection: selection)
