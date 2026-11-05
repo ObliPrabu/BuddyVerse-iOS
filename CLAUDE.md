@@ -46,10 +46,6 @@ Android chains `AppCompatActivity` screens via `Intent` + extras, with (almost) 
 
 `AppRoute` (in `App/AppRoute.swift`) enumerates every screen; `GameSelection` is the Swift equivalent of Android's bag of Intent extras (`GAME_TYPE`/`DIFFICULTY`/`IS_BOT`/`IS_NEARBY`/`MOOD`/`AGE_GROUP`/`WORD_MODE`/`PLAYERS`; there is no `AI_ITEMS` anymore, the AI path was removed), passed by value along the navigation path. `GameRouter.gameView(for:)` is the direct equivalent of `InstructionsChoiceActivity.createGameIntent()` — the one place that maps a `GAME_TYPE` string to its game view; add a new game there.
 
-### Chess
-
-`Games/Chess/ChessEngine.swift` is a line-for-line port of Android's `ChessEngine.kt` (rules, `ChessBot`, repetition key, insufficient material); `ChessView.swift` is the screen (free, vs bot or one-phone pass-and-play; **not** in `realMultiplayerGames`, so no "Two Phones"). The board is drawn from plain SwiftUI views, not `Canvas`, to respect the iOS 14 rules below. It was written on a machine with no Swift toolchain, so **it has not been compiled yet**: run `xcodegen generate` then a device build before relying on it. `BuddyVerseTests/` holds Swift twins of Android's `ChessEngineTests` (53 tests, perft totals included) and `SudokuGeneratorTests` (7); the `BuddyVerseTests` target in `project.yml` compiles `ChessEngine.swift` and `SudokuGenerator.swift` directly (no app launch, no Firebase), so add any new pure-logic file to that target's `sources` to test it. Run them with `xcodegen generate` then `xcodebuild test -project BuddyVerse.xcodeproj -scheme BuddyVerse -destination 'platform=iOS Simulator,name=iPhone 15'`. They have never been run: this was written on a machine with no Swift toolchain. If the engine changes on Android, change it here too.
-
 ### iOS 14 compatibility constraints
 
 This app's SwiftUI code was originally written assuming a modern (17.0) deployment target, then had to be systematically walked back to 14.0 — that pass touched ~50 files, since APIs that feel like basic, everyday SwiftUI (`.foregroundStyle()`, `.tint()`, `.buttonStyle(.borderedProminent)`/`.bordered`, `Canvas`, `@FocusState`, `.confirmationDialog`, `TextField(prompt:)`, `.onChange(of:)`'s newer closure forms, `.task {}`, `.overlay(alignment:) {}`, `.alert(_:isPresented:presenting:actions:message:)`, `Button(_:role:action:)`, `.scrollContentBackground`) all turned out to require iOS 15, 16, or 17. When adding new SwiftUI code to this project, default to the *older* form of anything that has one, and verify with an actual `xcodebuild ... build` (not just "it looks right") before considering a change done, since some of these fail silently in an editor but hard-error at the deployment target check:
@@ -931,13 +927,6 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** qa-content / qa-navigation-flow (2026-10-28)
 - **Fixed by:** main agent on 2026-10-28
 - **Summary:** Jokes and Riddles Welcome cards now count to 90 (both pools are under 100 after ISSUE-105/106); Trivia stays at 100 (about 101 entries). Code and the ISSUE-92 text now agree.
-
-#### ISSUE-120: Chess bot could leave the board locked on "Bot is thinking..." after the view disappeared
-- **Severity:** LOW
-- **Area:** game-logic
-- **Found by:** qa-game-logic (2026-11-05)
-- **Fixed by:** main agent on 2026-11-05
-- **Summary:** `ChessView.onDisappear` bumped `gameId` to drop a pending bot move, but the bot's callback returns before clearing `botThinking` when `gameId` has changed, so a disappear/reappear froze input until New Game. `onDisappear` now clears `botThinking` as well. Not run on a device (the chess code has never been compiled; see the Chess section).
 
 #### ISSUE-143: Privacy manifest did not declare the System Boot Time API that the Chess bot uses
 - **Severity:** MEDIUM

@@ -57,7 +57,6 @@ enum AppFeedbackService {
         case "MEMORY": return "Memory Match"
         case "SEQUENCE": return "Memory Sequence"
         case "SLIDE": return "Slide Puzzle"
-        case "CHESS": return "Chess"
         case "HANGMAN": return "Hangman"
         case "MATH": return "Math Sprint"
         case "SPACE": return "Space Explorer"
