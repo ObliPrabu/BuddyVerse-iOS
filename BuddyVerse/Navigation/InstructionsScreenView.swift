@@ -11,6 +11,7 @@ struct InstructionsScreenView: View {
     private var instructions: String {
         switch selection.gameType {
         case "TICTACTOE": return "Get three in a row (horizontal, vertical, or diagonal) to win!"
+        case "CHESS": return "Trap the other king! Tap a piece, then tap a highlighted square to move it."
         case "HANGMAN": return "Guess the secret word before the stickman is fully drawn!"
         case "WORDSEARCH": return "Swipe across the letters to find the hidden word."
         case "MEMORY": return "Flip two cards to find matching emojis."

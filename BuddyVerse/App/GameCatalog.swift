@@ -12,14 +12,15 @@ enum GameCatalog {
 
     // Every game with real internet ("Two Phones") multiplayer wired up.
     static let realMultiplayerGames: Set<String> = [
-        "TICTACTOE", "COUNT21", "MEMORY", "HANGMAN", "ARCTIC", "CAVE", "DESERT"
+        "TICTACTOE", "COUNT21", "MEMORY", "HANGMAN", "ARCTIC", "CAVE", "DESERT", "CHESS"
     ]
 
     // The subset of realMultiplayerGames that support more than 2 players in
     // one room (a live joining roster + host-triggered "Start Game", capped
     // at a host-chosen maxPlayers). Tic-Tac-Toe is deliberately left out of
     // this set - its board/symbols are fundamentally 2-player, so it keeps
-    // the older "auto-start the instant one guest joins" flow instead.
+    // the older "auto-start the instant one guest joins" flow instead. Chess
+    // is 2-player only for the same reason and is left out too.
     static let multiSeatMultiplayerGames: Set<String> = [
         "COUNT21", "MEMORY", "HANGMAN", "ARCTIC", "CAVE", "DESERT"
     ]

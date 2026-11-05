@@ -48,6 +48,7 @@ enum AppFeedbackService {
         case "TRIVIA": return "Trivia"
         case "CONVERSATION": return "Conversation Starters"
         case "TICTACTOE": return "Tic-Tac-Toe"
+        case "CHESS": return "Chess"
         case "RPS": return "Rock Paper Scissors"
         case "SUDOKU": return "Sudoku"
         case "MAZE": return "Amazing Maze"

@@ -57,6 +57,7 @@ struct WelcomeView: View {
         ("🧩", "Memory Match", "Flip the cards and find every pair.", "MEMORY"),
         ("🎵", "Memory Sequence", "Watch & repeat the growing pattern.", "SEQUENCE"),
         ("🔀", "Slide Puzzle", "Slide the numbers back into order.", "SLIDE"),
+        ("♞", "Chess", "The classic game of kings. Play a friend or the bot.", "CHESS"),
         ("🪢", "Hangman", "Guess the word before the stickman is made.", "HANGMAN"),
         ("⚡", "Math Sprint", "Beat the clock with mental math. 3 levels.", "MATH")
     ]

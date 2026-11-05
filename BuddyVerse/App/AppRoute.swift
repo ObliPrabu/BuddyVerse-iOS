@@ -62,6 +62,7 @@ enum GameRouter {
         case "CONVERSATION": ConversationView(selection: selection)
         case "COUNT21": CountTo21View(selection: selection)
         case "TICTACTOE": TicTacToeView(selection: selection)
+        case "CHESS": ChessView(selection: selection)
         case "WORDSEARCH": WordSearchView(selection: selection)
         case "MAZE": MazeGameView(selection: selection)
         case "MEMORY": MemoryMatchView(selection: selection)
