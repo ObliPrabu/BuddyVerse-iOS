@@ -167,6 +167,7 @@ targets:
     sources:
       - path: BuddyVerseTests
       - path: BuddyVerse/Games/Chess/ChessEngine.swift
+      - path: BuddyVerse/Games/Chess/ChessOnline.swift
       - path: BuddyVerse/Games/Sudoku/SudokuGenerator.swift
     settings:
       base:

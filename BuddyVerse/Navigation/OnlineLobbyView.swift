@@ -24,6 +24,8 @@ struct OnlineLobbyView: View {
     @State private var connected = false
     @State private var gameStarted = false
     @State private var players: [Player] = []
+    // Chess only: seconds per player the host picked (0 = no clock).
+    @State private var chessClockSeconds = 0
 
     private var isMultiSeat: Bool { GameCatalog.multiSeatMultiplayerGames.contains(gameType) }
 
@@ -44,16 +46,25 @@ struct OnlineLobbyView: View {
             rootGradient.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Text("Play Online")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.white)
-                    .padding(.bottom, 16)
+                // The content takes all the free space and stays centred; the
+                // Cancel button below it is therefore always at the bottom of the screen.
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
 
-                switch stage {
-                case .nameEntry: nameEntrySection
-                case .hosting: hostingSection
-                case .joining: joiningSection
+                    Text("Play Online")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.bottom, 16)
+
+                    switch stage {
+                    case .nameEntry: nameEntrySection
+                    case .hosting: hostingSection
+                    case .joining: joiningSection
+                    }
+
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 Button("Cancel") {
                     InternetConnectionManager.shared.stop()
@@ -61,11 +72,11 @@ struct OnlineLobbyView: View {
                 }
                 .font(.system(size: 14))
                 .foregroundColor(Color(hex: 0x333333))
-                .padding(.horizontal, 24)
-                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
                 .background(cancelButtonBg)
                 .buttonStyle(.plain)
-                .padding(.top, 30)
+                .padding(.top, 16)
             }
             .padding(30)
         }
@@ -97,6 +108,23 @@ struct OnlineLobbyView: View {
 
             androidField("Enter your name", text: $playerName)
                 .padding(.bottom, 20)
+
+            if gameType == "CHESS" {
+                // Chess only: the host picks a clock, which the guest then gets automatically.
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Chess clock (applies if you create the game)")
+                        .font(.system(size: 14))
+                        .foregroundColor(hintTextColor)
+                    Picker("Chess clock", selection: $chessClockSeconds) {
+                        Text("None").tag(0)
+                        Text("3 min").tag(180)
+                        Text("5 min").tag(300)
+                        Text("10 min").tag(600)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                }
+                .padding(.bottom, 14)
+            }
 
             Button("Create Game") { createGame() }
                 .font(.system(size: 16, weight: .bold))
@@ -218,6 +246,8 @@ struct OnlineLobbyView: View {
     private func createGame() {
         dismissKeyboard()
         let name = playerName.trimmingCharacters(in: .whitespaces)
+        // Handed to ChessView, which sends it to the guest as a CLOCK message.
+        if gameType == "CHESS" { ChessSettings.hostClockSeconds = chessClockSeconds }
         stage = .hosting
         InternetConnectionManager.shared.createRoom(
             hostName: name.isEmpty ? "Player" : name,

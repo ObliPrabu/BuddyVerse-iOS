@@ -60,6 +60,38 @@ final class LocalNotificationManager: NSObject, UNUserNotificationCenterDelegate
         }
     }
 
+    /// "Your friend moved in chess" - shown only when the app is not on screen
+    /// (the chess screen itself uses a buzz and a toast when it is). A fixed
+    /// identifier means a second move replaces the first instead of piling up.
+    func notifyChessMove(friend: String, text: String) {
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            guard granted else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "\(friend) moved in chess"
+            content.body = "\(text) - it's your move!"
+            content.sound = .default
+            if #available(iOS 15.0, *) {
+                content.interruptionLevel = .timeSensitive
+            }
+            center.add(UNNotificationRequest(
+                identifier: LocalNotificationManager.chessNotificationId,
+                content: content,
+                trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            ))
+        }
+    }
+
+    static let chessNotificationId = "chess-move"
+
+    /// Called when the player is back in the app: the "your friend moved"
+    /// banner is out of date.
+    func clearChessNotification() {
+        let center = UNUserNotificationCenter.current()
+        center.removeDeliveredNotifications(withIdentifiers: [LocalNotificationManager.chessNotificationId])
+        center.removePendingNotificationRequests(withIdentifiers: [LocalNotificationManager.chessNotificationId])
+    }
+
     // The admin is looking right at the Admin Dashboard when they tap
     // Publish, so the notification fires while the app is in the
     // foreground - without this delegate method, foreground local
