@@ -138,6 +138,28 @@ targets:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
 
+  # Unit tests for the pure chess logic (rules, bot, online message format).
+  # The logic files are compiled straight into the test bundle - the same
+  # trick the widget target uses for DailyContentPool.swift - so there is no
+  # host app to launch: the tests stay fast and never start Firebase.
+  BuddyVerseTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: BuddyVerseTests
+      - path: BuddyVerse/Games/Chess/ChessEngine.swift
+      - path: BuddyVerse/Games/Chess/ChessOnline.swift
+      - path: BuddyVerse/App/GameCatalog.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.obliprabu.buddyverse.Tests
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        DEVELOPMENT_TEAM: "PS8DGXJ8S8"
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: YES
+
   BuddyVerseUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -161,9 +183,11 @@ schemes:
     build:
       targets:
         BuddyVerse: all
+        BuddyVerseTests: [test]
         BuddyVerseUITests: [test]
     test:
       targets:
+        - BuddyVerseTests
         - BuddyVerseUITests
     run:
       config: Debug

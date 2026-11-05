@@ -43,15 +43,17 @@ enum ChessWire {
         guard let first = parts.first, let round = Int(first), round >= 0, parts.count >= 2 else { return nil }
         switch parts[1] {
         case "RESIGN":
-            return parts.count == 2 ? .resign(round: round) : nil
+            if parts.count == 2 { return ChessWireMessage.resign(round: round) }
+            return nil
         case "RESET":
-            return parts.count == 2 ? .reset(round: round) : nil
+            if parts.count == 2 { return ChessWireMessage.reset(round: round) }
+            return nil
         case "MOVE":
             guard parts.count == 5,
                   let from = Int(parts[2]), let to = Int(parts[3]), let promo = Int(parts[4]) else { return nil }
             guard (0...63).contains(from), (0...63).contains(to) else { return nil }
             guard promo == 0 || (Chess.knight...Chess.queen).contains(promo) else { return nil }
-            return .move(round: round, move: ChessMove(from: from, to: to, promo: promo))
+            return ChessWireMessage.move(round: round, move: ChessMove(from: from, to: to, promo: promo))
         default:
             return nil
         }
