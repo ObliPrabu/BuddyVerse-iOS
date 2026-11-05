@@ -34,6 +34,19 @@ After adding a new `.swift` file run `xcodegen generate` first, or the file is n
 
 - **`BuddyVerse/Resources/GoogleService-Info.plist`** — gitignored, and **currently present** on this machine (bundle ID `com.obliprabu.buddyverse`, registered as its own iOS app on 2026-10-29 when the bundle ID changed from `com.example.buddyverse.ios`; same Firebase project as the Android app, `buddyverse-5fc3e`). On a fresh checkout it has to be re-downloaded from the Firebase console and dropped in this exact path. Without it, `FirebaseApp.configure()` is skipped (guarded in `BuddyVerseApp.swift`) and every multiplayer screen will fail to connect — everything else in the app works fine without it.
 
+## Git workflow
+
+_Standing instruction from the owner (2026-11-05): commit and push automatically._
+
+- **Commit and push on your own.** After finishing a change that builds and whose tests pass, commit it and push it to the branch you are on, without asking first. Do this at natural stopping points, not after every tiny edit.
+- **Use a feature branch.** Start anything bigger than a trivial fix on a new branch (for example `chess-clock`), not on `main`, and push that branch.
+- **`main` is still the owner's call.** Merging a branch into `main` (and pushing `main`) happens only when the owner asks.
+- **Cloud-session branches** (`claude/...`): `git fetch` is fine, but merge them into anything only when the owner says to pull.
+- **Never commit secrets or local files:** `local.properties`, `*.jks` / `*.keystore`, `GoogleService-Info.plist`, API keys, and `.idea/` changes (unless asked). Stage the project's own files by name instead of `git add -A`.
+- **Never force-push or rewrite history that is already pushed.** If a push is rejected because GitHub has newer commits, stop and tell the owner instead of forcing it.
+- **Write real commit messages:** a short summary line, then what changed and why in plain English, ending with the usual `Co-Authored-By` line.
+- Pushing is not releasing: uploading to Google Play, publishing a Mac `.dmg` or editing the website still happen only when the owner asks.
+
 ## Architecture
 
 Mirrors the Android app's architecture almost 1:1 — see `~/AndroidStudioProjects/BuddyVerse/CLAUDE.md` for the full narrative description of the product/flow; this file only covers what's iOS-specific.
