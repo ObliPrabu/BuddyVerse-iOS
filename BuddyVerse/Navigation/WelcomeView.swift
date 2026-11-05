@@ -416,7 +416,7 @@ struct WelcomeView: View {
         animateCountUp(target: 100) { statJokes = $0 }
         animateCountUp(target: 100) { statRiddles = $0 }
         animateCountUp(target: 100) { statTrivia = $0 }
-        animateCountUp(target: 22) { statGames = $0 }
+        animateCountUp(target: 23) { statGames = $0 }
     }
 
     // Only bothers checking Firestore if this device has actually opted in

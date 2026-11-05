@@ -26,7 +26,7 @@ After adding a new `.swift` file run `xcodegen generate` first, or the file is n
 
 **Deployment target is iOS 15.0** (`project.yml`'s `options.deploymentTarget.iOS` and `targets.BuddyVerse.deploymentTarget`; raised from 14.0 on 2026-10-29 because current Xcode no longer accepts 14.0, and the widget extension stays at 16.2). It was originally lowered from 17.0 so the app runs on older/hardware-capped devices (e.g. iPads stuck on iOS 15.x that can't upgrade further). The code still follows the iOS 14 rules below; keeping them is harmless, and only the iOS 15 items in that list could now be relaxed. This has real, easy-to-reintroduce consequences for anyone touching this codebase — see "iOS 14 compatibility constraints" below before writing new SwiftUI code here.
 
-**App Store setup (2026-10-29):** bundle IDs are `com.obliprabu.buddyverse` (matching Android's applicationId), `com.obliprabu.buddyverse.BuddyVerseWidget` and `com.obliprabu.buddyverse.UITests`; Apple's bundle ID can't change after the first submission. `BuddyVerse/Resources/PrivacyInfo.xcprivacy` declares the UserDefaults required-reason API (CA92.1), no tracking, and the data sent to Firestore (first name, admin-login email, anonymous multiplayer id, feedback/report text, play counts; matches App-Privacy-Answers.txt); update it if the app starts using another required-reason API or collecting more. `ITSAppUsesNonExemptEncryption` is `false` (HTTPS only).
+**App Store setup (2026-10-29):** bundle IDs are `com.obliprabu.buddyverse` (matching Android's applicationId), `com.obliprabu.buddyverse.BuddyVerseWidget` and `com.obliprabu.buddyverse.UITests`; Apple's bundle ID can't change after the first submission. `BuddyVerse/Resources/PrivacyInfo.xcprivacy` declares the UserDefaults (CA92.1) and System Boot Time (35F9.1, the Chess bot's time limit via `ProcessInfo.systemUptime`) required-reason APIs, no tracking, and the data sent to Firestore (first name, admin-login email, anonymous multiplayer id, feedback/report text, play counts; matches App-Privacy-Answers.txt); update it if the app starts using another required-reason API or collecting more. `ITSAppUsesNonExemptEncryption` is `false` (HTTPS only).
 
 **Daily pick holidays (2026-10-31):** `DailyContentPool.holidayRiddles`/`holidayPick` replace the daily pick with a holiday riddle on New Year's Day, Valentine's Day, St. Patrick's Day, Earth Day, July 4, Halloween, Christmas Eve/Day, New Year's Eve and Thanksgiving (4th Thursday of November); Android's `DailyContentPool.kt` has the identical list. **Mac build:** the app target has `SUPPORTS_MACCATALYST` (widget iOS-only, Live Activity stubbed in `LiveActivityManager.swift`); the unsigned `.dmg` is attached to the GitHub release `v1.6.25-mac`.
 
@@ -169,6 +169,7 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** /test-app sixth pass (2026-10-17)
 - **Description:** InstructionsChoiceView stays in the stack under the game; Back after stop() shows it with no room behind it.
 - **Status (2026-10-17):** Deferred on purpose.
+- **Status (2026-11-05):** Broader than recorded. "YES, SHOW ME HOW" pushes `.instructionsView` over `.instructionsChoice` and START GAME only `replaceTop`s the instructions screen, so Back from ANY game (bot, pass-and-play, solo, online) lands on the already-answered "Ready to Play?" prompt (InstructionsScreenView.swift:82, InstructionsChoiceView.swift:49-50). Android's choice screen finishes itself, so Back skips the prompt. For online games the prompt is also dead (its room was stopped), and tapping "NO, I KNOW THE RULES" there re-launches a nearby game that immediately shows "Opponent Disconnected". Suggested fix: on START GAME drop both entries (`pop()` then `replaceTop`, or a helper that removes two), and optionally pop `InstructionsChoiceView` automatically when `selection.isNearby && !InternetConnectionManager.shared.isConnected()`.
 
 #### ISSUE-98: Memory Match and Count to 21 have no idle-player skip (Android ISSUE-142 style)
 - **Severity:** MEDIUM
@@ -185,6 +186,7 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Description:** An iOS host backgrounded in the lobby for over 90 s stops its `lastSeen`; an Android guest then drops the room with "game ended", while an iOS guest would wait 300 s. An iOS guest backgrounded over 90 s is quietly removed by an Android host and hits the `evicted` path on return. The code comment says the constants match Android "on purpose", which this one doesn't. Same item as Android ISSUE-170.
 - **Suggested fix:** Match the tolerance on Android, or keep the iOS host's `lastSeen` fresh while the lobby shows (ISSUE-101's fix covers most of it).
 - **Last attempt:** 2026-10-28 — Android now lets a guest wait 300 s on a silent lobby host (Android ISSUE-170), which closes the iOS-host-backgrounded case; ISSUE-101 keeps the screen awake while a room is live. Still open: an Android host evicts a stale guest after 90 s, so a backgrounded iOS lobby guest can still be removed.
+- **Status (2026-11-05):** The 90 s eviction itself is unchanged; the misleading "game ended" message shown to an evicted lobby guest is tracked separately as ISSUE-133.
 
 #### ISSUE-107: Hangman mode choice: the guest waits forever and the host's mode write can fail silently
 - **Severity:** LOW
@@ -225,6 +227,7 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** qa-build-lint (2026-10-28)
 - **Description:** The device build succeeds. Warnings: `storeUpdate` mutated from a Sendable closure (RootView:95, surfaced after `UpdateChecker.check`'s completion was marked `@Sendable` on 2026-10-27); captured `var feedbackDocs`/`reportDocs` mutated from Firestore callbacks; captured `var parts` read in the `requestAuthorization` closure. `xcodegen` isn't installed on this machine, so the existing `.xcodeproj` was built without regenerating from `project.yml`.
 - **Suggested fix:** Set `storeUpdate` through `runOnMain`; collect results in `DispatchGroup.notify` or a serial queue; copy `parts` into a `let` first.
+- **Status (2026-11-05):** qa-build-lint re-read all four sites at HEAD b83be51 and they are unchanged. Every target pins `SWIFT_VERSION: "6.0"` (project.yml:45, :123, :150, :174), while the "build succeeds with warnings" above came from an `.xcodeproj` that was not regenerated from project.yml. A project regenerated from project.yml is in the mode where these diagnostics are errors, so the rating may be too low (re-rate HIGH if they fail). The rest of the code is clearly Swift-6-hardened (`runOnMain`, `nonisolated(unsafe)`, `@unchecked Sendable`), so it may already compile. Unverified without a compiler: run `xcodegen generate` and a device build on the Mac.
 
 #### ISSUE-112: CLAUDE.md still describes a live iOS paywall; dead `premiumSource` and stale comment; Terms gate and update alert undocumented
 - **Severity:** LOW
@@ -233,6 +236,7 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** qa-navigation-flow (2026-10-28)
 - **Description:** There is no `LobbyView`, `SubscriptionManager`, `StripeConfig`, `PaymentWebView` or `AccountView`, no `.lobby` route and no `Router.replaceLobby`; `WelcomeView` sends every premium button to `.onePhoneSelection`, so premium is free on both platforms. `GameSelection.premiumSource` is never set or read, and `MaxPlayersView`'s comment says "right after paying". The first-launch gate now starts with a mandatory `TermsView` (`accepted_terms`; `gateDone` needs both it and the name), and `RootView` owns an App Store "Update available" alert (`dismissed_update_version`); CLAUDE.md describes neither.
 - **Suggested fix:** Remove the divergence paragraph, `replaceLobby` sentence and Stripe bullet; delete `premiumSource` and fix the comment; add a paragraph on gate order and the update alert.
+- **Status (2026-11-05):** More stale spots than listed above. CLAUDE.md also cites `AccountView.placeholderField` (iOS-14 constraints list, ~line 64); code comments still talk about premium purchases or Stripe in Core/AuthManager.swift:5-9,14, Navigation/LoginView.swift:8, Core/TrustedWebView.swift:4,13,63-74,99-105 (Stripe, `MainWebView`, an unused `onNavigate` interception) and Navigation/MaxPlayersView.swift:3. `GameCatalog.socialItems` (GameCatalog.swift:28) and its dead branch (OnePhoneSelectionView.swift:61) were removed on Android under ISSUE-194. iOS-only pieces missing from the architecture sections: Live Activity (`LiveActivityManager`), the admin local notifications (`AdminFeedbackChecker`, `LocalNotificationManager`, `AdminNotificationTracker`), the App Store update alert (`UpdateChecker`) and `NearbyDisconnectGuard`.
 
 #### ISSUE-113: Live Activity context stays set while "Opponent Disconnected" sits over a dead game
 - **Severity:** LOW
@@ -281,6 +285,182 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** qa-navigation-flow (2026-11-05)
 - **Description:** Cancel calls `stop()` then `router.popToRoot()`, landing on Welcome rather than `friendTypeChoice`/`maxPlayers` as other screens' Back does. Probably intentional, but inconsistent.
 - **Suggested fix:** `router.pop()` if landing on the previous screen is wanted.
+
+#### ISSUE-121: A build without GoogleService-Info.plist crashes at launch, although CLAUDE.md says everything else still works
+- **Severity:** MEDIUM
+- **Area:** build
+- **File:** Navigation/WelcomeView.swift:18; Core/AuthManager.swift:17,22; Core/AppFeedbackService.swift:10-19; App/RootView.swift:204; Core/AdminFeedbackChecker.swift:11-13; App/BuddyVerseApp.swift:16-18; project.yml:24-25; CLAUDE.md "One-time setup"
+- **Found by:** qa-multiplayer, qa-navigation-flow (2026-11-05)
+- **Description:** `BuddyVerseApp.init` skips `FirebaseApp.configure()` when the gitignored plist is missing, but `WelcomeView` initialises `@State isAdminUser = AuthManager.isAdmin()` on its first render, which calls `Auth.auth()` and raises without a default FirebaseApp. `AppFeedbackService.db` and `AdminFeedbackChecker` also call `Firestore.firestore()` unguarded (the name gate's `submitAppUser`, `incrementPlayCount` on every game launch, feedback/report, the update opt-in). Only `InternetConnectionManager.ensureSignedIn` checks `FirebaseApp.app()`, and its friendly "add GoogleService-Info.plist" message can never show. A fresh checkout, CI run, UI test or archive made without the file compiles (the plist is `optional: true`) and then dies on first launch. Release builds that bundle the plist are unaffected.
+- **Suggested fix:** One `FirebaseApp.app() != nil` guard in `AuthManager`, `AppFeedbackService`, `AdminFeedbackChecker` and the Admin Dashboard loaders so they no-op without Firebase (or drop `optional: true` so a missing plist fails the build), and correct the CLAUDE.md sentence.
+
+#### ISSUE-122: Many plain-style Buttons only respond to taps on their words (text-sized tap targets)
+- **Severity:** MEDIUM
+- **Area:** navigation
+- **File:** Navigation/OnlineLobbyView.swift:58,101,113,152; MaxPlayersView.swift:41,55; HangmanModeChoiceView.swift:80; MathSprintSelectionView.swift:43; ComingSoonView.swift:25; LoginView.swift:104; AdminDashboardView.swift:362,372,397; FeedbackReportSheets.swift:62,177; and the Back/Home/Reset rows in Games/TicTacToe (120-153), MemorySequence (74-107), SlidePuzzle (49-82), WordSearch (58-90), MemoryMatch (137-170), MathSprint (92-127), Chess (57-78) and Rps (102-136)
+- **Found by:** qa-navigation-flow (2026-11-05)
+- **Description:** These apply frame/padding/background/clipShape to the `Button` itself with `.buttonStyle(.plain)` instead of to its label. SwiftUI hit-tests a Button against its label bounds, so only the words respond, not the coloured pill or full-width bar (for example the green "Start Game" bar, the white "Reset Game" bar, and the grey "Back"/"Home" pills at roughly 30x17 pt). The app hit this once already: the comment at TicTacToeView.swift:97-106 says a plain Button "was silently swallowing taps on-device". Reasoned from SwiftUI hit-testing rules, not device-verified; the UI test taps by coordinate so would not catch it. Screens using a label-based Button or `LegacyProminentButtonStyle`/`LegacyBorderedButtonStyle` are fine (OnePhoneSelection, InstructionsChoice, BotDifficulty, Sudoku, Hangman, the Treks, the solo expedition games). The new Chess screen copies this pattern from Slide Puzzle.
+- **Suggested fix:** Move frame/padding/background/clipShape inside the label closure and add `.contentShape(Rectangle())`, or reuse the Legacy button styles.
+
+#### ISSUE-123: Volcano Climb: needle speed is uncapped and uses Android's pixel values as points, so late zones are nearly unplayable (the ISSUE-88 fix is not in the code)
+- **Severity:** MEDIUM
+- **Area:** game-logic
+- **File:** Games/VolcanoClimb/VolcanoClimbView.swift:254-264, 287, 290-293, 304, 309-317
+- **Found by:** qa-game-logic (2026-11-05)
+- **Description:** `currentNeedleStep()` returns `baseNeedleStep * zone.speedMultiplier * streakBonus` with no limit. ISSUE-88 (Fixed) says "needleStep is capped at 40% of the safe-zone width", but no such cap exists in the file. The base steps 8/12/16 are Android's raw pixel values used as points (Jungle Run and Space Explorer divide by 2.75, Volcano doesn't), so the needle crosses about 3x faster than on Android. On a 353 pt track with one tick per 30 ms: HARD zone 4 has a 34.9 pt safe zone against a 30.4 pt step (33.4 at streak 10), so the needle is inside the zone for about one tick per pass and sweeps the whole bar in about 0.34 s; on a 335 pt track (iPhone SE) the step at streak 10 exceeds the zone so the needle can skip it entirely; MEDIUM zone 4 is 50 pt against 22.8 pt per tick; HARD zone 3 is 44 pt against 24.8 pt. Android's same numbers in pixels on a ~1000 px track give about 100 ms windows and 1 s sweeps (VolcanoClimbActivity.kt:116-125, 174-178).
+- **Suggested fix:** Re-add the cap (`min(step, safeZoneWidth * 0.4)`) and/or divide the base steps by 2.75 as Jungle and Space do.
+
+#### ISSUE-124: Savanna Safari: Android ISSUE-167 not ported (a tap does not restart the cycle timer, and the animal can repeat)
+- **Severity:** MEDIUM
+- **Area:** game-logic
+- **File:** Games/SavannaSafari/SavannaSafariView.swift:241-270 (`onAnimalTapped`), :272-274 (`randomAnimal`), :313-327 (`scheduleNextCycle`/`cycleAnimal`)
+- **Found by:** qa-game-logic (2026-11-05)
+- **Description:** After any tap `onAnimalTapped` calls `cycleAnimal()` but leaves the already-running one-shot timer alone, so the fresh animal can be replaced a few milliseconds later and a tap on it then scores as a wrong animal (a strike). On HARD in the last zone the interval is 0.8 x 0.46 = 0.37 s, so a new animal is on screen for about 0.18 s on average. `randomAnimal()` picks from all animals, so one time in seven the animal does not change after a tap, which is the "hammer a lucky correct animal to farm points" case the class comment says is prevented.
+- **Suggested fix:** Invalidate and reschedule the timer in `onAnimalTapped` (a `stop()`/`resume()` pair works) and pick from `animals.filter { $0 != currentAnimal }`, as Android does (SavannaSafariActivity.kt:186-195, 238-242).
+
+#### ISSUE-125: Cave Explorer: always choosing Rest means you can never lose (Android open ISSUE-184 applies here too)
+- **Severity:** MEDIUM
+- **Area:** game-logic
+- **File:** Games/CaveExplorer/CaveExplorerView.swift:264-281, 355-399, 409-421
+- **Found by:** qa-game-logic (2026-11-05)
+- **Description:** Only the player whose action takes `torchLight` to 0 loses, and Rest adds 10-20 (capped at 100), so a player who always rests can never lose and depth plays no part in winning. Against the bot (explores whenever torch is above its HARD 21 / MEDIUM 16 / EASY 10 threshold, losing 10-25) the net drift is about -2.5 per cycle, so the torch walks down into the 22-25 band in roughly 25-30 cycles where the bot's explore kills it: tapping Rest repeatedly is a near-guaranteed win in about a minute. In pass-and-play and online two players who both rest play forever.
+- **Suggested fix:** Make depth matter (target depth, a cap on consecutive rests, or torch decay every turn). This changes the resolved TURN numbers or the win rule, so it needs the same change on Android (ISSUE-184 is waiting on that decision).
+
+#### ISSUE-126: Savanna Safari and Jungle Run: HARD last-zone timing floors not ported (Android ISSUE-174)
+- **Severity:** LOW
+- **Area:** game-logic
+- **File:** Games/SavannaSafari/SavannaSafariView.swift:237-239; Games/JungleRun/JungleRunView.swift:203
+- **Found by:** qa-game-logic (2026-11-05)
+- **Description:** iOS Savanna HARD in Pride Lands cycles every 0.8 x 0.46 = 368 ms, and Jungle HARD in Treetop Canopy gives 800 x 0.55 = 440 ms to find and tap the fruit. Android floors these at 550 ms and 600 ms (`SavannaSafariActivity.kt:77-81`, `JungleRunActivity.kt:70-73`); iOS has no floor.
+- **Suggested fix:** Clamp the Savanna cycle interval to at least 0.55 s and the Jungle interval to at least 0.6 s.
+
+#### ISSUE-127: Riddles: "Play Again" redraws from a fresh shuffle, so about two thirds of new rounds repeat a riddle just seen (Android ISSUE-178/192 not ported)
+- **Severity:** LOW
+- **Area:** content
+- **File:** Games/Riddles/RiddlesView.swift:50-59 (`drawRound`), :402-410 (`startNewRound`)
+- **Found by:** qa-game-logic (2026-11-05)
+- **Description:** `drawRound` builds a local `pool.shuffled()` on every call, so consecutive rounds are independent samples of about 99 riddles; the chance of at least one repeat between two consecutive 10-riddle rounds is about 67%. Trivia already uses a shared static bag (TriviaView.swift:53-77).
+- **Suggested fix:** One persistent bag refilled only when empty, putting already-drawn riddles at the front on a mid-round refill, as TriviaView does.
+
+#### ISSUE-128: Word Search: a cancelled drag leaves a stale selection (Android ISSUE-81 only half ported)
+- **Severity:** LOW
+- **Area:** game-logic
+- **File:** Games/WordSearch/WordSearchView.swift:130-134 (`DragGesture`), :137-164, :207-223
+- **Found by:** qa-game-logic (2026-11-05)
+- **Description:** `checkWord()` runs only in `.onEnded`. If the system cancels the touch (call, Control Center, banner) `.onEnded` never fires, so `selectedCells` stays highlighted and the next drag appends to it; a following single tap then reports "Try again!". Space Explorer and Swamp already solved the same SwiftUI limitation with `@GestureState`.
+- **Suggested fix:** Add a `@GestureState` touching flag and clear `selectedCells` when it drops to false without `onEnded` having run.
+
+#### ISSUE-129: Memory Sequence: backgrounding mid-playback collapses the sequence (Android ISSUE-171 not ported)
+- **Severity:** LOW
+- **Area:** game-logic
+- **File:** Games/MemorySequence/MemorySequenceView.swift:155-170, :201-205, :111
+- **Found by:** qa-game-logic (2026-11-05)
+- **Description:** `playSequence()` schedules every flash and the final "Your Turn!" up front with `asyncAfter`, and only `.onDisappear` cancels them (the file has no `scenePhase` handling). If the app is backgrounded during playback, all overdue flashes fire at once on return, only the last colour is visible and "Your Turn!" appears immediately, so the player must repeat a sequence they never saw.
+- **Suggested fix:** On `scenePhase != .active` call `cancelPending()`, reset `sequence` and show "Tap START to try again".
+
+#### ISSUE-130: Math Sprint: the clock keeps running while the app is backgrounded (Android ISSUE-189)
+- **Severity:** LOW
+- **Area:** game-logic
+- **File:** Games/MathSprint/MathSprintView.swift:178-193
+- **Found by:** qa-game-logic (2026-11-05)
+- **Description:** The timer counts down against a fixed `endDate` (deliberately mirroring CountDownTimer), so switching apps for 10 s in a 30 s sprint costs 10 s and a long switch ends the round on return. Android now pauses on `onPause` and resumes from the remaining time.
+- **Suggested fix:** Store the remaining seconds on `scenePhase != .active` and rebuild `endDate` on `.active`.
+
+#### ISSUE-131: Hangman: a stuck picker gives no "tap New to skip" hint, and the race-word resend is narrower than Android's
+- **Severity:** LOW
+- **Area:** multiplayer
+- **File:** Games/Hangman/HangmanView.swift:131-140 (`armSkipTimer`), :370-388, :604-613 (Android HangmanActivity.kt:304-312, :721-730)
+- **Found by:** qa-multiplayer, qa-game-logic (2026-11-05)
+- **Description:** (a) After 20 s `armSkipTimer()` only sets `skipAvailable`, which silently enables New; `categoryText` stays "Waiting for X to pick a word...". Android also sets "X hasn't picked a word - tap New Word to skip them." (b) On a same-round RESET iOS seat 0 re-sends `RACEWORD` only while `phase == .playing`, nothing has been guessed and the round isn't over; Android re-sends whenever the word is ready (ISSUE-89). If seat 0 has already tapped a letter or finished when the crossing RESET arrives, the other phone stays on "Waiting for a random word..." until its 20 s skip.
+- **Suggested fix:** Set `categoryText` in the skip-timer closure when still `.waitingForWord`; drop the extra resend conditions, keeping the same-round and seat-0 checks.
+
+#### ISSUE-132: Hangman does not check that incoming messages come from a room member (Android ISSUE-78, Hangman part)
+- **Severity:** LOW
+- **Area:** multiplayer
+- **File:** Games/Hangman/HangmanView.swift:599-623 and :634-720 (Android HangmanActivity.kt:713-714)
+- **Found by:** qa-multiplayer (2026-11-05)
+- **Description:** Android drops any message whose `sender` isn't in `players`; iOS has no such check (Count to 21, Memory and the Treks check the turn player instead). A non-member who knows the 6-digit code can inject messages: in PICKER mode a `GUESS` or `RESULT:WIN/LOSE` passes the `!isPicker(sender)` guard, in RACE mode made-up ids in `RESULT:RACEOUT` fill `raceOutIds` until the round ends for everyone, and a `RESET` for round+1..3 restarts the room. The check only shuts out non-members; `sender` is client-written, so a member can still spoof another on either platform.
+- **Suggested fix:** At the top of `receiveNearbyMessage`, return if `!players.isEmpty && !players.contains(where: { $0.id == sender })`.
+
+#### ISSUE-133: A lobby guest evicted after backgrounding is told the game ended, though the room and code are still valid (ISSUE-102 residual)
+- **Severity:** LOW
+- **Area:** multiplayer
+- **File:** Core/InternetConnectionManager.swift:768-796; Navigation/OnlineLobbyView.swift:276-290 (message at :283)
+- **Found by:** qa-multiplayer (2026-11-05)
+- **Description:** A backgrounded iOS guest stops heartbeating; after 90 s a host removes its seat, and on return the lobby says "The game ended. Ask your friend for a new code." The room and code are still valid and the guest could simply rejoin. The 90 s eviction itself is ISSUE-102.
+- **Suggested fix:** Tell the guest they were removed while away and can rejoin with the same code; optionally refresh the guest's `lastSeen` on the foreground notification.
+
+#### ISSUE-134: Memory and Hangman avoid the buffered-replay wipe (Android ISSUE-102/103) only because of an undocumented async hop (latent)
+- **Severity:** LOW
+- **Area:** multiplayer
+- **File:** Games/MemoryMatch/MemoryMatchView.swift:203-220; Games/Hangman/HangmanView.swift:286-310; Core/MainActorHelpers.swift:12-18
+- **Found by:** qa-multiplayer (2026-11-05)
+- **Description:** Android resets round state first and then calls `setListeners`, so a replayed SETUP/WORD isn't wiped. iOS calls `setListeners` first and `beginNearbyRound()` / `restartNearbyRound()` second, which works only because every game callback wraps delivery in `DispatchQueue.main.async`, so buffered replays run after the reset. `runOnMain` executes inline when already on main, so swapping the games' hops to `runOnMain` would make the replay synchronous and wipe a buffered SETUP/WORD, leaving the phone waiting forever (the ISSUE-102/103 symptom). Not a present bug.
+- **Suggested fix:** Add a comment at both call sites, or reorder to match Android (non-roller resets before `setListeners`; roller starts after, only if the board is empty).
+
+#### ISSUE-135: The public marketing page docs/index.html still advertises Gemini-generated / AI content
+- **Severity:** LOW
+- **Area:** content
+- **File:** docs/index.html:7 and :258-259
+- **Found by:** qa-ai-content (2026-11-05)
+- **Description:** The meta description says "26 mini-games plus AI-generated conversation starters", and a feature card titled "AI conversation starters" says "Gemini-generated jokes, riddles, trivia, and conversation prompts to break the ice." Neither platform has any AI path, so this is false, and it contradicts the policy the AI removal was done for (no AI service touching a minor's device). The in-app strings are clean; this page is public-facing.
+- **Suggested fix:** Reword to built-in content, for example "Jokes, riddles, trivia and conversation prompts to break the ice", and drop "AI-generated" from the meta description.
+
+#### ISSUE-136: "How to Play" title shows raw GAME_TYPE codes (Android ISSUE-156 never ported)
+- **Severity:** LOW
+- **Area:** navigation
+- **File:** Navigation/InstructionsScreenView.swift:66
+- **Found by:** qa-navigation-flow (2026-11-05)
+- **Description:** The title renders `"How to Play \(selection.gameType)"`, giving "How to Play COUNT21", "WORDSEARCH", "TICTACTOE", "SEQUENCE" and so on. Android uses the display name (InstructionsViewActivity.kt:46) and iOS already has the helper at Core/AppFeedbackService.swift:44.
+- **Suggested fix:** Use `AppFeedbackService.displayName(for: selection.gameType)`.
+
+#### ISSUE-137: Widget deep link replaces the whole navigation stack, destroying a paused game (Android keeps it)
+- **Severity:** LOW
+- **Area:** navigation
+- **File:** App/RootView.swift:99-110
+- **Found by:** qa-navigation-flow (2026-11-05)
+- **Description:** `consumePendingDeepLink()` ends any live room and sets `router.path = [route]` unconditionally, dropping whatever game was open, including solo progress. Android deliberately stopped doing this (ISSUE-127): the widget uses `FLAG_ACTIVITY_NEW_TASK` only and `DailyQuestionActivity` finishes back to the running app. The practical window is small because the user has to background the app to reach the widget. This file documents the replacement as intended but not that it differs from Android.
+- **Suggested fix:** Push `.dailyQuestion` on top when the stack holds a game and replace only when the stack is empty or holds no running game; if replacement is kept, record the divergence in CLAUDE.md.
+
+#### ISSUE-138: The UI test cannot get past the first-launch Terms/Name/GetUpdates gate on a clean install
+- **Severity:** LOW
+- **Area:** build
+- **File:** BuddyVerseUITests/BuddyVerseUITests.swift:18-22
+- **Found by:** qa-navigation-flow (2026-11-05)
+- **Description:** The test launches and goes straight to the Welcome cards. On a fresh simulator or CI run `RootView` shows the gate over Welcome and disables hit-testing on `mainContent` (RootView.swift:54-61). The "Explore the app" button still exists in the accessibility tree so the first assertion passes, then the card tap is swallowed by the overlay and the test fails later with a misleading "OnePhoneSelection screen didn't load". It only works on a simulator that was already clicked through by hand. (It would also hit ISSUE-121 on a build without the Firebase plist.)
+- **Suggested fix:** Set `app.launchArguments += ["-accepted_terms", "YES", "-has_entered_name", "YES"]` before `launch()`.
+
+#### ISSUE-139: Count to 21's "Back to Welcome" button only goes back one screen
+- **Severity:** LOW
+- **Area:** navigation
+- **File:** Games/CountTo21/CountTo21View.swift:125
+- **Found by:** qa-navigation-flow (2026-11-05)
+- **Description:** Android's label is accurate because its intermediate screens finish, so Back lands on Welcome. On iOS `router.pop()` returns to BotDifficulty, InstructionsChoice or FriendTypeChoice; a separate "Home" button already exists.
+- **Suggested fix:** Rename it "Back" or "Back to Menu", as the other games do.
+
+#### ISSUE-140: Redundant `#available(iOS 15...)` checks and stale "14.0 floor" comments after the deployment-target bump
+- **Severity:** LOW
+- **Area:** build
+- **File:** Core/LocalNotificationManager.swift:51; Games/MathSprint/MathSprintView.swift:85; stale comments at Core/BuddyVerseActivityAttributes.swift:10-11, Core/LiveActivityManager.swift:23-24, Core/LocalNotificationManager.swift:48-50, App/RootView.swift:12, Core/LegacyButtonStyles.swift:5, Games/MathSprint/MathSprintView.swift:79-83
+- **Found by:** qa-build-lint (2026-11-05); expected compiler warnings, not observed (no compiler available)
+- **Description:** The floor is 15.0 (project.yml:5 and :17), so `#available(iOS 15.0, *)` and `#available(iOS 15, *)` are always true and the Swift compiler normally warns "unnecessary check for 'iOS'". The `else { answerField }` branch at MathSprintView.swift:87-89 is now dead code.
+- **Suggested fix:** Drop the two checks (the "iOS 14 compatibility constraints" section says the iOS 15 items may now be relaxed) and refresh the comments.
+
+#### ISSUE-141: The qa-build-lint agent spec says never use a simulator, but CLAUDE.md says simulators are allowed
+- **Severity:** LOW
+- **Area:** build
+- **File:** .claude/agents/qa-build-lint.md:3 and :9; CLAUDE.md "Commands"
+- **Found by:** qa-build-lint (2026-11-05)
+- **Description:** The agent spec says "no simulator ... the owner has said no simulators. Compile only", while CLAUDE.md says "Simulators are allowed. The old no-simulator rule existed because an earlier computer was short on disk space". The agent followed the stricter rule, so UI and unit tests are never run by the QA pass.
+- **Suggested fix:** Update the agent spec to match CLAUDE.md (or restore the rule if it still stands).
+
+#### ISSUE-142: iOS side of Android ISSUE-203/204: the math-teacher joke has no pun, and the Conversation screen promises other people's answers
+- **Severity:** LOW
+- **Area:** content
+- **File:** Games/Jokes/JokesView.swift:382; Games/Conversation/ConversationView.swift:173 and :181; Navigation/InstructionsScreenView.swift:38
+- **Found by:** qa-ai-content (2026-11-05)
+- **Description:** Same text and the same problems as the Android entries: the "sine and cosine" beach joke doesn't land, and "What others are saying:" / "yours could be the first!" describe answers that are only the ones typed on this phone.
+- **Suggested fix:** See Android ISSUE-203 and ISSUE-204; make the same edits here.
 
 ### Fixed
 
@@ -742,3 +922,19 @@ _Maintained by `/test-app` (adds findings from the iOS QA agent team in `.claude
 - **Found by:** qa-game-logic (2026-11-05)
 - **Fixed by:** main agent on 2026-11-05
 - **Summary:** `ChessView.onDisappear` bumped `gameId` to drop a pending bot move, but the bot's callback returns before clearing `botThinking` when `gameId` has changed, so a disappear/reappear froze input until New Game. `onDisappear` now clears `botThinking` as well. Not run on a device (the chess code has never been compiled; see the Chess section).
+
+#### ISSUE-143: Privacy manifest did not declare the System Boot Time API that the Chess bot uses
+- **Severity:** MEDIUM
+- **Area:** build
+- **File:** BuddyVerse/Resources/PrivacyInfo.xcprivacy; BuddyVerse/Games/Chess/ChessEngine.swift:409,416
+- **Found by:** qa-build-lint (2026-11-05)
+- **Fixed by:** main agent on 2026-11-05
+- **Summary:** The Chess bot's time limit calls `ProcessInfo.processInfo.systemUptime`, which Apple lists as a required-reason API (`NSPrivacyAccessedAPICategorySystemBootTime`), but the manifest declared only UserDefaults / CA92.1, so the next App Store Connect upload would likely be flagged (ITMS-91053, missing API declaration). Added the `NSPrivacyAccessedAPICategorySystemBootTime` entry with reason `35F9.1` (measuring elapsed time inside the app) and updated the "App Store setup" note. The manifest still parses (checked with plistlib). The other time source, `clock_gettime_nsec_np` in `InternetConnectionManager`, is not on Apple's list. Not run through App Store Connect.
+
+#### ISSUE-144: Welcome "Original games" counter stopped at 22 after Chess was added
+- **Severity:** LOW
+- **Area:** navigation
+- **File:** Navigation/WelcomeView.swift:419
+- **Found by:** qa-navigation-flow (2026-11-05)
+- **Fixed by:** main agent on 2026-11-05
+- **Summary:** Welcome offers 12 free games (Chess and Math Sprint included) plus 11 expeditions, which is 23, and Android's counter counts to 23. `animateStats()` still counted to 22; it now counts to 23. The prose in ISSUE-92/115 ("jokes/riddles cards count to 90") is stale: both platforms' code counts the Jokes, Riddles and Trivia cards to 100, which matches the current pools (about 104/103/101), so only the text is out of date.
