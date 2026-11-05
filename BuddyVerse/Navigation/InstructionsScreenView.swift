@@ -11,6 +11,7 @@ struct InstructionsScreenView: View {
     private var instructions: String {
         switch selection.gameType {
         case "TICTACTOE": return "Get three in a row (horizontal, vertical, or diagonal) to win!"
+        case "CHESS": return "Trap the other king! Tap a piece, then tap a highlighted square to move it."
         case "HANGMAN": return "Guess the secret word before the stickman is fully drawn!"
         case "WORDSEARCH": return "Swipe across the letters to find the hidden word."
         case "MEMORY": return "Flip two cards to find matching emojis."
@@ -20,7 +21,6 @@ struct InstructionsScreenView: View {
         case "RPS": return "Rock beats Scissors, Scissors beats Paper, Paper beats Rock."
         case "SEQUENCE": return "Watch the pattern of colors and repeat them in order."
         case "SLIDE": return "Slide the tiles to arrange numbers 1-8 in order."
-        case "CHESS": return "Trap the other king! Tap a piece, then tap a highlighted square to move it."
         case "SPACE": return "Tap to move your rocket and collect stars."
         case "JUNGLE": return "Tap the jumping fruits as fast as you can."
         case "OCEAN": return "Tap the sea creatures to dive deep before your bubbles run out."

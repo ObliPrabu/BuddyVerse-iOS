@@ -575,7 +575,7 @@ struct TriviaView: View {
         Question(text: "How many days are in a week?", options: ["5", "6", "7", "8"], correctAnswer: "7"),
         Question(text: "Which city is the executive (administrative) capital of South Africa?", options: ["Johannesburg", "Durban", "Cape Town", "Pretoria"], correctAnswer: "Pretoria"),
         Question(text: "Which is the largest planet in our solar system?", options: ["Saturn", "Neptune", "Jupiter", "Uranus"], correctAnswer: "Jupiter"),
-        Question(text: "What is the capital of the Netherlands?", options: ["Rotterdam", "Utrecht", "The Hague", "Amsterdam"], correctAnswer: "Amsterdam"),
+        Question(text: "What is the capital of the Netherlands?", options: ["Rotterdam", "Utrecht", "Eindhoven", "Amsterdam"], correctAnswer: "Amsterdam"),
         Question(text: "Which season comes after winter?", options: ["Summer", "Autumn", "Spring", "Monsoon"], correctAnswer: "Spring"),
         Question(text: "What do caterpillars turn into?", options: ["Beetles", "Butterflies", "Bees", "Spiders"], correctAnswer: "Butterflies"),
         Question(text: "Which organ pumps blood around your body?", options: ["Lungs", "Stomach", "Heart", "Brain"], correctAnswer: "Heart"),
