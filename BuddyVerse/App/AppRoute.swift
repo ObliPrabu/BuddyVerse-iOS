@@ -63,6 +63,10 @@ enum GameRouter {
         case "COUNT21": CountTo21View(selection: selection)
         case "TICTACTOE": TicTacToeView(selection: selection)
         case "CHESS": ChessView(selection: selection)
+        case "OASIS": ExpeditionView(config: ExpeditionConfig(id: "OASIS", title: "Desert Oasis Race 🐪", background: Color(hex: 0xF9A825)), difficulty: selection.difficulty ?? "EASY") { OasisGame(difficulty: $0) }
+        case "CANOPY": ExpeditionView(config: ExpeditionConfig(id: "CANOPY", title: "Rainforest Canopy 🌴", background: Color(hex: 0x1B5E20)), difficulty: selection.difficulty ?? "EASY") { CanopyGame(difficulty: $0) }
+        case "MANSION": ExpeditionView(config: ExpeditionConfig(id: "MANSION", title: "Haunted Mansion 👻", background: Color(hex: 0x6A1B9A)), difficulty: selection.difficulty ?? "EASY") { MansionGame(difficulty: $0) }
+        case "SHIPWRECK": ExpeditionView(config: ExpeditionConfig(id: "SHIPWRECK", title: "Shipwreck Dive 🚢", background: Color(hex: 0x01579B)), difficulty: selection.difficulty ?? "EASY") { ShipwreckGame(difficulty: $0) }
         case "BALLOON": ExpeditionView(config: ExpeditionConfig(id: "BALLOON", title: "Hot-Air Balloon 🎈", background: Color(hex: 0x5C6BC0)), difficulty: selection.difficulty ?? "EASY") { BalloonGame(difficulty: $0) }
         case "RAPIDS": ExpeditionView(config: ExpeditionConfig(id: "RAPIDS", title: "River Rapids 🛶", background: Color(hex: 0x0277BD)), difficulty: selection.difficulty ?? "EASY") { RapidsGame(difficulty: $0) }
         case "ROVER": ExpeditionView(config: ExpeditionConfig(id: "ROVER", title: "Mars Rover 🤖", background: Color(hex: 0xBF360C)), difficulty: selection.difficulty ?? "EASY") { RoverGame(difficulty: $0) }

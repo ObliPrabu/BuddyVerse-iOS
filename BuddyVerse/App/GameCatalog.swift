@@ -7,7 +7,7 @@ import Foundation
 enum GameCatalog {
     static let soloGamesWithNoBot: Set<String> = [
         "SUDOKU", "MAZE", "WORDSEARCH", "SLIDE", "HANGMAN", "SEQUENCE",
-        "SPACE", "JUNGLE", "OCEAN", "SAVANNA", "STORM", "VOLCANO", "SWAMP", "MOUNTAIN", "ZIPLINE", "METEOR", "DINO", "PIRATE", "TEMPLE", "ROVER", "RAPIDS", "BALLOON"
+        "SPACE", "JUNGLE", "OCEAN", "SAVANNA", "STORM", "VOLCANO", "SWAMP", "MOUNTAIN", "ZIPLINE", "METEOR", "DINO", "PIRATE", "TEMPLE", "ROVER", "RAPIDS", "BALLOON", "SHIPWRECK", "MANSION", "CANOPY", "OASIS"
     ]
 
     // Every game with real internet ("Two Phones") multiplayer wired up.
