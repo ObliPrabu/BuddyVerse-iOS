@@ -14,7 +14,7 @@ xcodebuild -project BuddyVerse.xcodeproj -scheme BuddyVerse -destination 'generi
 open BuddyVerse.xcodeproj                  # open in Xcode for day-to-day iteration
 ```
 
-**Simulators are allowed.** The old no-simulator rule existed because an earlier computer was short on disk space; this one has room (512 GB). Note that this Xcode (27.1) has no standalone Simulator.app; it ships DeviceHub.app instead, and `xcrun simctl` still works. To check that a change compiles without signing, you can also build for a generic device:
+**Simulators: only when the owner asks** (see "Simulators and emulators" below). This Xcode (27.1) has no standalone Simulator.app; it ships DeviceHub.app instead, and `xcrun simctl` still works. To check that a change compiles without signing, build for a generic device (no simulator needed):
 
 ```bash
 xcodebuild -project BuddyVerse.xcodeproj -scheme BuddyVerse -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
@@ -45,6 +45,14 @@ _Standing instruction from the owner (2026-11-05): commit and push automatically
 - **Cloud-session branches** (`claude/...`): fetching is fine, but merging one into your work still happens only when the owner says to pull.
 - **Write real commit messages:** a short summary line, then what changed and why in plain English, ending with the usual `Co-Authored-By` line.
 - **Pushing is not releasing or installing.** Uploading to Google Play, publishing a Mac `.dmg`, editing the website, and installing on the owner's own devices still happen only when asked. Never install on Arjun Prabu's iPhone.
+
+## Simulators and emulators
+
+_Standing instruction from the owner (2026-11-05): do not use them unless asked._
+
+- **Never start, boot, install on, or drive an emulator or simulator (Android emulators, the iPhone Duo or any other iOS simulator) unless the owner asks for it in that message.** This includes "just to test a change": build and run the unit tests instead, and ask the owner if a screen needs to be seen.
+- If the owner does ask, tell them what you are starting, and shut it down again (and uninstall any test-runner apps you added) when the task is done.
+- Real devices are separate: install on the owner's own phone only when asked (see the Git workflow section's last bullet).
 
 ## Architecture
 
