@@ -125,6 +125,18 @@ struct ChessView: View {
     private var boardFlipped: Bool { isNearbyGame && !myIsWhite }
     private var friendName: String { players.first { $0.id != myId }?.name ?? "Your friend" }
 
+    // The clock under the board belongs to the player at the bottom: you online,
+    // and White when playing the bot (you are White) or sharing one phone.
+    private var bottomIsWhite: Bool { isNearbyGame ? myIsWhite : true }
+    private var bottomClockLabel: String { (isNearbyGame || isBotGame) ? "You" : "White" }
+    private var topClockLabel: String {
+        if isNearbyGame { return friendName }
+        return isBotGame ? "Bot" : "Black"
+    }
+
+    // Bot and one-phone games pick their clock on this screen, before the first move.
+    private var showClockChoice: Bool { !isNearbyGame && playedMoves.isEmpty }
+
     private var newGameTitle: String {
         guard isNearbyGame else { return "NEW GAME" }
         if gameOver { return "NEW GAME" }
@@ -153,6 +165,28 @@ struct ChessView: View {
                     .multilineTextAlignment(.center)
                     .padding(.top, 4)
                     .padding(.bottom, 8)
+
+                if showClockChoice {
+                    HStack(spacing: 8) {
+                        Text("Clock:")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                        Picker("Clock", selection: Binding(
+                            get: { clockSeconds },
+                            set: { newValue in
+                                clockSeconds = newValue
+                                resetClock()
+                            }
+                        )) {
+                            Text("None").tag(0)
+                            Text("3 min").tag(180)
+                            Text("5 min").tag(300)
+                            Text("10 min").tag(600)
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                    }
+                    .padding(.bottom, 6)
+                }
 
                 if clock != nil {
                     Text(oppClockText)
@@ -648,7 +682,7 @@ struct ChessView: View {
             DispatchQueue.main.async {
                 guard myGame == gameId else { return }
                 botThinking = false
-                if let move { play(move) } else { updateStatus() }
+                if let move, !gameOver { play(move) } else { updateStatus() }
             }
         }
     }
@@ -762,7 +796,7 @@ struct ChessView: View {
     private func nowMs() -> Int64 { Int64(Date().timeIntervalSinceReferenceDate * 1000) }
 
     private func resetClock() {
-        clock = (isNearbyGame && clockSeconds > 0) ? ChessClock(totalMs: Int64(clockSeconds) * 1000) : nil
+        clock = clockSeconds > 0 ? ChessClock(totalMs: Int64(clockSeconds) * 1000) : nil
         updateClocks()
     }
 
@@ -778,13 +812,17 @@ struct ChessView: View {
             return
         }
         let now = nowMs()
-        let myWhite = myIsWhite
-        let mine = c.remaining(white: myWhite, now: now)
-        let theirs = c.remaining(white: !myWhite, now: now)
-        myClockText = "You   \(formatClock(mine))"
-        oppClockText = "\(friendName)   \(formatClock(theirs))"
+        let bottomWhite = bottomIsWhite
+        let mine = c.remaining(white: bottomWhite, now: now)
+        let theirs = c.remaining(white: !bottomWhite, now: now)
+        myClockText = "\(bottomClockLabel)   \(formatClock(mine))"
+        oppClockText = "\(topClockLabel)   \(formatClock(theirs))"
         if gameOver || playedMoves.isEmpty { return }
-        let myTurn = pos.whiteToMove == myWhite
+        if !isNearbyGame {
+            checkLocalTimeout(c, now: now)
+            return
+        }
+        let myTurn = pos.whiteToMove == bottomWhite
         if myTurn && mine <= 0 {
             // My own clock ran out: I lose, and I tell my friend.
             InternetConnectionManager.shared.sendMessage(ChessWire.timeout(roundId))
@@ -796,6 +834,22 @@ struct ChessView: View {
             // does (phone asleep, signal lost), call it after a grace period.
             winOnTime()
         }
+    }
+
+    // Bot and one-phone games have no other phone to tell, so whoever's clock
+    // reaches zero while it is their turn simply loses on time.
+    private func checkLocalTimeout(_ c: ChessClock, now: Int64) {
+        let whiteOut = pos.whiteToMove && c.remaining(white: true, now: now) <= 0
+        let blackOut = !pos.whiteToMove && c.remaining(white: false, now: now) <= 0
+        if !whiteOut && !blackOut { return }
+        gameOver = true
+        if isBotGame {
+            resultText = whiteOut ? "Time's up - you lose on time" : "The bot ran out of time - you win! \u{1F389}"
+        } else {
+            resultText = whiteOut ? "White ran out of time - Black wins! \u{1F389}" : "Black ran out of time - White wins! \u{1F389}"
+        }
+        if !isBotGame || blackOut { confetti.start() }
+        updateStatus()
     }
 
     private func winOnTime() {
