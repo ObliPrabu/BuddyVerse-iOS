@@ -63,6 +63,10 @@ enum GameRouter {
         case "COUNT21": CountTo21View(selection: selection)
         case "TICTACTOE": TicTacToeView(selection: selection)
         case "CHESS": ChessView(selection: selection)
+        case "PIRATE": ExpeditionView(config: ExpeditionConfig(id: "PIRATE", title: "Pirate Island 🏴‍☠️", background: Color(hex: 0x00838F)), difficulty: selection.difficulty ?? "EASY") { PirateIslandGame(difficulty: $0) }
+        case "DINO": ExpeditionView(config: ExpeditionConfig(id: "DINO", title: "Dino Valley 🦕", background: Color(hex: 0x2E7D32)), difficulty: selection.difficulty ?? "EASY") { DinoValleyGame(difficulty: $0) }
+        case "METEOR": ExpeditionView(config: ExpeditionConfig(id: "METEOR", title: "Meteor Shower ☄️", background: Color(hex: 0x1A237E)), difficulty: selection.difficulty ?? "EASY") { MeteorGame(difficulty: $0) }
+        case "ZIPLINE": ExpeditionView(config: ExpeditionConfig(id: "ZIPLINE", title: "Canyon Zipline 🪂", background: Color(hex: 0xE65100)), difficulty: selection.difficulty ?? "EASY") { ZiplineGame(difficulty: $0) }
         case "WORDSEARCH": WordSearchView(selection: selection)
         case "MAZE": MazeGameView(selection: selection)
         case "MEMORY": MemoryMatchView(selection: selection)

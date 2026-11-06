@@ -12,6 +12,10 @@ struct InstructionsScreenView: View {
         switch selection.gameType {
         case "TICTACTOE": return "Get three in a row (horizontal, vertical, or diagonal) to win!"
         case "CHESS": return "Trap the other king! Tap a piece, then tap a highlighted square to move it."
+        case "PIRATE": return "Tap sand to dig for treasure. Numbers count nearby traps and a sparkle means the chest is close!"
+        case "DINO": return "Walk one step at a time, collect every egg and don't get bumped by the dinos!"
+        case "METEOR": return "Hold the arrows to steer your rocket - catch stars and dodge meteors!"
+        case "ZIPLINE": return "Tap left or right to swap ziplines - grab coins and dodge the eagles!"
         case "HANGMAN": return "Guess the secret word before the stickman is fully drawn!"
         case "WORDSEARCH": return "Swipe across the letters to find the hidden word."
         case "MEMORY": return "Flip two cards to find matching emojis."
