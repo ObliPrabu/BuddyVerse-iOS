@@ -66,7 +66,7 @@ struct WelcomeView: View {
         ("Space Explorer 🚀", "SPACE", false), ("Jungle Run 🐒", "JUNGLE", false), ("Ocean Dive 🌊", "OCEAN", false),
         ("Mountain Climb 🏔️", "MOUNTAIN", false), ("Desert Trek 🏜️", "DESERT", false), ("Volcano Climb 🌋", "VOLCANO", false),
         ("Arctic Trek", "ARCTIC", false), ("Savanna Safari 🦁", "SAVANNA", false), ("Cave Explorer 🕯️", "CAVE", false),
-        ("Swamp Trek 🐊", "SWAMP", false), ("Storm Chase ⚡", "STORM", false), ("Canyon Zipline 🪂", "ZIPLINE", false), ("Meteor Shower ☄️", "METEOR", false), ("Dino Valley 🦕", "DINO", false), ("Pirate Island 🏴‍☠️", "PIRATE", false),
+        ("Swamp Trek 🐊", "SWAMP", false), ("Storm Chase ⚡", "STORM", false), ("Canyon Zipline 🪂", "ZIPLINE", false), ("Meteor Shower ☄️", "METEOR", false), ("Dino Valley 🦕", "DINO", false), ("Pirate Island 🏴‍☠️", "PIRATE", false), ("Ancient Temple 🏛️", "TEMPLE", false), ("Mars Rover 🤖", "ROVER", false), ("River Rapids 🛶", "RAPIDS", false), ("Hot-Air Balloon 🎈", "BALLOON", false),
     ]
 
     var body: some View {
@@ -410,12 +410,12 @@ struct WelcomeView: View {
     }
 
     // Mirrors WelcomeActivity.animateCountUp: counts 0 -> target over 1.5s with
-    // a decelerate (ease-out) curve, same hardcoded "Original games" total (27 after the first batch of new expedition games).
+    // a decelerate (ease-out) curve, same hardcoded "Original games" total (31 after the second batch of new expedition games).
     private func animateStats() {
         animateCountUp(target: 100) { statJokes = $0 }
         animateCountUp(target: 100) { statRiddles = $0 }
         animateCountUp(target: 100) { statTrivia = $0 }
-        animateCountUp(target: 27) { statGames = $0 }
+        animateCountUp(target: 31) { statGames = $0 }
     }
 
     // Only bothers checking Firestore if this device has actually opted in
