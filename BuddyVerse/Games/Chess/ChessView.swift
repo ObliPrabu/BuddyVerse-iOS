@@ -361,7 +361,7 @@ struct ChessView: View {
     private var boardView: some View {
         GeometryReader { geo in
             let side = min(geo.size.width, geo.size.height)
-            // The squares sit to the right of a narrow strip holding the rank
+            // The squares sit to the left of a narrow strip holding the rank
             // numbers and above a strip holding the file letters, so the
             // labels never cover a piece.
             let margin = side * 0.055
@@ -370,7 +370,16 @@ struct ChessView: View {
             let labelFont = Font.system(size: margin * 0.7, weight: .bold)
             VStack(spacing: 0) {
                 HStack(spacing: 0) {
-                    // Numbers 1-8 down the left side. When the board is turned
+                    VStack(spacing: 0) {
+                        ForEach(0..<8, id: \.self) { drawRow in
+                            HStack(spacing: 0) {
+                                ForEach(0..<8, id: \.self) { drawCol in
+                                    squareView(squareAt(drawRow: drawRow, drawCol: drawCol), drawRow: drawRow, drawCol: drawCol, cell: cell)
+                                }
+                            }
+                        }
+                    }
+                    // Numbers 1-8 down the right side. When the board is turned
                     // around for Black they run the other way, so they always
                     // name the square next to them.
                     VStack(spacing: 0) {
@@ -381,25 +390,16 @@ struct ChessView: View {
                                 .frame(width: margin, height: cell)
                         }
                     }
-                    VStack(spacing: 0) {
-                        ForEach(0..<8, id: \.self) { drawRow in
-                            HStack(spacing: 0) {
-                                ForEach(0..<8, id: \.self) { drawCol in
-                                    squareView(squareAt(drawRow: drawRow, drawCol: drawCol), drawRow: drawRow, drawCol: drawCol, cell: cell)
-                                }
-                            }
-                        }
-                    }
                 }
                 // Letters a-h along the bottom.
                 HStack(spacing: 0) {
-                    Color.clear.frame(width: margin, height: margin)
                     ForEach(0..<8, id: \.self) { drawCol in
                         Text(String(Character(UnicodeScalar(UInt8(97 + (boardFlipped ? 7 - drawCol : drawCol))))))
                             .font(labelFont)
                             .foregroundColor(labelColor)
                             .frame(width: cell, height: margin)
                     }
+                    Color.clear.frame(width: margin, height: margin)
                 }
             }
             .frame(width: side, height: side)
