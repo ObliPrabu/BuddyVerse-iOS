@@ -63,6 +63,7 @@ enum GameRouter {
         case "COUNT21": CountTo21View(selection: selection)
         case "TICTACTOE": TicTacToeView(selection: selection)
         case "CHESS": ChessView(selection: selection)
+        case "CHECKERS": CheckersView(selection: selection)
         case "OASIS": ExpeditionView(config: ExpeditionConfig(id: "OASIS", title: "Desert Oasis Race 🐪", background: Color(hex: 0xF9A825)), difficulty: selection.difficulty ?? "EASY") { OasisGame(difficulty: $0) }
         case "CANOPY": ExpeditionView(config: ExpeditionConfig(id: "CANOPY", title: "Rainforest Canopy 🌴", background: Color(hex: 0x1B5E20)), difficulty: selection.difficulty ?? "EASY") { CanopyGame(difficulty: $0) }
         case "MANSION": ExpeditionView(config: ExpeditionConfig(id: "MANSION", title: "Haunted Mansion 👻", background: Color(hex: 0x6A1B9A)), difficulty: selection.difficulty ?? "EASY") { MansionGame(difficulty: $0) }

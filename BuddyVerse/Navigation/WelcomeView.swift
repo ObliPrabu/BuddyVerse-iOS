@@ -13,6 +13,7 @@ struct WelcomeView: View {
     @State private var statRiddles = 0
     @State private var statTrivia = 0
     @State private var statGames = 0
+    @State private var statMultiplayer = 0
     @State private var scrollProxy: ScrollViewProxy?
     @State private var updateBannerText: String?
     @State private var isAdminUser = AuthManager.isAdmin()
@@ -58,6 +59,7 @@ struct WelcomeView: View {
         ("🎵", "Memory Sequence", "Watch & repeat the growing pattern.", "SEQUENCE"),
         ("🔀", "Slide Puzzle", "Slide the numbers back into order.", "SLIDE"),
         ("♞", "Chess", "The classic game of kings. Play a friend or the bot.", "CHESS"),
+        ("🔴", "Checkers", "Jump your way to victory! Play a friend, online, or the bot.", "CHECKERS"),
         ("🪢", "Hangman", "Guess the word before the stickman is made.", "HANGMAN"),
         ("⚡", "Math Sprint", "Beat the clock with mental math. 3 levels.", "MATH")
     ]
@@ -193,6 +195,8 @@ struct WelcomeView: View {
                 statCard("\(statTrivia)+", "Trivia facts")
                 statCard("\(statGames)", "Original games")
             }
+            // How many games can be played online with a friend; counted from the real list so it can't drift.
+            statCard("\(statMultiplayer)", "Games you can play online with a friend")
         }
     }
 
@@ -410,12 +414,13 @@ struct WelcomeView: View {
     }
 
     // Mirrors WelcomeActivity.animateCountUp: counts 0 -> target over 1.5s with
-    // a decelerate (ease-out) curve, same hardcoded "Original games" total (35 after the third batch of new expedition games).
+    // a decelerate (ease-out) curve, same hardcoded "Original games" total (36 after Checkers was added).
     private func animateStats() {
         animateCountUp(target: 100) { statJokes = $0 }
         animateCountUp(target: 100) { statRiddles = $0 }
         animateCountUp(target: 100) { statTrivia = $0 }
-        animateCountUp(target: 35) { statGames = $0 }
+        animateCountUp(target: 36) { statGames = $0 }
+        animateCountUp(target: GameCatalog.realMultiplayerGames.count) { statMultiplayer = $0 }
     }
 
     // Only bothers checking Firestore if this device has actually opted in

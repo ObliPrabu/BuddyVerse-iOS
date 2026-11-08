@@ -49,6 +49,7 @@ enum AppFeedbackService {
         case "CONVERSATION": return "Conversation Starters"
         case "TICTACTOE": return "Tic-Tac-Toe"
         case "CHESS": return "Chess"
+        case "CHECKERS": return "Checkers"
         case "OASIS": return "Desert Oasis Race"
         case "CANOPY": return "Rainforest Canopy"
         case "MANSION": return "Haunted Mansion"

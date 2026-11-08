@@ -11,6 +11,7 @@ struct InstructionsScreenView: View {
     private var instructions: String {
         switch selection.gameType {
         case "TICTACTOE": return "Get three in a row (horizontal, vertical, or diagonal) to win!"
+        case "CHECKERS": return "Jump over the other side's pieces until none are left. You must take a piece when you can! Tap a piece, then tap where it goes."
         case "CHESS": return "Trap the other king! Tap a piece, then tap a highlighted square to move it."
         case "OASIS": return "Tap left and right in turn to run your camel to the oasis before sunset!"
         case "CANOPY": return "Tap to let go of the vine at just the right moment and land on the next branch!"

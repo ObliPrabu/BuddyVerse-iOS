@@ -40,8 +40,8 @@ targets:
         # bump both together after a meaningful cross-platform change so the
         # version label shown on the Welcome screen can confirm two test
         # devices are running the same build.
-        MARKETING_VERSION: "1.6.30"
-        CURRENT_PROJECT_VERSION: "75"
+        MARKETING_VERSION: "1.6.31"
+        CURRENT_PROJECT_VERSION: "76"
         SWIFT_VERSION: "6.0"
         TARGETED_DEVICE_FAMILY: "1,2"
         DEVELOPMENT_TEAM: "PS8DGXJ8S8"
@@ -118,8 +118,8 @@ targets:
         # so this was silently wrong before the widget did anything
         # user-facing. Bump this alongside CURRENT_PROJECT_VERSION/
         # MARKETING_VERSION above on every version bump from now on.
-        CURRENT_PROJECT_VERSION: "75"
-        MARKETING_VERSION: "1.6.30"
+        CURRENT_PROJECT_VERSION: "76"
+        MARKETING_VERSION: "1.6.31"
         SWIFT_VERSION: "6.0"
         TARGETED_DEVICE_FAMILY: "1,2"
         DEVELOPMENT_TEAM: "PS8DGXJ8S8"
@@ -168,6 +168,8 @@ targets:
       - path: BuddyVerseTests
       - path: BuddyVerse/Games/Chess/ChessEngine.swift
       - path: BuddyVerse/Games/Chess/ChessOnline.swift
+      - path: BuddyVerse/Games/Checkers/CheckersEngine.swift
+      - path: BuddyVerse/Games/Checkers/CheckersOnline.swift
       # The expedition mini-games' rules (everything in the folder except the SwiftUI screen).
       - path: BuddyVerse/Games/Expedition
         excludes:

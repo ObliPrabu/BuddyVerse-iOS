@@ -12,7 +12,7 @@ enum GameCatalog {
 
     // Every game with real internet ("Two Phones") multiplayer wired up.
     static let realMultiplayerGames: Set<String> = [
-        "TICTACTOE", "COUNT21", "MEMORY", "HANGMAN", "ARCTIC", "CAVE", "DESERT", "CHESS"
+        "TICTACTOE", "COUNT21", "MEMORY", "HANGMAN", "ARCTIC", "CAVE", "DESERT", "CHESS", "CHECKERS"
     ]
 
     // The subset of realMultiplayerGames that support more than 2 players in
